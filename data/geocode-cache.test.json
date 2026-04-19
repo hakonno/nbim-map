@@ -1,0 +1,277 @@
+{
+  "version": 1,
+  "provider": "nominatim",
+  "entries": {
+    "f4eaf6a3a31feeb7936d43d338e7444ac189ee54": {
+      "status": "ok",
+      "lat": 50.7874,
+      "lng": 5.52266,
+      "display_name": "Tongeren Bewel",
+      "provider": "photon",
+      "query": "Tongeren DC3, Heesterveldweg, 3700, Tongeren, Belgium",
+      "updated_at": "2026-04-19T15:02:36.166Z"
+    },
+    "9a53966b6b80a47b3432a490059f54af6b64dd55": {
+      "status": "ok",
+      "lat": 51.0914713,
+      "lng": 4.2573122,
+      "display_name": "",
+      "provider": "photon",
+      "query": "Bornem DC2, Pedro Colomalaan 11, 2880, Bornem, Belgium",
+      "updated_at": "2026-04-19T15:02:36.477Z"
+    },
+    "e4cb8b91041a4b58e132422b717282d8748a3ff4": {
+      "status": "ok",
+      "lat": 50.7874,
+      "lng": 5.52266,
+      "display_name": "Tongeren Bewel",
+      "provider": "photon",
+      "query": "Tongeren DC2, Heesterveldweg 14, 3700, Tongeren, Belgium",
+      "updated_at": "2026-04-19T15:02:36.887Z"
+    },
+    "61ef37e4c2bbb25a3467718cb9325f5d5aa71b2f": {
+      "status": "ok",
+      "lat": 51.0914713,
+      "lng": 4.2573122,
+      "display_name": "",
+      "provider": "photon",
+      "query": "Bornem DC1, Pedro Colomalaan 11, 2880, Bornem, Belgium",
+      "updated_at": "2026-04-19T15:02:37.086Z"
+    },
+    "5b65b17c57a5fa413257eb5604edfc93d4a204dd": {
+      "status": "ok",
+      "lat": 50.7908982,
+      "lng": 5.5267697,
+      "display_name": "",
+      "provider": "photon",
+      "query": "Tongeren DC1, Limesweg 6, 3700, Tongeren, Belgium",
+      "updated_at": "2026-04-19T15:02:37.505Z"
+    },
+    "a5422aec54c10a4ae6c2b7f6e450df5483b2f60d": {
+      "status": "not_found",
+      "query": "Pilsen-Stenovice DC2, Dobřanská 537, 332 09, Štěnovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:38.014Z"
+    },
+    "7a5a4b533412913b04224b8b7f006d1646209baf": {
+      "status": "not_found",
+      "query": "Pilsen-Stenovice DC2, Dobřanská 537, 332 09, Štěnovice, Štěnovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:38.154Z"
+    },
+    "15d90730ba2d4c85e1a55cd031891449864b5cc1": {
+      "status": "not_found",
+      "query": "Pilsen-Stenovice DC2, Štěnovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:38.440Z"
+    },
+    "a98d7303777931e91c6e11380eb7afaa42d21b1a": {
+      "status": "ok",
+      "lat": 50.0864234,
+      "lng": 14.4156772,
+      "display_name": "Národní knihovna České republiky",
+      "provider": "photon",
+      "query": "Štěnovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:38.835Z"
+    },
+    "069d1dffc9f6e692aae0695920d03d46bdf87128": {
+      "status": "ok",
+      "lat": 50.1274617,
+      "lng": 14.6929238,
+      "display_name": "Mall.cz Jirny DC5",
+      "provider": "photon",
+      "query": "Prague-Jirny DC6, Poděbradská 607, 250 90, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:39.346Z"
+    },
+    "de3aa9e6f381a4327ffeb685f5987ce398db065b": {
+      "status": "not_found",
+      "query": "Prague D1 East DC2, Na Dlouhém 80, 251 01, Říčany-Jažlovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:39.449Z"
+    },
+    "5c9c366fe857bd01a1aab886053e4bbdb3a00d19": {
+      "status": "not_found",
+      "query": "Prague D1 East DC2, Na Dlouhém 80, 251 01, Říčany-Jažlovice, Říčany-Jažlovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:39.835Z"
+    },
+    "d57ae55ff7a1ba25215952e2d05c9c7a75d6da13": {
+      "status": "not_found",
+      "query": "Prague D1 East DC2, Říčany-Jažlovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:40.163Z"
+    },
+    "3ce510397e86d8a73bf4974545ef79838eea3739": {
+      "status": "ok",
+      "lat": 49.9719329,
+      "lng": 14.6220727,
+      "display_name": "Raben Logistics Czech",
+      "provider": "photon",
+      "query": "Říčany-Jažlovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:40.676Z"
+    },
+    "cb18685c05f908070101fe397efe911b029ac539": {
+      "status": "not_found",
+      "query": "Prague D1 East DC3, Na Dlouhém 82, 251 01, Říčany-Jažlovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:40.888Z"
+    },
+    "7156124b2c6540e363c52b19e51fdf4fb4a1a079": {
+      "status": "not_found",
+      "query": "Prague D1 East DC3, Na Dlouhém 82, 251 01, Říčany-Jažlovice, Říčany-Jažlovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:41.146Z"
+    },
+    "508107f7ce5b757b21627bc8bb9e0125a07e46dd": {
+      "status": "not_found",
+      "query": "Prague D1 East DC3, Říčany-Jažlovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:41.464Z"
+    },
+    "19613d7d8703863d5dd4e98b3ce48b55d37ffc4b": {
+      "status": "not_found",
+      "query": "Prague-Jirny DC4 Extension, Poděbradská 607, 250 90, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:41.802Z"
+    },
+    "99063b158ded77930b4903a07db5766124d2e871": {
+      "status": "not_found",
+      "query": "Prague-Jirny DC4 Extension, Poděbradská 607, 250 90, Prague, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:42.211Z"
+    },
+    "0055754cdd3b4406210df51819dea1f07799d520": {
+      "status": "ok",
+      "lat": 50.1274617,
+      "lng": 14.6929238,
+      "display_name": "Mall.cz Jirny DC5",
+      "provider": "photon",
+      "query": "Prague-Jirny DC4 Extension, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:42.519Z"
+    },
+    "0e207d989650bcf1fd94007c79fe154c14b15ee6": {
+      "status": "not_found",
+      "query": "Prague D1 East DC8, Na Dlouhém Říčany-Jažlovice, 251 01, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:42.826Z"
+    },
+    "3306508808be6f979d8e9dad77b99ed9dd50146f": {
+      "status": "not_found",
+      "query": "Prague D1 East DC8, Na Dlouhém Říčany-Jažlovice, 251 01, Prague, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:43.235Z"
+    },
+    "3eec8e98d64ad06ca29a5987f91b7837e794aa4f": {
+      "status": "not_found",
+      "query": "Prague D1 East DC8, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:43.542Z"
+    },
+    "3bcd179367a7a708643abc76753a65d20f9943f7": {
+      "status": "ok",
+      "lat": 50.0864234,
+      "lng": 14.4156772,
+      "display_name": "Národní knihovna České republiky",
+      "provider": "photon",
+      "query": "Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:43.734Z"
+    },
+    "5bd59ff5f841c460ea0b01e701153f8a8901444d": {
+      "status": "ok",
+      "lat": 50.1274617,
+      "lng": 14.6929238,
+      "display_name": "Mall.cz Jirny DC5",
+      "provider": "photon",
+      "query": "Prague-Jirny DC7, Poděbradská 607, 250 90, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:44.265Z"
+    },
+    "7e4856babf9e40cb7429b524b1df65e3a07b555d": {
+      "status": "not_found",
+      "query": "Prague D1 East DC9, Na Dlouhém Říčany-Jažlovice, 251 01, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:44.445Z"
+    },
+    "29515c33b1a695c5d5f9d174ce8f896dbbf41d22": {
+      "status": "not_found",
+      "query": "Prague D1 East DC9, Na Dlouhém Říčany-Jažlovice, 251 01, Prague, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:44.811Z"
+    },
+    "cdf21cc7f59d4c6c66b279fed94762afa5dba0e2": {
+      "status": "not_found",
+      "query": "Prague D1 East DC9, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:45.107Z"
+    },
+    "d73aff2a9f1e96e78dcba4b0dceaa551d3141aad": {
+      "status": "not_found",
+      "query": "Prague D1 East DC1, Na Dlouhém 79, 251 01, Říčany-Jažlovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:45.525Z"
+    },
+    "e4b621edcc4ab2ad7703b862a57c2f96380bba46": {
+      "status": "not_found",
+      "query": "Prague D1 East DC1, Na Dlouhém 79, 251 01, Říčany-Jažlovice, Říčany-Jažlovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:45.808Z"
+    },
+    "ef7401982f40f5b4233f78eb1e8768e98a9077b5": {
+      "status": "not_found",
+      "query": "Prague D1 East DC1, Říčany-Jažlovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:46.205Z"
+    },
+    "004dac1a8de4cbb1e39efd599771996ce51e92e3": {
+      "status": "ok",
+      "lat": 50.1274617,
+      "lng": 14.6929238,
+      "display_name": "Mall.cz Jirny DC5",
+      "provider": "photon",
+      "query": "Prague-Jirny DC5A, Poděbradská 607, 250 90, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:46.514Z"
+    },
+    "b7733a02f9ece95bbc7ab536fbcccccf8aa65390": {
+      "status": "not_found",
+      "query": "Prague-Jirny DC4B Extension, Poděbradská 607, 250 90, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:46.829Z"
+    },
+    "14890ef4325f98bcdf3eff6e19798318768acac9": {
+      "status": "not_found",
+      "query": "Prague-Jirny DC4B Extension, Poděbradská 607, 250 90, Prague, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:47.211Z"
+    },
+    "c04713b57a9bf59bc9cf9f7d0af63b1d4fa91b4d": {
+      "status": "not_found",
+      "query": "Prague-Jirny DC4B Extension, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:47.405Z"
+    },
+    "99a878b22833a632ee88c472d253e7039126a93a": {
+      "status": "not_found",
+      "query": "Pilsen-Stenovice DC3, Dobřanská 538, 332 09, Štěnovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:47.945Z"
+    },
+    "29bcb49ea5b0dc53b43955ab9a50385f467ef375": {
+      "status": "not_found",
+      "query": "Pilsen-Stenovice DC3, Dobřanská 538, 332 09, Štěnovice, Štěnovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:48.208Z"
+    },
+    "b7a3fdd547001f731b610a6ff55a1474a9ca4c28": {
+      "status": "not_found",
+      "query": "Pilsen-Stenovice DC3, Štěnovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:48.561Z"
+    },
+    "4b691dcc7ae4ccbcaaa2a61a85cd3615a0bbd1cc": {
+      "status": "ok",
+      "lat": 49.6786153,
+      "lng": 13.4218247,
+      "display_name": "Park Plzeň-Štěnovice",
+      "provider": "photon",
+      "query": "Pilsen-Stenovice DC1, Dobřanská, 332 09, Štěnovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:48.945Z"
+    },
+    "f312318fa2470b2104c3f149925a8390a7527f1a": {
+      "status": "not_found",
+      "query": "Prague D1 East DC7B, Na Dlouhém 90, 251 01, Říčany-Jažlovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:49.099Z"
+    },
+    "bcdf4c51aa6869a14be7ffdd24a617f1e790a7ff": {
+      "status": "not_found",
+      "query": "Prague D1 East DC7B, Na Dlouhém 90, 251 01, Říčany-Jažlovice, Říčany-Jažlovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:49.580Z"
+    },
+    "55648e0fcaf7c9bbb8a497ad96eeac2c78c01857": {
+      "status": "not_found",
+      "query": "Prague D1 East DC7B, Říčany-Jažlovice, Czech Republic",
+      "updated_at": "2026-04-19T15:02:49.764Z"
+    },
+    "0dad5ebc6e2a901d044d8e68aaf288c5411beae8": {
+      "status": "ok",
+      "lat": 50.1274617,
+      "lng": 14.6929238,
+      "display_name": "Mall.cz Jirny DC5",
+      "provider": "photon",
+      "query": "Prague-Jirny DC5B, Poděbradská 607, 250 90, Prague, Czech Republic",
+      "updated_at": "2026-04-19T15:02:50.198Z"
+    }
+  }
+}

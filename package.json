@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "pipeline": "node scripts/build-cities.mjs",
+    "pipeline": "npm run pipeline:properties && npm run pipeline:cities",
+    "pipeline:cities": "node scripts/build-cities.mjs",
     "pipeline:properties": "node scripts/pipeline.mjs"
   },
   "dependencies": {
@@ -18,6 +19,7 @@
     "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
