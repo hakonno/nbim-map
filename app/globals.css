@@ -3,6 +3,7 @@
 :root {
   --background: #e7edf3;
   --foreground: #111827;
+  --map-mobile-panel-height: 6rem;
 }
 
 @theme inline {
@@ -45,6 +46,25 @@ body {
 
 .safe-area-bottom {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 767px) {
+  .leaflet-container {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .leaflet-bottom.leaflet-left .leaflet-control-zoom {
+    margin-bottom: calc(var(--map-mobile-panel-height) + 0.75rem + env(safe-area-inset-bottom));
+    margin-left: 0.5rem;
+    transition: margin-bottom 220ms ease-out;
+  }
+
+  .leaflet-touch .leaflet-control-zoom a {
+    width: 2.35rem;
+    height: 2.35rem;
+    line-height: 2.25rem;
+    font-size: 1.1rem;
+  }
 }
 
 * {

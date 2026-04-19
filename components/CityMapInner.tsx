@@ -422,7 +422,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   }, []);
 
   return (
-    <div className="map-shell relative h-[100svh] w-full overflow-hidden touch-manipulation">
+    <div className="map-shell relative h-[100dvh] min-h-[100svh] w-full overflow-hidden touch-manipulation">
       <MapContainer 
       center={mapCenter} 
       zoom={MAP_DEFAULT_ZOOM} 
