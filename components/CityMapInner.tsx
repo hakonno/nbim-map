@@ -16,6 +16,7 @@ import type {
 const ZOOM_SHOW_PROPERTIES = 7; // above → switch from city markers to property markers
 const ZOOM_PROPERTY_DETAIL = 10; // above → make property markers easier to inspect
 const MAP_DEFAULT_ZOOM = 3;
+const SEARCH_RESULT_LIMIT = 12;
 const SHOW_PROPERTY_COORDINATES_DEBUG = true;
 
 type CityMapInnerProps = {
@@ -28,6 +29,17 @@ type FlatProperty = CityProperty & {
   country: string;
   lat: number;
   lng: number;
+};
+
+type SearchResult = {
+  id: string;
+  type: "city" | "property";
+  name: string;
+  subtitle: string;
+  lat: number;
+  lng: number;
+  cityId: string;
+  propertyId?: string;
 };
 
 type SelectionState =
@@ -130,6 +142,7 @@ function MapEventBridge({
 export default function CityMapInner({ cities }: CityMapInnerProps) {
   const [zoom, setZoom] = useState(MAP_DEFAULT_ZOOM);
   const [mapInstance, setMapInstance] = useState<LeafletMap | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selection, setSelection] = useState<SelectionState>({
     mode: "global",
     selectedCityId: null,
@@ -321,6 +334,91 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     });
   }, [mapInstance]);
 
+  const localSearchResults = useMemo<SearchResult[]>(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (query.length < 2) {
+      return [];
+    }
+
+    const cityMatches: SearchResult[] = mappableCities
+      .filter((city) => {
+        const cityText = `${city.city} ${city.country}`.toLowerCase();
+        return cityText.includes(query);
+      })
+      .map((city) => ({
+        id: `city-${city.id}`,
+        type: "city",
+        name: city.city,
+        subtitle: city.country,
+        lat: city.lat as number,
+        lng: city.lng as number,
+        cityId: city.id,
+      }));
+
+    const propertyMatches: SearchResult[] = flatProperties
+      .filter((property) => {
+        const haystack = [property.name, property.address, property.cityName, property.country]
+          .filter((part): part is string => Boolean(part && part.trim()))
+          .join(" ")
+          .toLowerCase();
+
+        return haystack.includes(query);
+      })
+      .map((property) => ({
+        id: `property-${property.id}`,
+        type: "property",
+        name: property.name?.trim() || "Unnamed property",
+        subtitle: [property.address, property.cityName, property.country]
+          .filter((part): part is string => Boolean(part && part.trim()))
+          .join(" · "),
+        lat: property.lat,
+        lng: property.lng,
+        cityId: property.cityId,
+        propertyId: property.id,
+      }));
+
+    return [...cityMatches, ...propertyMatches].slice(0, SEARCH_RESULT_LIMIT);
+  }, [searchQuery, mappableCities, flatProperties]);
+
+  const handleSelectSearchResult = useCallback(
+    (result: SearchResult) => {
+      setSearchQuery(result.name);
+
+      if (result.type === "city") {
+        const city = mappableCities.find((candidate) => candidate.id === result.cityId);
+        if (city) {
+          setSelection({
+            mode: "city",
+            selectedCityId: city.id,
+            selectedPropertyId: null,
+          });
+        }
+      }
+
+      if (result.type === "property" && result.propertyId) {
+        setSelection({
+          mode: "property",
+          selectedCityId: result.cityId,
+          selectedPropertyId: result.propertyId,
+        });
+      }
+
+      if (!mapInstance) {
+        return;
+      }
+
+      mapInstance.flyTo([result.lat, result.lng], Math.max(mapInstance.getZoom(), ZOOM_SHOW_PROPERTIES + 1), {
+        animate: true,
+        duration: 0.8,
+      });
+    },
+    [mapInstance, mappableCities]
+  );
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery("");
+  }, []);
+
   return (
     <div className="map-shell relative h-[100svh] w-full overflow-hidden touch-manipulation">
       <MapContainer 
@@ -401,22 +499,25 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         fundSharePercent={FUND_SHARE_PERCENT}
       />
 
-      {selection.mode !== "global" && (
-        <MapSelectionPanel
-          mode={selection.mode === "property" ? "property" : "city"}
-          selectedCity={selectedCity}
-          selectedProperty={selectedProperty}
-          selectedPropertyCoordinates={
-            selectedFlatProperty
-              ? { lat: selectedFlatProperty.lat, lng: selectedFlatProperty.lng }
-              : null
-          }
-          showCoordinatesDebug={SHOW_PROPERTY_COORDINATES_DEBUG}
-          onClose={handleResetSelection}
-          onBackToCity={handleBackToCity}
-          onSelectProperty={handleSelectPropertyById}
-        />
-      )}
+      <MapSelectionPanel
+        mode={selection.mode === "global" ? "global" : selection.mode === "property" ? "property" : "city"}
+        selectedCity={selectedCity}
+        selectedProperty={selectedProperty}
+        selectedPropertyCoordinates={
+          selectedFlatProperty
+            ? { lat: selectedFlatProperty.lat, lng: selectedFlatProperty.lng }
+            : null
+        }
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        searchResults={localSearchResults}
+        onSelectSearchResult={handleSelectSearchResult}
+        onClearSearch={handleClearSearch}
+        showCoordinatesDebug={SHOW_PROPERTY_COORDINATES_DEBUG}
+        onClose={handleResetSelection}
+        onBackToCity={handleBackToCity}
+        onSelectProperty={handleSelectPropertyById}
+      />
     </div>
   );
 }
