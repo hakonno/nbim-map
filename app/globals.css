@@ -38,6 +38,15 @@ body {
   margin: 0.65rem 0.75rem;
 }
 
+.leaflet-control-zoom a:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.safe-area-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: #94a3b8 transparent;

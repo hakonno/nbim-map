@@ -106,7 +106,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   const showPropertyDetail = zoom >= ZOOM_PROPERTY_DETAIL;
 
   return (
-    <div className="map-shell relative h-[100svh] w-full overflow-hidden">
+    <div className="map-shell relative h-[100svh] w-full overflow-hidden touch-manipulation">
       <MapContainer center={mapCenter} zoom={MAP_DEFAULT_ZOOM} minZoom={2} className="h-full w-full" worldCopyJump>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -186,8 +186,8 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       {/* Top-left info card */}
       <div className="pointer-events-none absolute left-3 top-3 z-[500] w-[calc(100%-1.5rem)] max-w-sm rounded-2xl border border-white/60 bg-white/92 p-4 shadow-xl backdrop-blur sm:left-4 sm:top-4">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">NBIM Real Estate</p>
-        <h1 className="mt-1 text-xl font-semibold text-slate-900">Multi-resolution investment map</h1>
-        <p className="mt-2 text-sm text-slate-700">
+        <h1 className="mt-1 text-xl font-semibold text-slate-900 text-balance">Multi-resolution investment map</h1>
+        <p className="mt-2 text-sm text-slate-700" role="status" aria-live="polite">
           {!showProperties
             ? "Zoom in to explore individual properties within each city."
             : showPropertyDetail
@@ -197,31 +197,33 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         <div className="mt-3 grid grid-cols-3 gap-2 text-xs sm:text-sm">
           <div className="rounded-xl bg-slate-100 p-2">
             <p className="text-slate-500">Cities</p>
-            <p className="font-semibold text-slate-900">{integerFormatter.format(validCities.length)}</p>
+            <p className="font-semibold text-slate-900 tabular-nums">{integerFormatter.format(validCities.length)}</p>
           </div>
           <div className="rounded-xl bg-slate-100 p-2">
             <p className="text-slate-500">Properties</p>
-            <p className="font-semibold text-slate-900">{integerFormatter.format(totalProperties)}</p>
+            <p className="font-semibold text-slate-900 tabular-nums">{integerFormatter.format(totalProperties)}</p>
           </div>
           <div className="rounded-xl bg-slate-100 p-2">
             <p className="text-slate-500">Countries</p>
-            <p className="font-semibold text-slate-900">{integerFormatter.format(totalCountries)}</p>
+            <p className="font-semibold text-slate-900 tabular-nums">{integerFormatter.format(totalCountries)}</p>
           </div>
         </div>
       </div>
 
       {/* Right / bottom detail panel */}
-      <aside className="absolute bottom-0 left-0 right-0 z-[500] max-h-[42svh] rounded-t-2xl border-t border-slate-200 bg-white/96 p-3 shadow-2xl backdrop-blur md:bottom-4 md:left-auto md:right-4 md:top-4 md:max-h-[calc(100svh-2rem)] md:w-[360px] md:rounded-2xl md:border md:p-4">
+      <aside className="safe-area-bottom absolute bottom-0 left-0 right-0 z-[500] max-h-[42svh] rounded-t-2xl border-t border-slate-200 bg-white/96 p-3 shadow-2xl backdrop-blur md:bottom-4 md:left-auto md:right-4 md:top-4 md:max-h-[calc(100svh-2rem)] md:w-[360px] md:rounded-2xl md:border md:p-4">
         {showProperties && selectedProperty ? (
           // Property detail view
           <>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-600">Selected Property</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900">{selectedProperty.name ?? "Unnamed property"}</h2>
+            <h2 className="mt-1 text-lg font-semibold text-slate-900 text-balance">
+              {selectedProperty.name ?? "Unnamed property"}
+            </h2>
             <p className="mt-1 text-sm text-slate-700">{selectedProperty.address ?? "No address"}</p>
             <p className="mt-1 text-sm text-slate-600">
               {selectedCity?.city}, {selectedCity?.country}
             </p>
-            <div className="mt-3 space-y-1 text-sm text-slate-700">
+            <div className="mt-3 space-y-1 text-sm text-slate-700 tabular-nums">
               <p>
                 <span className="text-slate-500">Sector</span> {selectedProperty.sector ?? "N/A"}
               </p>
@@ -241,7 +243,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
               )}
             </div>
             <button
-              className="pointer-events-auto mt-4 text-xs text-blue-600 underline"
+              className="pointer-events-auto mt-4 rounded-md px-1 py-0.5 text-xs text-blue-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               onClick={() => setSelectedPropertyId(null)}
               type="button"
             >
@@ -260,35 +262,52 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
                 <h2 className="mt-1 text-lg font-semibold text-slate-900">
                   {selectedCity.city}, {selectedCity.country}
                 </h2>
-                <p className="mt-1 text-sm text-slate-700">
+                <p className="mt-1 text-sm text-slate-700 tabular-nums">
                   {selectedCity.properties.length} properties · Ownership sum{" "}
                   {decimalFormatter.format(selectedCity.total_ownership_sum)}%
                 </p>
 
-                <div className="mt-3 max-h-[26svh] space-y-2 overflow-y-auto pr-1 md:max-h-[calc(100svh-13rem)]">
+                <div className="mt-3 max-h-[26svh] space-y-2 overflow-y-auto overscroll-contain pr-1 md:max-h-[calc(100svh-13rem)]">
                   {selectedCity.properties.map((property) => {
                     const isSelected = property.id === selectedPropertyId;
-                    const interactiveClasses = showProperties
-                      ? "pointer-events-auto cursor-pointer hover:border-blue-300 hover:bg-blue-50"
-                      : "";
                     const stateClasses = isSelected
                       ? "border-amber-300 bg-amber-50"
                       : "border-slate-200 bg-slate-50";
-                    return (
-                      <article
-                        key={property.id}
-                        className={`rounded-xl border p-3 ${interactiveClasses} ${stateClasses}`}
-                        onClick={showProperties ? () => setSelectedPropertyId(property.id) : undefined}
-                      >
-                        <h3 className="text-sm font-semibold text-slate-900">{property.name ?? "Unnamed property"}</h3>
+                    const cardBody = (
+                      <>
+                        <h3 className="text-sm font-semibold text-slate-900 text-balance">{property.name ?? "Unnamed property"}</h3>
                         <p className="mt-1 text-xs text-slate-700">{property.address ?? "No address"}</p>
                         <p className="mt-2 text-xs text-slate-600">
                           {property.sector ?? "Unknown sector"} · {property.partnership ?? "Unknown partner"}
                         </p>
-                        <p className="mt-1 text-xs text-slate-600">
+                        <p className="mt-1 text-xs text-slate-600 tabular-nums">
                           Ownership {property.ownership_percent ?? "N/A"}% · NOK{" "}
                           {integerFormatter.format(property.value_nok ?? 0)}
                         </p>
+                      </>
+                    );
+
+                    if (showProperties) {
+                      return (
+                        <button
+                          key={property.id}
+                          type="button"
+                          className={`pointer-events-auto w-full cursor-pointer rounded-xl border p-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${stateClasses}`}
+                          onClick={() => setSelectedPropertyId(property.id)}
+                          aria-pressed={isSelected}
+                          aria-label={`Select property ${property.name ?? "Unnamed property"}`}
+                        >
+                          {cardBody}
+                        </button>
+                      );
+                    }
+
+                    return (
+                      <article
+                        key={property.id}
+                        className={`rounded-xl border p-3 ${stateClasses}`}
+                      >
+                        {cardBody}
                       </article>
                     );
                   })}
