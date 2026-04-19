@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "pipeline": "node scripts/pipeline.mjs"
+    "pipeline": "node scripts/build-cities.mjs",
+    "pipeline:properties": "node scripts/pipeline.mjs"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

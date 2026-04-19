@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #e7edf3;
+  --foreground: #111827;
 }
 
 @theme inline {
@@ -12,15 +12,33 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.map-shell {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(15, 118, 110, 0.18), transparent 35%),
+    radial-gradient(circle at 80% 18%, rgba(245, 158, 11, 0.2), transparent 30%),
+    radial-gradient(circle at 25% 90%, rgba(59, 130, 246, 0.18), transparent 28%),
+    linear-gradient(145deg, #edf2f7, #dbe7f2);
+}
+
+.leaflet-container {
+  background: transparent;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 0.9rem;
+}
+
+.leaflet-popup-content {
+  margin: 0.65rem 0.75rem;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 transparent;
 }
