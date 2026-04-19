@@ -4,6 +4,8 @@ export type CityProperty = {
   address: string | null;
   partnership: string | null;
   sector: string | null;
+  lat?: number | null;
+  lng?: number | null;
   ownership_percent: number | null;
   value_nok: number | null;
   value_usd: number | null;

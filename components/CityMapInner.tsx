@@ -19,10 +19,8 @@ type FlatProperty = CityProperty & {
   cityId: string;
   cityName: string;
   country: string;
-  cityLat: number;
-  cityLng: number;
-  offsetLat: number;
-  offsetLng: number;
+  lat: number;
+  lng: number;
 };
 
 const mapCenter: [number, number] = [25, 5];
@@ -39,17 +37,6 @@ const decimalFormatter = new Intl.NumberFormat("en-US", {
 function getCityRadius(propertyCount: number, maxPropertyCount: number) {
   const ratio = Math.sqrt(propertyCount / Math.max(maxPropertyCount, 1));
   return 7 + ratio * 16;
-}
-
-// Spread properties in a small circle around the city center so they are
-// individually clickable when zoomed in.  The spread radius of ~0.015° per
-// sqrt(total) is roughly 1–2 km in lat/lng space, which keeps the cluster
-// tight at city zoom but naturally separates at street-level zoom.
-function getPropertyOffset(index: number, total: number): [number, number] {
-  if (total <= 1) return [0, 0];
-  const spread = 0.015 * Math.sqrt(total);
-  const angle = (index / total) * 2 * Math.PI;
-  return [Math.sin(angle) * spread, Math.cos(angle) * spread];
 }
 
 function ZoomTracker({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
@@ -74,22 +61,21 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     [validCities]
   );
 
-  // Flat list of every property with city context and a pre-computed lat/lng
-  // offset so markers don't all stack on the exact same coordinate.
+  // Flat list of every property with deterministic coordinates.
+  // If a property has its own lat/lng use that, otherwise fall back to city center.
   const flatProperties = useMemo<FlatProperty[]>(
     () =>
       validCities.flatMap((city) =>
-        city.properties.map((prop, index) => {
-          const [dLat, dLng] = getPropertyOffset(index, city.properties.length);
+        city.properties.map((prop) => {
+          const lat = typeof prop.lat === "number" ? prop.lat : (city.lat as number);
+          const lng = typeof prop.lng === "number" ? prop.lng : (city.lng as number);
           return {
             ...prop,
             cityId: city.id,
             cityName: city.city,
             country: city.country,
-            cityLat: city.lat as number,
-            cityLng: city.lng as number,
-            offsetLat: (city.lat as number) + dLat,
-            offsetLng: (city.lng as number) + dLng,
+            lat,
+            lng,
           };
         })
       ),
@@ -164,7 +150,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
           flatProperties.map((prop) => (
             <CircleMarker
               key={prop.id}
-              center={[prop.offsetLat, prop.offsetLng]}
+              center={[prop.lat, prop.lng]}
               radius={showPropertyDetail ? 8 : 5}
               pathOptions={{
                 color: prop.id === selectedPropertyId ? "#b45309" : "#1d4ed8",
@@ -206,7 +192,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
             ? "Zoom in to explore individual properties within each city."
             : showPropertyDetail
               ? "Individual properties — click a marker for details."
-              : "Property clusters — zoom in further for individual details."}
+              : "Property markers use fixed source coordinates; zoom in for easier selection."}
         </p>
         <div className="mt-3 grid grid-cols-3 gap-2 text-xs sm:text-sm">
           <div className="rounded-xl bg-slate-100 p-2">
