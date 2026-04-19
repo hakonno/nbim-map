@@ -1,8 +1,11 @@
 import type { CityNode } from "@/types/cities";
 
+// City-level zoom: properties become visible and the city list is used as the main context.
 export const ZOOM_SHOW_PROPERTIES = 7;
-export const ZOOM_PROPERTY_DETAIL = 10;
-export const ZOOM_PROPERTY_FOCUS = 12;
+// Property-level zoom: used when opening a specific property or property details.
+export const ZOOM_PROPERTY_DETAIL = 17;
+// Property focus zoom: used when flying to a selected property from search or the list.
+export const ZOOM_PROPERTY_FOCUS = 15;
 export const MAP_DEFAULT_ZOOM = 3;
 export const MAP_CENTER: [number, number] = [25, 5];
 
