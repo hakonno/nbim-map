@@ -293,16 +293,18 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         <ZoomControl position="bottomleft" />
         <MapEventBridge onMapReady={setMapInstance} onZoomChange={setZoom} />
 
-        <MapMarkersLayer
-          showProperties={showProperties}
-          showPropertyDetail={showPropertyDetail}
-          mappableCities={mappableCities}
-          flatProperties={flatProperties}
-          selection={selection}
-          maxPropertyCount={maxPropertyCount}
-          onSelectCity={handleSelectCity}
-          onSelectProperty={handleSelectProperty}
-        />
+        {mapInstance && (
+          <MapMarkersLayer
+            showProperties={showProperties}
+            showPropertyDetail={showPropertyDetail}
+            mappableCities={mappableCities}
+            flatProperties={flatProperties}
+            selection={selection}
+            maxPropertyCount={maxPropertyCount}
+            onSelectCity={handleSelectCity}
+            onSelectProperty={handleSelectProperty}
+          />
+        )}
       </MapContainer>
 
       <MapIntroCard

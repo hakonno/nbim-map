@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { CircleMarker } from "react-leaflet";
+import { CircleMarker, Tooltip } from "react-leaflet";
 
 import {
   getCityColors,
@@ -8,6 +8,10 @@ import {
 } from "@/components/map/mapConstants";
 import type { FlatProperty, SelectionState } from "@/components/map/mapTypes";
 import type { CityNode } from "@/types/cities";
+
+const integerFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 0,
+});
 
 type MapMarkersLayerProps = {
   showProperties: boolean;
@@ -30,6 +34,32 @@ export default function MapMarkersLayer({
   onSelectCity,
   onSelectProperty,
 }: MapMarkersLayerProps) {
+  const getPropertyLabel = (property: FlatProperty) => {
+    const baseLabel = property.name?.trim() || property.address?.trim() || "Property";
+
+    if (property.ownership_percent == null) {
+      return baseLabel;
+    }
+
+    if (Number.isInteger(property.ownership_percent)) {
+      return `${baseLabel} · ${integerFormatter.format(property.ownership_percent)}%`;
+    }
+
+    return `${baseLabel} · ~${integerFormatter.format(Math.round(property.ownership_percent))}%`;
+  };
+
+  const shouldShowPropertyLabel = (property: FlatProperty, isSelected: boolean) => {
+    if (!showPropertyDetail) {
+      return false;
+    }
+
+    if (isSelected) {
+      return true;
+    }
+
+    return selection.mode !== "global" && selection.selectedCityId === property.cityId;
+  };
+
   return (
     <>
       {!showProperties &&
@@ -63,6 +93,8 @@ export default function MapMarkersLayer({
           const propertyColors = getPropertyColors(property.ownership_percent, isSelected);
 
           if (isSelected) {
+            const showLabel = shouldShowPropertyLabel(property, isSelected);
+
             return (
               <Fragment key={property.id}>
                 <CircleMarker
@@ -91,10 +123,18 @@ export default function MapMarkersLayer({
                       onSelectProperty(property);
                     },
                   }}
-                />
+                >
+                  {showLabel && (
+                    <Tooltip direction="top" offset={[0, -5]} opacity={1} permanent className="map-marker-label map-marker-label--selected">
+                      {getPropertyLabel(property)}
+                    </Tooltip>
+                  )}
+                </CircleMarker>
               </Fragment>
             );
           }
+
+          const showLabel = shouldShowPropertyLabel(property, isSelected);
 
           return (
             <CircleMarker
@@ -112,7 +152,13 @@ export default function MapMarkersLayer({
                   onSelectProperty(property);
                 },
               }}
-            />
+            >
+              {showLabel && (
+                <Tooltip direction="top" offset={[0, -4]} opacity={1} permanent className="map-marker-label">
+                  {getPropertyLabel(property)}
+                </Tooltip>
+              )}
+            </CircleMarker>
           );
         })}
     </>
