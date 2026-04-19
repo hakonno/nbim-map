@@ -2,12 +2,11 @@
 
 import type { LeafletEvent, Map as LeafletMap } from "leaflet";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CircleMarker, MapContainer, TileLayer, useMapEvents } from "react-leaflet";
+import { CircleMarker, MapContainer, TileLayer, ZoomControl, useMapEvents } from "react-leaflet";
 
 import MapIntroCard from "@/components/map/MapIntroCard";
 import MapSelectionPanel from "@/components/map/MapSelectionPanel";
 import type {
-  CityAggregateContract,
   CityNode,
   CityProperty,
   GlobalOverviewContract,
@@ -17,7 +16,7 @@ import type {
 const ZOOM_SHOW_PROPERTIES = 7; // above → switch from city markers to property markers
 const ZOOM_PROPERTY_DETAIL = 10; // above → make property markers easier to inspect
 const MAP_DEFAULT_ZOOM = 3;
-const SHOW_PROPERTY_COORDINATES_DEBUG = false;
+const SHOW_PROPERTY_COORDINATES_DEBUG = true;
 
 type CityMapInnerProps = {
   cities: CityNode[];
@@ -102,6 +101,12 @@ function getPropertyColors(ownershipPercent: number | null, isSelected: boolean)
   };
 }
 
+function isInternationalFundCity(city: Pick<CityNode, "city" | "country">) {
+  const cityName = city.city.trim().toLowerCase();
+  const countryName = city.country.trim().toLowerCase();
+  return cityName === "international fund" || countryName === "international fund";
+}
+
 function MapEventBridge({
   onMapReady,
   onZoomChange,
@@ -131,21 +136,24 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     selectedPropertyId: null,
   });
 
-  const validCities = useMemo(
-    () => cities.filter((city) => typeof city.lat === "number" && typeof city.lng === "number"),
+  const mappableCities = useMemo(
+    () =>
+      cities
+        .filter((city) => typeof city.lat === "number" && typeof city.lng === "number")
+        .filter((city) => !isInternationalFundCity(city)),
     [cities]
   );
 
   const maxPropertyCount = useMemo(
-    () => Math.max(...validCities.map((city) => city.properties.length), 1),
-    [validCities]
+    () => Math.max(...mappableCities.map((city) => city.properties.length), 1),
+    [mappableCities]
   );
 
   // Flat list of every property with deterministic coordinates.
   // If a property has its own lat/lng use that, otherwise fall back to city center.
   const flatProperties = useMemo<FlatProperty[]>(
     () =>
-      validCities.flatMap((city) =>
+      mappableCities.flatMap((city) =>
         city.properties.map((prop) => {
           const lat = typeof prop.lat === "number" ? prop.lat : (city.lat as number);
           const lng = typeof prop.lng === "number" ? prop.lng : (city.lng as number);
@@ -159,7 +167,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
           };
         })
       ),
-    [validCities]
+    [mappableCities]
   );
 
   const flatPropertyById = useMemo(
@@ -169,42 +177,21 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
 
   const globalOverview = useMemo<GlobalOverviewContract>(
     () => ({
-      totalCities: validCities.length,
-      totalCountries: new Set(validCities.map((city) => city.country)).size,
-      totalProperties: validCities.reduce((sum, city) => sum + city.properties.length, 0),
+      totalCities: mappableCities.length,
+      totalCountries: new Set(mappableCities.map((city) => city.country)).size,
+      totalProperties: mappableCities.reduce((sum, city) => sum + city.properties.length, 0),
       estimatedPortfolioValueNok: null,
       estimatedPortfolioValueUsd: null,
     }),
-    [validCities]
-  );
-
-  const cityAggregates = useMemo<Map<string, CityAggregateContract>>(
-    () =>
-      new Map(
-        validCities.map((city) => [
-          city.id,
-          {
-            cityId: city.id,
-            propertyCount: city.properties.length,
-            ownershipExposurePercent: null,
-            estimatedExposureNok: null,
-          },
-        ])
-      ),
-    [validCities]
+    [mappableCities]
   );
 
   const selectedCity = useMemo(
     () =>
       selection.mode === "global"
         ? null
-        : validCities.find((city) => city.id === selection.selectedCityId) ?? null,
-    [selection, validCities]
-  );
-
-  const selectedCityAggregate = useMemo(
-    () => (selectedCity ? cityAggregates.get(selectedCity.id) ?? null : null),
-    [selectedCity, cityAggregates]
+        : mappableCities.find((city) => city.id === selection.selectedCityId) ?? null,
+    [selection, mappableCities]
   );
 
   const selectedProperty = useMemo(
@@ -227,11 +214,8 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   const showPropertyDetail = zoom >= ZOOM_PROPERTY_DETAIL;
 
   const hasInternationalFund = useMemo(
-    () =>
-      validCities.some(
-        (city) => city.country.trim().toLowerCase() === "international fund"
-      ),
-    [validCities]
+    () => cities.some((city) => isInternationalFundCity(city)),
+    [cities]
   );
 
   const countriesWithoutInternational = useMemo(
@@ -339,16 +323,23 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
 
   return (
     <div className="map-shell relative h-[100svh] w-full overflow-hidden touch-manipulation">
-      <MapContainer center={mapCenter} zoom={MAP_DEFAULT_ZOOM} minZoom={2} className="h-full w-full" worldCopyJump>
+      <MapContainer 
+      center={mapCenter} 
+      zoom={MAP_DEFAULT_ZOOM} 
+      minZoom={2} 
+      zoomControl={false}
+      className="h-full w-full" 
+      worldCopyJump>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <ZoomControl position="bottomleft" /> 
         <MapEventBridge onMapReady={setMapInstance} onZoomChange={setZoom} />
 
         {/* Layer 1 – city overview (zoom < ZOOM_SHOW_PROPERTIES) */}
         {!showProperties &&
-          validCities.map((city) => {
+          mappableCities.map((city) => {
             const isSelected = selection.mode !== "global" && selection.selectedCityId === city.id;
             const cityColors = getCityColors(city.properties.length, maxPropertyCount, isSelected);
 
@@ -403,9 +394,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       <MapIntroCard
         mode={selection.mode}
         selectedCity={selectedCity}
-        selectedCityAggregate={selectedCityAggregate}
         showProperties={showProperties}
-        globalOverview={globalOverview}
         countriesWithoutInternational={countriesWithoutInternational}
         hasInternationalFund={hasInternationalFund}
         fundRealEstateValueNok={FUND_REAL_ESTATE_VALUE_NOK}

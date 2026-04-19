@@ -1,11 +1,9 @@
-import type { CityAggregateContract, CityNode, GlobalOverviewContract } from "@/types/cities";
+import type { CityNode } from "@/types/cities";
 
 type MapIntroCardProps = {
   mode: "global" | "city" | "property";
   selectedCity: CityNode | null;
-  selectedCityAggregate: CityAggregateContract | null;
   showProperties: boolean;
-  globalOverview: GlobalOverviewContract;
   countriesWithoutInternational: number;
   hasInternationalFund: boolean;
   fundRealEstateValueNok: number;
@@ -24,9 +22,7 @@ const percentageFormatter = new Intl.NumberFormat("en-US", {
 export default function MapIntroCard({
   mode,
   selectedCity,
-  selectedCityAggregate,
   showProperties,
-  globalOverview,
   countriesWithoutInternational,
   hasInternationalFund,
   fundRealEstateValueNok,
@@ -38,31 +34,32 @@ export default function MapIntroCard({
 
       {mode === "global" ? (
         <>
-          <h1 className="mt-1 text-base font-semibold leading-tight text-slate-900 sm:text-xl">Where Norway has invested in real estate</h1>
+          <h1 className="mt-1 text-base font-semibold leading-tight text-slate-900 sm:text-xl">Owned Real Estate by Norway around the world</h1>
           <p className="mt-1 text-xs text-slate-700 sm:mt-2 sm:text-sm" role="status" aria-live="polite">
             Tap a city to see the properties in that area.
           </p>
 
           <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px] sm:mt-3 sm:gap-2 sm:text-sm">
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
-              <p className="text-slate-500">Real estate in fund</p>
+              <p className="text-slate-500">Value</p>
               <p className="font-semibold text-slate-900 tabular-nums">NOK {integerFormatter.format(fundRealEstateValueNok)}</p>
             </div>
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
-              <p className="text-slate-500">Share of fund</p>
+              <p className="text-slate-500">Makes up share of fund</p>
               <p className="font-semibold text-slate-900 tabular-nums">{percentageFormatter.format(fundSharePercent)}%</p>
             </div>
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
               <p className="text-slate-500">Countries</p>
               <p className="font-semibold text-slate-900 tabular-nums">
                 {integerFormatter.format(countriesWithoutInternational)}
-                {hasInternationalFund ? " + 1 intl fund" : ""}
+                {hasInternationalFund ? " + 1 intl fund" : ""} 
+                {/* todo: add info later */}
               </p>
             </div>
-            <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
+            {/* <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
               <p className="text-slate-500">Investments</p>
               <p className="font-semibold text-slate-900 tabular-nums">{integerFormatter.format(globalOverview.totalProperties)}</p>
-            </div>
+            </div> */}
           </div>
         </>
       ) : selectedCity ? (
@@ -72,16 +69,16 @@ export default function MapIntroCard({
           </h1>
           <p className="mt-1 text-xs text-slate-700 sm:mt-2 sm:text-sm" role="status" aria-live="polite">
             {showProperties
-              ? "Tap a blue dot or pick a property from the list."
+              ? "Tap a marker or pick a property from the list."
               : "Zoom in to see individual properties in this city."}
           </p>
           {showProperties && (
             <p className="mt-1 text-[11px] text-slate-600 sm:text-xs">
-              Marker color shows ownership share: lower is warmer, higher is greener.
+              
             </p>
           )}
 
-          <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px] sm:mt-3 sm:gap-2 sm:text-sm">
+          {/* <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px] sm:mt-3 sm:gap-2 sm:text-sm">
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
               <p className="text-slate-500">Investments here</p>
               <p className="font-semibold text-slate-900 tabular-nums">
@@ -92,11 +89,11 @@ export default function MapIntroCard({
               <p className="text-slate-500">Ownership</p>
               <p className="font-semibold text-slate-900">Shown per property</p>
             </div>
-          </div>
+          </div> */}
         </>
       ) : (
         <>
-          <h1 className="mt-1 text-base font-semibold leading-tight text-slate-900 sm:text-xl">Where Norway has invested in real estate</h1>
+          <h1 className="mt-1 text-base font-semibold leading-tight text-slate-900 sm:text-xl">Owned Real Estate by Norway around the world.</h1>
           <p className="mt-1 text-xs text-slate-700 sm:mt-2 sm:text-sm">Tap a city to continue.</p>
         </>
       )}
