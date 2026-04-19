@@ -71,6 +71,14 @@ function MapSelectionPanel({
     };
   }, []);
 
+  useEffect(() => {
+    document.documentElement.style.setProperty("--map-mobile-panel-expanded", isPanelExpanded ? "1" : "0");
+
+    return () => {
+      document.documentElement.style.removeProperty("--map-mobile-panel-expanded");
+    };
+  }, [isPanelExpanded]);
+
   const handleTogglePanel = useCallback(() => {
     setIsPanelExpanded((current) => !current);
   }, []);

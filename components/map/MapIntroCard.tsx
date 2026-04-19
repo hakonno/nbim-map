@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useEffect, useRef } from "react";
 
 import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
 import type { CityNode } from "@/types/cities";
@@ -41,8 +41,43 @@ function MapIntroCard({
   fundSharePercent,
   totalInvestments,
 }: MapIntroCardProps) {
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const cardElement = cardRef.current;
+    if (!cardElement) {
+      return;
+    }
+
+    const updateMobileIntroHeight = () => {
+      const nextHeight = Math.ceil(cardElement.getBoundingClientRect().height);
+      document.documentElement.style.setProperty("--map-mobile-intro-height", `${nextHeight}px`);
+    };
+
+    updateMobileIntroHeight();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        updateMobileIntroHeight();
+      });
+      resizeObserver.observe(cardElement);
+    }
+
+    window.addEventListener("resize", updateMobileIntroHeight);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateMobileIntroHeight);
+      document.documentElement.style.removeProperty("--map-mobile-intro-height");
+    };
+  }, []);
+
   return (
-    <div className="pointer-events-none absolute left-0 right-0 top-0 z-[650] w-auto border-b border-white/80 bg-white/92 px-2.5 py-2 shadow-md backdrop-blur sm:left-4 sm:right-auto sm:top-4 sm:w-[calc(100%-2rem)] sm:max-w-sm sm:rounded-2xl sm:border sm:p-4 sm:shadow-xl">
+    <div
+      ref={cardRef}
+      className="pointer-events-none absolute left-0 right-0 top-0 z-[650] w-auto border-b border-white/80 bg-white/92 px-2.5 py-2 shadow-md backdrop-blur sm:left-4 sm:right-auto sm:top-4 sm:w-[calc(100%-2rem)] sm:max-w-sm sm:rounded-2xl sm:border sm:p-4 sm:shadow-xl"
+    >
       <div className="pointer-events-auto absolute right-2 top-2 flex items-center gap-1.5 sm:hidden">
         <a
           href="https://www.nbim.no/en/investments/all-investments/#/2025-12-31/2-real_estate"

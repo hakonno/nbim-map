@@ -27,6 +27,10 @@ type CityMapInnerProps = {
   cities: CityNode[];
 };
 
+const MOBILE_PANEL_MEDIA_QUERY = "(max-width: 767px)";
+const MOBILE_PANEL_HEIGHT_VAR = "--map-mobile-panel-height";
+const MOBILE_INTRO_HEIGHT_VAR = "--map-mobile-intro-height";
+
 type MapEventBridgeProps = {
   onMapReady: (map: LeafletMap) => void;
   onZoomChange: (zoom: number) => void;
@@ -138,6 +142,86 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   const showProperties = zoom >= ZOOM_SHOW_PROPERTIES;
   const showPropertyDetail = zoom >= ZOOM_PROPERTY_DETAIL;
 
+  const getMobileOverlayHeights = useCallback(() => {
+    const rootStyle = getComputedStyle(document.documentElement);
+    const panelHeightRaw = rootStyle.getPropertyValue(MOBILE_PANEL_HEIGHT_VAR).trim();
+    const introHeightRaw = rootStyle.getPropertyValue(MOBILE_INTRO_HEIGHT_VAR).trim();
+
+    const panelHeightPx = Number.parseFloat(panelHeightRaw);
+    const introHeightPx = Number.parseFloat(introHeightRaw);
+
+    return {
+      panelHeightPx: Number.isFinite(panelHeightPx) && panelHeightPx > 0 ? panelHeightPx : 0,
+      introHeightPx: Number.isFinite(introHeightPx) && introHeightPx > 0 ? introHeightPx : 0,
+    };
+  }, []);
+
+  const getMobileFocusContainerPoint = useCallback((): [number, number] | null => {
+    if (!mapInstance || typeof window === "undefined" || !window.matchMedia(MOBILE_PANEL_MEDIA_QUERY).matches) {
+      return null;
+    }
+
+    const { panelHeightPx, introHeightPx } = getMobileOverlayHeights();
+    const size = mapInstance.getSize();
+    const visibleTop = introHeightPx;
+    const visibleBottom = Math.max(visibleTop + 1, size.y - panelHeightPx);
+
+    return [size.x / 2, (visibleTop + visibleBottom) / 2];
+  }, [getMobileOverlayHeights, mapInstance]);
+
+  const getFocusCenter = useCallback(
+    (target: [number, number], zoomLevel: number): [number, number] => {
+      if (!mapInstance || typeof window === "undefined" || !window.matchMedia(MOBILE_PANEL_MEDIA_QUERY).matches) {
+        return target;
+      }
+
+      const { panelHeightPx, introHeightPx } = getMobileOverlayHeights();
+      const focusOffsetPx = (panelHeightPx - introHeightPx) / 2;
+
+      if (!Number.isFinite(focusOffsetPx) || Math.abs(focusOffsetPx) < 1) {
+        return target;
+      }
+
+      const targetPoint = mapInstance.project(target, zoomLevel);
+      const adjustedCenterPoint = targetPoint.add([0, focusOffsetPx]);
+      const adjustedCenter = mapInstance.unproject(adjustedCenterPoint, zoomLevel);
+      return [adjustedCenter.lat, adjustedCenter.lng];
+    },
+    [getMobileOverlayHeights, mapInstance]
+  );
+
+  const handleMobileZoomIn = useCallback(() => {
+    if (!mapInstance) {
+      return;
+    }
+
+    const targetZoom = Math.min(mapInstance.getZoom() + 1, mapInstance.getMaxZoom());
+    const focusPoint = getMobileFocusContainerPoint();
+
+    if (focusPoint) {
+      mapInstance.setZoomAround(focusPoint, targetZoom, { animate: true });
+      return;
+    }
+
+    mapInstance.zoomIn();
+  }, [getMobileFocusContainerPoint, mapInstance]);
+
+  const handleMobileZoomOut = useCallback(() => {
+    if (!mapInstance) {
+      return;
+    }
+
+    const targetZoom = Math.max(mapInstance.getZoom() - 1, mapInstance.getMinZoom());
+    const focusPoint = getMobileFocusContainerPoint();
+
+    if (focusPoint) {
+      mapInstance.setZoomAround(focusPoint, targetZoom, { animate: true });
+      return;
+    }
+
+    mapInstance.zoomOut();
+  }, [getMobileFocusContainerPoint, mapInstance]);
+
   const flyToCity = useCallback(
     (city: CityNode) => {
       if (!mapInstance || typeof city.lat !== "number" || typeof city.lng !== "number") {
@@ -145,12 +229,14 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       }
 
       const targetZoom = Math.max(mapInstance.getZoom(), ZOOM_SHOW_PROPERTIES + 1);
-      mapInstance.flyTo([city.lat, city.lng], targetZoom, {
+      const targetCenter = getFocusCenter([city.lat, city.lng], targetZoom);
+
+      mapInstance.flyTo(targetCenter, targetZoom, {
         animate: true,
         duration: 0.75,
       });
     },
-    [mapInstance]
+    [getFocusCenter, mapInstance]
   );
 
   const flyToProperty = useCallback(
@@ -160,12 +246,14 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       }
 
       const targetZoom = Math.max(mapInstance.getZoom(), ZOOM_PROPERTY_FOCUS);
-      mapInstance.flyTo([property.lat, property.lng], targetZoom, {
+      const targetCenter = getFocusCenter([property.lat, property.lng], targetZoom);
+
+      mapInstance.flyTo(targetCenter, targetZoom, {
         animate: true,
         duration: 0.75,
       });
     },
-    [mapInstance]
+    [getFocusCenter, mapInstance]
   );
 
   const handleSelectCity = useCallback(
@@ -230,11 +318,11 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     }
 
     mapInstance.closePopup();
-    mapInstance.flyTo(MAP_CENTER, MAP_DEFAULT_ZOOM, {
+    mapInstance.flyTo(getFocusCenter(MAP_CENTER, MAP_DEFAULT_ZOOM), MAP_DEFAULT_ZOOM, {
       animate: true,
       duration: 0.9,
     });
-  }, [mapInstance]);
+  }, [getFocusCenter, mapInstance]);
 
   const handleSelectSearchResult = useCallback(
     (result: SearchResult) => {
@@ -264,12 +352,15 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       }
 
       const minimumTargetZoom = result.type === "property" ? ZOOM_PROPERTY_FOCUS : ZOOM_SHOW_PROPERTIES + 1;
-      mapInstance.flyTo([result.lat, result.lng], Math.max(mapInstance.getZoom(), minimumTargetZoom), {
+      const targetZoom = Math.max(mapInstance.getZoom(), minimumTargetZoom);
+      const targetCenter = getFocusCenter([result.lat, result.lng], targetZoom);
+
+      mapInstance.flyTo(targetCenter, targetZoom, {
         animate: true,
         duration: 0.8,
       });
     },
-    [mapInstance, mappableCities]
+    [getFocusCenter, mapInstance, mappableCities]
   );
 
   const handleClearSearch = useCallback(() => {
@@ -286,6 +377,25 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         className="h-full w-full"
         worldCopyJump
       >
+
+      <div className="map-mobile-zoom-controls pointer-events-auto absolute left-2 z-[645]">
+        <button
+          type="button"
+          onClick={handleMobileZoomIn}
+          aria-label="Zoom in"
+          className="flex h-9 w-9 items-center justify-center rounded-t-md border border-slate-300 bg-white/95 text-xl leading-none text-slate-700 shadow-md backdrop-blur transition-colors hover:bg-white"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={handleMobileZoomOut}
+          aria-label="Zoom out"
+          className="-mt-px flex h-9 w-9 items-center justify-center rounded-b-md border border-slate-300 bg-white/95 text-xl leading-none text-slate-700 shadow-md backdrop-blur transition-colors hover:bg-white"
+        >
+          -
+        </button>
+      </div>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

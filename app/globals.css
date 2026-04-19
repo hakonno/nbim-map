@@ -3,7 +3,9 @@
 :root {
   --background: #e7edf3;
   --foreground: #111827;
+  --map-mobile-intro-height: 6rem;
   --map-mobile-panel-height: 6rem;
+  --map-mobile-panel-expanded: 1;
 }
 
 @theme inline {
@@ -100,9 +102,24 @@ body {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
+.map-mobile-zoom-controls {
+  display: none;
+}
+
 @media (max-width: 767px) {
   .leaflet-container {
     -webkit-tap-highlight-color: transparent;
+  }
+
+  .leaflet-bottom.leaflet-left {
+    display: none;
+  }
+
+  .map-mobile-zoom-controls {
+    display: flex;
+    flex-direction: column;
+    top: calc((var(--map-mobile-intro-height) + (100dvh - var(--map-mobile-panel-height))) / 2);
+    transform: translateY(-50%);
   }
 
   .leaflet-bottom.leaflet-left .leaflet-control-zoom {
