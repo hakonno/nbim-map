@@ -32,17 +32,17 @@ function MapIntroCard({
   fundSharePercent,
 }: MapIntroCardProps) {
   return (
-    <div className="pointer-events-none absolute left-2 top-2 z-[650] w-[min(calc(100%-6.5rem),17.5rem)] rounded-lg border border-white/80 bg-white/92 p-2.5 shadow-md backdrop-blur sm:left-4 sm:top-4 sm:w-[calc(100%-2rem)] sm:max-w-sm sm:rounded-2xl sm:p-4 sm:shadow-xl">
+    <div className="pointer-events-none absolute left-0 right-0 top-0 z-[650] w-auto border-b border-white/80 bg-white/92 px-2.5 py-2 shadow-md backdrop-blur sm:left-4 sm:right-auto sm:top-4 sm:w-[calc(100%-2rem)] sm:max-w-sm sm:rounded-2xl sm:border sm:p-4 sm:shadow-xl">
       <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700 sm:text-xs">NBIM Real Estate</p>
 
       {mode === "global" ? (
         <>
-          <h1 className="mt-1 text-sm font-semibold leading-tight text-slate-900 sm:text-xl">Owned Real Estate by Norway around the world</h1>
-          <p className="mt-1 text-[11px] text-slate-700 sm:mt-2 sm:text-sm" role="status" aria-live="polite">
+          <h1 className="mt-0.5 text-[13px] font-semibold leading-tight text-slate-900 sm:mt-1 sm:text-xl">Owned Real Estate by Norway around the world</h1>
+          <p className="mt-1 hidden text-[11px] text-slate-700 sm:mt-2 sm:block sm:text-sm" role="status" aria-live="polite">
             Unlisted office, retail, and logistics properties in major cities.
           </p>
 
-          <p className="mt-2 text-[11px] text-slate-700 sm:hidden">
+          <p className="mt-1 text-[11px] text-slate-700 sm:hidden">
             NOK {integerFormatter.format(fundRealEstateValueNok)} · {percentageFormatter.format(fundSharePercent)}% of fund · {integerFormatter.format(countriesWithoutInternational)} countries
             {hasInternationalFund ? " + 1 intl fund" : ""}
           </p>
@@ -72,7 +72,7 @@ function MapIntroCard({
         </>
       ) : selectedCity ? (
         <>
-          <h1 className="mt-1 text-sm font-semibold leading-tight text-slate-900 sm:text-xl">
+          <h1 className="mt-0.5 text-[13px] font-semibold leading-tight text-slate-900 sm:mt-1 sm:text-xl">
             {selectedCity.city}, {formatCountryWithFlag(selectedCity.country)}
           </h1>
           <p className="mt-1 text-[11px] text-slate-700 sm:mt-2 sm:text-sm" role="status" aria-live="polite">
@@ -96,16 +96,15 @@ function MapIntroCard({
         </>
       ) : (
         <>
-          <h1 className="mt-1 text-sm font-semibold leading-tight text-slate-900 sm:text-xl">Owned Real Estate by Norway around the world.</h1>
+          <h1 className="mt-0.5 text-[13px] font-semibold leading-tight text-slate-900 sm:mt-1 sm:text-xl">Owned Real Estate by Norway around the world.</h1>
           <p className="mt-1 text-[11px] text-slate-700 sm:mt-2 sm:text-sm">Tap a city to continue.</p>
         </>
       )}
 
-      <p className="mt-2 border-t border-slate-200 pt-2 text-[9px] leading-snug text-slate-500 sm:mt-3 sm:text-[11px]">
-        <span className="sm:hidden">Independent project using public data. May contain inaccuracies.</span>
+      <p className="mt-2 hidden border-t border-slate-200 pt-2 text-[9px] leading-snug text-slate-500 sm:mt-3 sm:block sm:text-[11px]">
         <span className="hidden sm:inline">This is an independent project using publicly available data. Not affiliated with Norges Bank Investment Management. Data may be inaccurate.</span>
       </p>
-      <p className="pointer-events-auto mt-1 text-[10px] leading-snug text-slate-500 sm:text-[11px]">
+      <p className="pointer-events-auto mt-1 hidden text-[10px] leading-snug text-slate-500 sm:block sm:text-[11px]">
         <a
           href="https://www.nbim.no/en/investments/all-investments/#/2025-12-31/2-real_estate"
           target="_blank"

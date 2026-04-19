@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 
 import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
 import type { CityNode, CityProperty } from "@/types/cities";
@@ -51,6 +51,8 @@ const integerFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
+const MOBILE_SHEET_SWIPE_THRESHOLD = 24;
+
 function MapSelectionPanel({
   mode,
   selectedCity,
@@ -66,6 +68,56 @@ function MapSelectionPanel({
   onBackToCity,
   onSelectProperty,
 }: MapSelectionPanelProps) {
+  const [isMobileExpanded, setIsMobileExpanded] = useState(mode !== "global");
+  const swipeStartYRef = useRef<number | null>(null);
+  const didSwipeHandleRef = useRef(false);
+
+  const isPanelExpanded =
+    mode === "global"
+      ? isMobileExpanded || searchQuery.trim().length > 0
+      : true;
+
+  const handleMobileHandleClick = useCallback(() => {
+    if (didSwipeHandleRef.current) {
+      didSwipeHandleRef.current = false;
+      return;
+    }
+
+    setIsMobileExpanded((current) => !current);
+  }, []);
+
+  const handleMobileHandlePointerDown = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      swipeStartYRef.current = event.clientY;
+      didSwipeHandleRef.current = false;
+    },
+    []
+  );
+
+  const handleMobileHandlePointerUp = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      const swipeStartY = swipeStartYRef.current;
+      swipeStartYRef.current = null;
+
+      if (swipeStartY == null) {
+        return;
+      }
+
+      const deltaY = event.clientY - swipeStartY;
+      if (Math.abs(deltaY) < MOBILE_SHEET_SWIPE_THRESHOLD) {
+        return;
+      }
+
+      didSwipeHandleRef.current = true;
+      setIsMobileExpanded(deltaY < 0);
+    },
+    []
+  );
+
+  const handleMobileHandlePointerCancel = useCallback(() => {
+    swipeStartYRef.current = null;
+  }, []);
+
   const cityPropertyFilter = searchQuery.trim().toLowerCase();
   const filteredCityProperties =
     selectedCity && cityPropertyFilter.length >= 2
@@ -79,8 +131,28 @@ function MapSelectionPanel({
       : selectedCity?.properties ?? [];
 
   return (
-    <aside className="safe-area-bottom pointer-events-auto absolute inset-x-2 bottom-2 z-[650] flex max-h-[min(58svh,30rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/96 p-3 shadow-2xl backdrop-blur sm:inset-x-3 sm:bottom-3 md:bottom-4 md:left-auto md:right-4 md:top-4 md:max-h-[calc(100svh-2rem)] md:w-[360px] md:p-4">
-      <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-300/80 md:hidden" />
+    <aside
+      className={`safe-area-bottom pointer-events-auto absolute inset-x-2 bottom-2 z-[650] flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/96 p-3 shadow-2xl backdrop-blur transition-[max-height] duration-300 ease-out sm:inset-x-3 sm:bottom-3 md:bottom-4 md:left-auto md:right-4 md:top-4 md:max-h-[calc(100svh-2rem)] md:w-[360px] md:p-4 ${
+        isPanelExpanded ? "max-h-[min(58svh,30rem)]" : "max-h-[9.75rem]"
+      }`}
+    >
+      {mode === "global" && (
+        <button
+          type="button"
+          className="mx-auto mb-2 flex w-full items-center justify-center rounded-full py-1.5 text-slate-500 active:bg-slate-100/70 md:hidden"
+          onClick={handleMobileHandleClick}
+          onPointerDown={handleMobileHandlePointerDown}
+          onPointerUp={handleMobileHandlePointerUp}
+          onPointerCancel={handleMobileHandlePointerCancel}
+          aria-label={isPanelExpanded ? "Collapse panel" : "Expand panel"}
+          aria-controls="map-selection-panel-content"
+          aria-expanded={isPanelExpanded}
+        >
+          <span className="h-1 w-10 rounded-full bg-slate-300/80" />
+        </button>
+      )}
+
+      <div id="map-selection-panel-content" className="min-h-0 overflow-y-auto overscroll-contain pr-0.5">
 
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-base font-semibold text-slate-900 text-balance sm:text-lg">
@@ -112,11 +184,14 @@ function MapSelectionPanel({
         <div className="relative">
           <input
             id="selection-search"
-            type="text"
+            type="search"
             value={searchQuery}
             onChange={(event) => onSearchQueryChange(event.target.value)}
+            onFocus={() => setIsMobileExpanded(true)}
             placeholder={mode === "global" ? "Search country, city or property" : "Filter properties in this city"}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:text-sm"
+            inputMode="search"
+            enterKeyHint="search"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:text-sm"
             autoComplete="off"
           />
           {searchQuery.trim().length > 0 && (
@@ -237,6 +312,7 @@ function MapSelectionPanel({
           </button>
         </>
       )}
+      </div>
     </aside>
   );
 }

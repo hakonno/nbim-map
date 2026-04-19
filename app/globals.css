@@ -47,6 +47,23 @@ body {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
+@media (max-width: 767px) {
+  .leaflet-container {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .leaflet-bottom.leaflet-left .leaflet-control-zoom {
+    margin-bottom: calc(11rem + env(safe-area-inset-bottom));
+  }
+
+  .leaflet-touch .leaflet-control-zoom a {
+    width: 2.35rem;
+    height: 2.35rem;
+    line-height: 2.25rem;
+    font-size: 1.1rem;
+  }
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: #94a3b8 transparent;
