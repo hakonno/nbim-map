@@ -1,5 +1,6 @@
 import { memo } from "react";
 
+import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
 import type { CityNode } from "@/types/cities";
 
 type MapIntroCardProps = {
@@ -67,7 +68,7 @@ function MapIntroCard({
       ) : selectedCity ? (
         <>
           <h1 className="mt-1 text-base font-semibold leading-tight text-slate-900 sm:text-xl">
-            {selectedCity.city}, {selectedCity.country}
+            {selectedCity.city}, {formatCountryWithFlag(selectedCity.country)}
           </h1>
           <p className="mt-1 text-xs text-slate-700 sm:mt-2 sm:text-sm" role="status" aria-live="polite">
             {showProperties

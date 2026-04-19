@@ -6,6 +6,7 @@ import { CircleMarker, MapContainer, TileLayer, ZoomControl, useMapEvents } from
 
 import MapIntroCard from "@/components/map/MapIntroCard";
 import MapSelectionPanel from "@/components/map/MapSelectionPanel";
+import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
 import type {
   CityNode,
   CityProperty,
@@ -348,7 +349,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         id: `city-${city.id}`,
         type: "city",
         name: city.city,
-        subtitle: city.country,
+        subtitle: formatCountryWithFlag(city.country),
         lat: city.lat as number,
         lng: city.lng as number,
         cityId: city.id,
@@ -367,7 +368,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         id: `property-${property.id}`,
         type: "property",
         name: property.name?.trim() || "Unnamed property",
-        subtitle: [property.address, property.cityName, property.country]
+        subtitle: [property.address, property.cityName, formatCountryWithFlag(property.country)]
           .filter((part): part is string => Boolean(part && part.trim()))
           .join(" · "),
         lat: property.lat,
