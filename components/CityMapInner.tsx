@@ -126,8 +126,8 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   );
 
   const countriesWithoutInternational = useMemo(
-    () => Math.max(0, totalCountries - (hasInternationalFund ? 1 : 0)),
-    [totalCountries, hasInternationalFund]
+    () => totalCountries,
+    [totalCountries]
   );
 
   const localSearchResults = useMemo(
@@ -313,6 +313,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         hasInternationalFund={hasInternationalFund}
         fundRealEstateValueNok={FUND_REAL_ESTATE_VALUE_NOK}
         fundSharePercent={FUND_SHARE_PERCENT}
+        totalInvestments={flatProperties.length}
       />
 
       <MapSelectionPanel
