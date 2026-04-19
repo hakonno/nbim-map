@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { CircleMarker } from "react-leaflet";
 
 import {
@@ -60,6 +61,40 @@ export default function MapMarkersLayer({
         flatProperties.map((property) => {
           const isSelected = selection.mode === "property" && selection.selectedPropertyId === property.id;
           const propertyColors = getPropertyColors(property.ownership_percent, isSelected);
+
+          if (isSelected) {
+            return (
+              <Fragment key={property.id}>
+                <CircleMarker
+                  center={[property.lat, property.lng]}
+                  radius={showPropertyDetail ? 16 : 12}
+                  className="selected-property-halo"
+                  interactive={false}
+                  pathOptions={{
+                    color: propertyColors.stroke,
+                    fillOpacity: 0,
+                    opacity: 0.85,
+                    weight: 2,
+                  }}
+                />
+                <CircleMarker
+                  center={[property.lat, property.lng]}
+                  radius={showPropertyDetail ? 8.5 : 5.75}
+                  pathOptions={{
+                    color: propertyColors.stroke,
+                    fillColor: propertyColors.fill,
+                    fillOpacity: 0.9,
+                    weight: 2.75,
+                  }}
+                  eventHandlers={{
+                    click: () => {
+                      onSelectProperty(property);
+                    },
+                  }}
+                />
+              </Fragment>
+            );
+          }
 
           return (
             <CircleMarker

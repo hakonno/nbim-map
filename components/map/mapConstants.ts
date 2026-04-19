@@ -2,6 +2,7 @@ import type { CityNode } from "@/types/cities";
 
 export const ZOOM_SHOW_PROPERTIES = 7;
 export const ZOOM_PROPERTY_DETAIL = 10;
+export const ZOOM_PROPERTY_FOCUS = 12;
 export const MAP_DEFAULT_ZOOM = 3;
 export const MAP_CENTER: [number, number] = [25, 5];
 

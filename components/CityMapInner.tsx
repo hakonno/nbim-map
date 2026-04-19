@@ -15,6 +15,7 @@ import {
   SEARCH_RESULT_LIMIT,
   SHOW_PROPERTY_COORDINATES_DEBUG,
   ZOOM_PROPERTY_DETAIL,
+  ZOOM_PROPERTY_FOCUS,
   ZOOM_SHOW_PROPERTIES,
   isInternationalFundCity,
 } from "@/components/map/mapConstants";
@@ -158,7 +159,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         return;
       }
 
-      const targetZoom = Math.max(mapInstance.getZoom(), ZOOM_PROPERTY_DETAIL);
+      const targetZoom = Math.max(mapInstance.getZoom(), ZOOM_PROPERTY_FOCUS);
       mapInstance.flyTo([property.lat, property.lng], targetZoom, {
         animate: true,
         duration: 0.75,
@@ -262,7 +263,8 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         return;
       }
 
-      mapInstance.flyTo([result.lat, result.lng], Math.max(mapInstance.getZoom(), ZOOM_SHOW_PROPERTIES + 1), {
+      const minimumTargetZoom = result.type === "property" ? ZOOM_PROPERTY_FOCUS : ZOOM_SHOW_PROPERTIES + 1;
+      mapInstance.flyTo([result.lat, result.lng], Math.max(mapInstance.getZoom(), minimumTargetZoom), {
         animate: true,
         duration: 0.8,
       });
