@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import type { CityNode } from "@/types/cities";
 
 type MapIntroCardProps = {
@@ -19,7 +21,7 @@ const percentageFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 });
 
-export default function MapIntroCard({
+function MapIntroCard({
   mode,
   selectedCity,
   showProperties,
@@ -36,7 +38,7 @@ export default function MapIntroCard({
         <>
           <h1 className="mt-1 text-base font-semibold leading-tight text-slate-900 sm:text-xl">Owned Real Estate by Norway around the world</h1>
           <p className="mt-1 text-xs text-slate-700 sm:mt-2 sm:text-sm" role="status" aria-live="polite">
-            Unlisted office and retail properties in major cities, and in logistics properties. ()
+            Unlisted office, retail, and logistics properties in major cities.
           </p>
 
           <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px] sm:mt-3 sm:gap-2 sm:text-sm">
@@ -45,7 +47,7 @@ export default function MapIntroCard({
               <p className="font-semibold text-slate-900 tabular-nums">NOK {integerFormatter.format(fundRealEstateValueNok)}</p>
             </div>
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
-              <p className="text-slate-500">of the funds total investments</p>
+              <p className="text-slate-500">of total fund investments</p>
               <p className="font-semibold text-slate-900 tabular-nums">{percentageFormatter.format(fundSharePercent)}%</p>
             </div>
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
@@ -72,11 +74,6 @@ export default function MapIntroCard({
               ? "Tap a marker or pick a property from the list."
               : "Zoom in to see individual properties in this city."}
           </p>
-          {showProperties && (
-            <p className="mt-1 text-[11px] text-slate-600 sm:text-xs">
-              
-            </p>
-          )}
 
           {/* <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px] sm:mt-3 sm:gap-2 sm:text-sm">
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
@@ -114,3 +111,5 @@ export default function MapIntroCard({
     </div>
   );
 }
+
+export default memo(MapIntroCard);

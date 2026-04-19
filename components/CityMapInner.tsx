@@ -23,6 +23,11 @@ type CityMapInnerProps = {
   cities: CityNode[];
 };
 
+type MapEventBridgeProps = {
+  onMapReady: (map: LeafletMap) => void;
+  onZoomChange: (zoom: number) => void;
+};
+
 type FlatProperty = CityProperty & {
   cityId: string;
   cityName: string;
@@ -119,13 +124,7 @@ function isInternationalFundCity(city: Pick<CityNode, "city" | "country">) {
   return cityName === "international fund" || countryName === "international fund";
 }
 
-function MapEventBridge({
-  onMapReady,
-  onZoomChange,
-}: {
-  onMapReady: (map: LeafletMap) => void;
-  onZoomChange: (zoom: number) => void;
-}) {
+function MapEventBridge({ onMapReady, onZoomChange }: MapEventBridgeProps) {
   const map = useMapEvents({
     zoomend: (e: LeafletEvent) => {
       onZoomChange((e.target as { getZoom: () => number }).getZoom());
@@ -382,7 +381,9 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
 
   const handleSelectSearchResult = useCallback(
     (result: SearchResult) => {
-      setSearchQuery(result.name);
+      // Clear search when moving from global results into selection detail states.
+      // Keeping the query here can unintentionally hide city properties.
+      setSearchQuery("");
 
       if (result.type === "city") {
         const city = mappableCities.find((candidate) => candidate.id === result.cityId);
