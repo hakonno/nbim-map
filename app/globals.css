@@ -39,6 +39,33 @@ body {
   margin: 0.65rem 0.75rem;
 }
 
+@keyframes property-halo-pulse {
+  0% {
+    opacity: 0.88;
+    stroke-width: 2;
+  }
+
+  50% {
+    opacity: 0.3;
+    stroke-width: 4;
+  }
+
+  100% {
+    opacity: 0.88;
+    stroke-width: 2;
+  }
+}
+
+.leaflet-interactive.selected-property-halo {
+  animation: property-halo-pulse 1.35s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaflet-interactive.selected-property-halo {
+    animation: none;
+  }
+}
+
 .leaflet-control-zoom a:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
