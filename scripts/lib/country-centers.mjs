@@ -1,0 +1,17 @@
+export const COUNTRY_CENTERS = {
+  belgium: [50.8333, 4.4699],
+  czechrepublic: [49.8175, 15.473],
+  france: [46.2276, 2.2137],
+  germany: [51.1657, 10.4515],
+  hungary: [47.1625, 19.5033],
+  internationalfund: [20, 0],
+  italy: [41.8719, 12.5674],
+  japan: [36.2048, 138.2529],
+  netherlands: [52.1326, 5.2913],
+  poland: [51.9194, 19.1451],
+  spain: [40.4637, -3.7492],
+  sweden: [60.1282, 18.6435],
+  switzerland: [46.8182, 8.2275],
+  unitedkingdom: [55.3781, -3.436],
+  unitedstates: [39.8283, -98.5795],
+};
