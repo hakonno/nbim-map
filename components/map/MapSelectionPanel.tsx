@@ -107,10 +107,10 @@ export default function MapSelectionPanel({
         <div className="relative">
           <input
             id="selection-search"
-            type="search"
+            type="text"
             value={searchQuery}
             onChange={(event) => onSearchQueryChange(event.target.value)}
-            placeholder={mode === "global" ? "Search city or property" : "Filter properties in this city"}
+            placeholder={mode === "global" ? "Search country, city or property" : "Filter properties in this city"}
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:text-sm"
             autoComplete="off"
           />
