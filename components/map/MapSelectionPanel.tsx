@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import type { CityNode, CityProperty } from "@/types/cities";
 
 type PropertyCoordinates = {
@@ -48,7 +50,7 @@ const integerFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
-export default function MapSelectionPanel({
+function MapSelectionPanel({
   mode,
   selectedCity,
   selectedProperty,
@@ -235,3 +237,5 @@ export default function MapSelectionPanel({
     </aside>
   );
 }
+
+export default memo(MapSelectionPanel);
