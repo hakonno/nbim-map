@@ -1,40 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NBIM Investment Map
 
-## Getting Started
+Interactive map of NBIM real estate investments, with city-level and property-level views.
 
-First, run the development server:
+## Tech
+
+- Next.js 16
+- React 19
+- TypeScript
+- Leaflet + react-leaflet
+- Playwright
+
+## Run Locally
+
+```bash
+npm install
+npm run dev
+```
+
+Open http://localhost:3000
+
+## Scripts
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run build
+npm run start
+npm run lint
+npm run test
+npm run pipeline
+npm run pipeline:properties
+npm run pipeline:cities
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Data Pipeline
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The pipeline reads raw CSV input from `data/raw/` and generates:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `data/properties.json`
+- `data/property-coordinates.json`
+- `data/cities.json`
+- `data/geocode-cache.json`
 
-## Learn More
+## Deployment
 
-To learn more about Next.js, take a look at the following resources:
+Deploy directly on Vercel by importing this repository.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Data Disclaimer
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This is an independent project using publicly available data. It is not affiliated with Norges Bank Investment Management (NBIM). Data may be inaccurate.
 
-## Deploy on Vercel
+Source: [NBIM holdings data (31 Dec 2025)](https://www.nbim.no/en/investments/all-investments/#/2025-12-31/2-real_estate)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Contributing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## TODO
+## License
 
-- Re-enable the International fund entry on the map after correct coordinates are confirmed for `Blackstone Americas Logistics L.P.`. It is currently excluded from map rendering because the fallback coordinates are inaccurate.
+MIT. See [LICENSE](LICENSE).
