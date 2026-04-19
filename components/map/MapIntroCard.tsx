@@ -65,7 +65,7 @@ function MapIntroCard({
 
       {mode === "global" ? (
         <>
-          <h1 className="mt-0.5 text-[13px] font-semibold leading-tight text-slate-900 sm:mt-1 sm:text-xl">Owned by Norway around the world</h1>
+          <h1 className="mt-0.5 text-[13px] font-semibold leading-tight text-slate-900 sm:mt-1 sm:text-xl">Norway‑owned properties worldwide</h1>
           <p className="mt-1 hidden text-[11px] text-slate-700 sm:mt-2 sm:block sm:text-sm" role="status" aria-live="polite">
             Unlisted office, retail, and logistics properties in major cities.
           </p>
@@ -105,8 +105,8 @@ function MapIntroCard({
           </h1>
           <p className="mt-1 text-[11px] text-slate-700 sm:mt-2 sm:text-sm" role="status" aria-live="polite">
             {showProperties
-              ? "Tap a marker or pick a property from the list."
-              : "Zoom in to see individual properties in this city."}
+              ? "Tap a marker or select a property from the list."
+              : "Zoom in to view individual properties in this city."}
           </p>
 
           {/* <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px] sm:mt-3 sm:gap-2 sm:text-sm">
@@ -124,13 +124,13 @@ function MapIntroCard({
         </>
       ) : (
         <>
-          <h1 className="mt-0.5 text-[13px] font-semibold leading-tight text-slate-900 sm:mt-1 sm:text-xl">Owned Real Estate by Norway around the world.</h1>
+          <h1 className="mt-0.5 text-[13px] font-semibold leading-tight text-slate-900 sm:mt-1 sm:text-xl">Norway‑owned real estate worldwide.</h1>
           <p className="mt-1 text-[11px] text-slate-700 sm:mt-2 sm:text-sm">Tap a city to continue.</p>
         </>
       )}
 
       <p className="mt-2 border-t border-slate-200 pt-1 text-[9px] leading-snug text-slate-500 sm:hidden">
-        Not affiliated with Norges Bank Investment Management. May contain inaccuracies.
+        Not affiliated with Norges Bank Investment Management. Data may be inaccurate.
       </p>
 
       <p className="mt-2 hidden border-t border-slate-200 pt-2 text-[9px] leading-snug text-slate-500 sm:mt-3 sm:block sm:text-[11px]">
