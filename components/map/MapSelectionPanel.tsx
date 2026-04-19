@@ -1,5 +1,6 @@
 import { memo } from "react";
 
+import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
 import type { CityNode, CityProperty } from "@/types/cities";
 
 type PropertyCoordinates = {
@@ -86,7 +87,7 @@ function MapSelectionPanel({
             : mode === "property"
             ? selectedProperty?.name ?? "Property details"
             : selectedCity
-              ? `${selectedCity.city}, ${selectedCity.country}`
+              ? `${selectedCity.city}, ${formatCountryWithFlag(selectedCity.country)}`
               : "Search Investments"}
         </h2>
 
@@ -201,7 +202,7 @@ function MapSelectionPanel({
         <>
           <p className="mt-2 text-sm text-slate-700">{selectedProperty.address ?? "No address"}</p>
           <p className="mt-1 text-sm text-slate-600">
-            {selectedCity.city}, {selectedCity.country}
+            {selectedCity.city}, {formatCountryWithFlag(selectedCity.country)}
           </p>
 
           <div className="mt-3 space-y-1 text-sm text-slate-700 tabular-nums">
