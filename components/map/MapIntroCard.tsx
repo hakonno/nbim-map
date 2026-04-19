@@ -36,7 +36,7 @@ export default function MapIntroCard({
         <>
           <h1 className="mt-1 text-base font-semibold leading-tight text-slate-900 sm:text-xl">Owned Real Estate by Norway around the world</h1>
           <p className="mt-1 text-xs text-slate-700 sm:mt-2 sm:text-sm" role="status" aria-live="polite">
-            Tap a city to see the properties in that area.
+            Unlisted office and retail properties in major cities, and in logistics properties. ()
           </p>
 
           <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px] sm:mt-3 sm:gap-2 sm:text-sm">
@@ -45,7 +45,7 @@ export default function MapIntroCard({
               <p className="font-semibold text-slate-900 tabular-nums">NOK {integerFormatter.format(fundRealEstateValueNok)}</p>
             </div>
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
-              <p className="text-slate-500">Makes up share of fund</p>
+              <p className="text-slate-500">of the funds total investments</p>
               <p className="font-semibold text-slate-900 tabular-nums">{percentageFormatter.format(fundSharePercent)}%</p>
             </div>
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
@@ -97,6 +97,20 @@ export default function MapIntroCard({
           <p className="mt-1 text-xs text-slate-700 sm:mt-2 sm:text-sm">Tap a city to continue.</p>
         </>
       )}
+
+      <p className="mt-3 border-t border-slate-200 pt-2 text-[10px] leading-snug text-slate-500 sm:text-[11px]">
+        This is an independent project using publicly available data. Not affiliated with Norges Bank Investment Management. Data may be inaccurate.
+      </p>
+      <p className="pointer-events-auto mt-1 text-[10px] leading-snug text-slate-500 sm:text-[11px]">
+        <a
+          href="https://www.nbim.no/en/investments/all-investments/#/2025-12-31/2-real_estate"
+          target="_blank"
+          rel="noreferrer"
+          className="text-slate-700 underline underline-offset-2"
+        >
+          Source: NBIM holdings data (31 dec. 2025)
+        </a>
+      </p>
     </div>
   );
 }
