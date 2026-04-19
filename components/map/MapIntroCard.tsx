@@ -101,6 +101,10 @@ function MapIntroCard({
         </>
       )}
 
+      <p className="mt-2 border-t border-slate-200 pt-1 text-[9px] leading-snug text-slate-500 sm:hidden">
+        Not affiliated with Norges Bank Investment Management. May contain inaccuracies.
+      </p>
+
       <p className="mt-2 hidden border-t border-slate-200 pt-2 text-[9px] leading-snug text-slate-500 sm:mt-3 sm:block sm:text-[11px]">
         <span className="hidden sm:inline">This is an independent project using publicly available data. Not affiliated with Norges Bank Investment Management. Data may be inaccurate.</span>
       </p>

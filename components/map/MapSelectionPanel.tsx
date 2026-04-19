@@ -1,4 +1,4 @@
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 
 import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
 import type { CityNode, CityProperty } from "@/types/cities";
@@ -51,7 +51,8 @@ const integerFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
-const MOBILE_SHEET_SWIPE_THRESHOLD = 24;
+const MOBILE_PANEL_EXPANDED_HEIGHT = "min(58svh, 30rem)";
+const MOBILE_PANEL_COLLAPSED_HEIGHT = "6rem";
 
 function MapSelectionPanel({
   mode,
@@ -68,54 +69,21 @@ function MapSelectionPanel({
   onBackToCity,
   onSelectProperty,
 }: MapSelectionPanelProps) {
-  const [isMobileExpanded, setIsMobileExpanded] = useState(mode !== "global");
-  const swipeStartYRef = useRef<number | null>(null);
-  const didSwipeHandleRef = useRef(false);
+  const [isPanelExpanded, setIsPanelExpanded] = useState(true);
 
-  const isPanelExpanded =
-    mode === "global"
-      ? isMobileExpanded || searchQuery.trim().length > 0
-      : true;
+  useEffect(() => {
+    const panelHeight = isPanelExpanded
+      ? MOBILE_PANEL_EXPANDED_HEIGHT
+      : MOBILE_PANEL_COLLAPSED_HEIGHT;
+    document.documentElement.style.setProperty("--map-mobile-panel-height", panelHeight);
 
-  const handleMobileHandleClick = useCallback(() => {
-    if (didSwipeHandleRef.current) {
-      didSwipeHandleRef.current = false;
-      return;
-    }
+    return () => {
+      document.documentElement.style.removeProperty("--map-mobile-panel-height");
+    };
+  }, [isPanelExpanded]);
 
-    setIsMobileExpanded((current) => !current);
-  }, []);
-
-  const handleMobileHandlePointerDown = useCallback(
-    (event: React.PointerEvent<HTMLButtonElement>) => {
-      swipeStartYRef.current = event.clientY;
-      didSwipeHandleRef.current = false;
-    },
-    []
-  );
-
-  const handleMobileHandlePointerUp = useCallback(
-    (event: React.PointerEvent<HTMLButtonElement>) => {
-      const swipeStartY = swipeStartYRef.current;
-      swipeStartYRef.current = null;
-
-      if (swipeStartY == null) {
-        return;
-      }
-
-      const deltaY = event.clientY - swipeStartY;
-      if (Math.abs(deltaY) < MOBILE_SHEET_SWIPE_THRESHOLD) {
-        return;
-      }
-
-      didSwipeHandleRef.current = true;
-      setIsMobileExpanded(deltaY < 0);
-    },
-    []
-  );
-
-  const handleMobileHandlePointerCancel = useCallback(() => {
-    swipeStartYRef.current = null;
+  const handleTogglePanel = useCallback(() => {
+    setIsPanelExpanded((current) => !current);
   }, []);
 
   const cityPropertyFilter = searchQuery.trim().toLowerCase();
@@ -133,24 +101,21 @@ function MapSelectionPanel({
   return (
     <aside
       className={`safe-area-bottom pointer-events-auto absolute inset-x-2 bottom-2 z-[650] flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/96 p-3 shadow-2xl backdrop-blur transition-[max-height] duration-300 ease-out sm:inset-x-3 sm:bottom-3 md:bottom-4 md:left-auto md:right-4 md:top-4 md:max-h-[calc(100svh-2rem)] md:w-[360px] md:p-4 ${
-        isPanelExpanded ? "max-h-[min(58svh,30rem)]" : "max-h-[9.75rem]"
+        isPanelExpanded ? "max-h-[min(58svh,30rem)]" : "max-h-[6rem]"
       }`}
     >
-      {mode === "global" && (
-        <button
-          type="button"
-          className="mx-auto mb-2 flex w-full items-center justify-center rounded-full py-1.5 text-slate-500 active:bg-slate-100/70 md:hidden"
-          onClick={handleMobileHandleClick}
-          onPointerDown={handleMobileHandlePointerDown}
-          onPointerUp={handleMobileHandlePointerUp}
-          onPointerCancel={handleMobileHandlePointerCancel}
-          aria-label={isPanelExpanded ? "Collapse panel" : "Expand panel"}
-          aria-controls="map-selection-panel-content"
-          aria-expanded={isPanelExpanded}
-        >
-          <span className="h-1 w-10 rounded-full bg-slate-300/80" />
-        </button>
-      )}
+      <button
+        type="button"
+        className="mx-auto mb-2 flex w-full items-center justify-center rounded-lg py-1 text-slate-600 active:bg-slate-100/80 md:hidden"
+        onClick={handleTogglePanel}
+        aria-label={isPanelExpanded ? "Hide panel" : "Show panel"}
+        aria-controls="map-selection-panel-content"
+        aria-expanded={isPanelExpanded}
+      >
+        <span aria-hidden="true" className="text-base leading-none">
+          {isPanelExpanded ? "v" : "^"}
+        </span>
+      </button>
 
       <div id="map-selection-panel-content" className="min-h-0 overflow-y-auto overscroll-contain pr-0.5">
 
@@ -187,7 +152,7 @@ function MapSelectionPanel({
             type="search"
             value={searchQuery}
             onChange={(event) => onSearchQueryChange(event.target.value)}
-            onFocus={() => setIsMobileExpanded(true)}
+            onFocus={() => setIsPanelExpanded(true)}
             placeholder={mode === "global" ? "Search country, city or property" : "Filter properties in this city"}
             inputMode="search"
             enterKeyHint="search"
