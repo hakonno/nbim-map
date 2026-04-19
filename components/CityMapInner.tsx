@@ -16,7 +16,7 @@ import type {
 // Zoom thresholds for layer transitions
 const ZOOM_SHOW_PROPERTIES = 7; // above → switch from city markers to property markers
 const ZOOM_PROPERTY_DETAIL = 10; // above → make property markers easier to inspect
-const MAP_DEFAULT_ZOOM = 2;
+const MAP_DEFAULT_ZOOM = 3;
 const SHOW_PROPERTY_COORDINATES_DEBUG = false;
 
 type CityMapInnerProps = {
@@ -75,6 +75,30 @@ function getCityColors(propertyCount: number, maxPropertyCount: number, isSelect
   return {
     stroke: `hsl(${hue}, 70%, 44%)`,
     fill: `hsl(${hue}, 82%, 60%)`,
+  };
+}
+
+function getPropertyColors(ownershipPercent: number | null, isSelected: boolean) {
+  if (ownershipPercent == null) {
+    return {
+      stroke: isSelected ? "#334155" : "#64748b",
+      fill: isSelected ? "#94a3b8" : "#cbd5e1",
+    };
+  }
+
+  const ratio = Math.min(1, Math.max(0, ownershipPercent / 100));
+  const hue = Math.round(8 + ratio * 122);
+
+  if (isSelected) {
+    return {
+      stroke: `hsl(${hue}, 78%, 30%)`,
+      fill: `hsl(${hue}, 86%, 54%)`,
+    };
+  }
+
+  return {
+    stroke: `hsl(${hue}, 72%, 40%)`,
+    fill: `hsl(${hue}, 82%, 61%)`,
   };
 }
 
@@ -353,6 +377,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
           flatProperties.map((property) => {
             const isSelected =
               selection.mode === "property" && selection.selectedPropertyId === property.id;
+            const propertyColors = getPropertyColors(property.ownership_percent, isSelected);
 
             return (
               <CircleMarker
@@ -360,8 +385,8 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
                 center={[property.lat, property.lng]}
                 radius={showPropertyDetail ? 8 : 5}
                 pathOptions={{
-                  color: isSelected ? "#9a3412" : "#1d4ed8",
-                  fillColor: isSelected ? "#fb923c" : "#60a5fa",
+                  color: propertyColors.stroke,
+                  fillColor: propertyColors.fill,
                   fillOpacity: 0.82,
                   weight: isSelected ? 2.5 : 1,
                 }}

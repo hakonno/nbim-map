@@ -75,6 +75,11 @@ export default function MapIntroCard({
               ? "Tap a blue dot or pick a property from the list."
               : "Zoom in to see individual properties in this city."}
           </p>
+          {showProperties && (
+            <p className="mt-1 text-[11px] text-slate-600 sm:text-xs">
+              Marker color shows ownership share: lower is warmer, higher is greener.
+            </p>
+          )}
 
           <div className="mt-2 grid grid-cols-2 gap-1.5 text-[11px] sm:mt-3 sm:gap-2 sm:text-sm">
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
