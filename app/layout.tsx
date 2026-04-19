@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NBIM City Investment Map",
-  description: "Precomputed city-level view of NBIM real estate investments",
+  title: "Where NBIM Has Invested in Real Estate",
+  description: "See where Norway's sovereign wealth fund has invested in real estate across cities and countries.",
 };
 
 export default function RootLayout({

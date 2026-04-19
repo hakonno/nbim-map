@@ -4,6 +4,8 @@ import type { LeafletEvent, Map as LeafletMap } from "leaflet";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CircleMarker, MapContainer, TileLayer, useMapEvents } from "react-leaflet";
 
+import MapIntroCard from "@/components/map/MapIntroCard";
+import MapSelectionPanel from "@/components/map/MapSelectionPanel";
 import type {
   CityAggregateContract,
   CityNode,
@@ -15,8 +17,7 @@ import type {
 const ZOOM_SHOW_PROPERTIES = 7; // above → switch from city markers to property markers
 const ZOOM_PROPERTY_DETAIL = 10; // above → make property markers easier to inspect
 const MAP_DEFAULT_ZOOM = 2;
-const PROPERTY_VALUES_ENABLED = false;
-const SHOW_PROPERTY_COORDINATES_DEBUG = true;
+const SHOW_PROPERTY_COORDINATES_DEBUG = false;
 
 type CityMapInnerProps = {
   cities: CityNode[];
@@ -48,15 +49,8 @@ type SelectionState =
     };
 
 const mapCenter: [number, number] = [25, 5];
-
-const integerFormatter = new Intl.NumberFormat("en-US", {
-  maximumFractionDigits: 0,
-});
-
-const decimalFormatter = new Intl.NumberFormat("en-US", {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
+const FUND_REAL_ESTATE_VALUE_NOK = 371_524_114_446;
+const FUND_SHARE_PERCENT = 1.7;
 
 function getCityRadius(propertyCount: number, maxPropertyCount: number) {
   const ratio = Math.sqrt(propertyCount / Math.max(maxPropertyCount, 1));
@@ -208,6 +202,19 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   const showProperties = zoom >= ZOOM_SHOW_PROPERTIES;
   const showPropertyDetail = zoom >= ZOOM_PROPERTY_DETAIL;
 
+  const hasInternationalFund = useMemo(
+    () =>
+      validCities.some(
+        (city) => city.country.trim().toLowerCase() === "international fund"
+      ),
+    [validCities]
+  );
+
+  const countriesWithoutInternational = useMemo(
+    () => Math.max(0, globalOverview.totalCountries - (hasInternationalFund ? 1 : 0)),
+    [globalOverview.totalCountries, hasInternationalFund]
+  );
+
   const flyToCity = useCallback(
     (city: CityNode) => {
       if (!mapInstance || typeof city.lat !== "number" || typeof city.lng !== "number") {
@@ -262,6 +269,18 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     [flyToProperty]
   );
 
+  const handleSelectPropertyById = useCallback(
+    (propertyId: string) => {
+      const property = flatPropertyById.get(propertyId);
+      if (!property) {
+        return;
+      }
+
+      handleSelectProperty(property);
+    },
+    [flatPropertyById, handleSelectProperty]
+  );
+
   const handleBackToCity = useCallback(() => {
     setSelection((current) => {
       if (current.mode !== "property") {
@@ -293,13 +312,6 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       duration: 0.9,
     });
   }, [mapInstance]);
-
-  const panelModeLabel =
-    selection.mode === "global"
-      ? "Global Mode"
-      : selection.mode === "property"
-        ? "Property Mode"
-        : "City Mode";
 
   return (
     <div className="map-shell relative h-[100svh] w-full overflow-hidden touch-manipulation">
@@ -363,223 +375,34 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
           })}
       </MapContainer>
 
-      {/* Top-left info card */}
-      <div className="pointer-events-none absolute left-3 top-3 z-[500] w-[calc(100%-1.5rem)] max-w-sm rounded-2xl border border-white/60 bg-white/92 p-4 shadow-xl backdrop-blur sm:left-4 sm:top-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">NBIM Real Estate</p>
-        {selection.mode === "global" ? (
-          <>
-            <h1 className="mt-1 text-xl font-semibold text-slate-900 text-balance">Global geographic overview</h1>
-            <p className="mt-2 text-sm text-slate-700" role="status" aria-live="polite">
-              City markers scale by property count and color by density. Select a city marker to enter city mode.
-            </p>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-xs sm:text-sm">
-              <div className="rounded-xl bg-slate-100 p-2">
-                <p className="text-slate-500">Cities</p>
-                <p className="font-semibold text-slate-900 tabular-nums">
-                  {integerFormatter.format(globalOverview.totalCities)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-slate-100 p-2">
-                <p className="text-slate-500">Properties</p>
-                <p className="font-semibold text-slate-900 tabular-nums">
-                  {integerFormatter.format(globalOverview.totalProperties)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-slate-100 p-2">
-                <p className="text-slate-500">Countries</p>
-                <p className="font-semibold text-slate-900 tabular-nums">
-                  {integerFormatter.format(globalOverview.totalCountries)}
-                </p>
-              </div>
-            </div>
-            <p className="mt-3 text-xs text-slate-500">
-              Portfolio value and ownership exposure are hidden until semantic definitions are available.
-            </p>
-          </>
-        ) : selectedCity ? (
-          <>
-            <h1 className="mt-1 text-xl font-semibold text-slate-900 text-balance">
-              {selectedCity.city}, {selectedCity.country}
-            </h1>
-            <p className="mt-2 text-sm text-slate-700" role="status" aria-live="polite">
-              {showProperties
-                ? "Property mode is active. Select a property marker or list item for details."
-                : "City mode is active. Zoom in to reveal individual property markers."}
-            </p>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:text-sm">
-              <div className="rounded-xl bg-slate-100 p-2">
-                <p className="text-slate-500">Properties</p>
-                <p className="font-semibold text-slate-900 tabular-nums">
-                  {integerFormatter.format(selectedCityAggregate?.propertyCount ?? 0)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-slate-100 p-2">
-                <p className="text-slate-500">Exposure</p>
-                <p className="font-semibold text-slate-900">Not aggregated</p>
-              </div>
-            </div>
-            <p className="mt-3 text-xs text-slate-500">
-              Ownership and value aggregation are intentionally disabled at city level.
-            </p>
-          </>
-        ) : (
-          <>
-            <h1 className="mt-1 text-xl font-semibold text-slate-900 text-balance">Selection unavailable</h1>
-            <p className="mt-2 text-sm text-slate-700">Reset to overview and select a city marker again.</p>
-          </>
-        )}
-      </div>
+      <MapIntroCard
+        mode={selection.mode}
+        selectedCity={selectedCity}
+        selectedCityAggregate={selectedCityAggregate}
+        showProperties={showProperties}
+        globalOverview={globalOverview}
+        countriesWithoutInternational={countriesWithoutInternational}
+        hasInternationalFund={hasInternationalFund}
+        fundRealEstateValueNok={FUND_REAL_ESTATE_VALUE_NOK}
+        fundSharePercent={FUND_SHARE_PERCENT}
+      />
 
-      {/* Right / bottom detail panel */}
-      <aside className="safe-area-bottom absolute bottom-0 left-0 right-0 z-[500] max-h-[42svh] rounded-t-2xl border-t border-slate-200 bg-white/96 p-3 shadow-2xl backdrop-blur md:bottom-4 md:left-auto md:right-4 md:top-4 md:max-h-[calc(100svh-2rem)] md:w-[360px] md:rounded-2xl md:border md:p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{panelModeLabel}</p>
-            <h2 className="mt-1 text-lg font-semibold text-slate-900 text-balance">
-              {selection.mode === "global"
-                ? "Portfolio context"
-                : selection.mode === "property"
-                  ? selectedProperty?.name ?? "Unnamed property"
-                  : selectedCity
-                    ? `${selectedCity.city}, ${selectedCity.country}`
-                    : "Selection unavailable"}
-            </h2>
-          </div>
-
-          {selection.mode !== "global" && (
-            <button
-              type="button"
-              onClick={handleResetSelection}
-              className="pointer-events-auto rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-              aria-label="Close selection and return to global overview"
-            >
-              Close
-            </button>
-          )}
-        </div>
-
-        {selection.mode === "global" && (
-          <>
-            <p className="mt-2 text-sm text-slate-700">
-              Select a city marker to zoom in, switch to city mode, and inspect properties.
-            </p>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-xs sm:text-sm">
-              <div className="rounded-xl bg-slate-100 p-2">
-                <p className="text-slate-500">Cities</p>
-                <p className="font-semibold text-slate-900 tabular-nums">
-                  {integerFormatter.format(globalOverview.totalCities)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-slate-100 p-2">
-                <p className="text-slate-500">Properties</p>
-                <p className="font-semibold text-slate-900 tabular-nums">
-                  {integerFormatter.format(globalOverview.totalProperties)}
-                </p>
-              </div>
-              <div className="rounded-xl bg-slate-100 p-2">
-                <p className="text-slate-500">Countries</p>
-                <p className="font-semibold text-slate-900 tabular-nums">
-                  {integerFormatter.format(globalOverview.totalCountries)}
-                </p>
-              </div>
-            </div>
-            <p className="mt-3 text-xs text-slate-500">
-              Estimated portfolio values are currently unavailable at reliable global granularity.
-            </p>
-          </>
-        )}
-
-        {selection.mode !== "global" && !selectedCity && (
-          <p className="mt-2 text-sm text-slate-700">Selected city is unavailable. Use Close to reset to overview.</p>
-        )}
-
-        {selection.mode === "city" && selectedCity && (
-          <>
-            <p className="mt-1 text-sm text-slate-700">
-              {selectedCity.country} · {integerFormatter.format(selectedCity.properties.length)} properties
-            </p>
-            <p className="mt-2 text-xs text-slate-500">
-              City-level ownership exposure is intentionally not aggregated in this version.
-            </p>
-
-            <div className="mt-3 max-h-[26svh] space-y-2 overflow-y-auto overscroll-contain pr-1 md:max-h-[calc(100svh-13rem)]">
-              {selectedCity.properties.map((property) => {
-                const flatProperty = flatPropertyById.get(property.id);
-
-                return (
-                  <button
-                    key={property.id}
-                    type="button"
-                    className="pointer-events-auto w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                    onClick={() => {
-                      if (!flatProperty) {
-                        return;
-                      }
-
-                      handleSelectProperty(flatProperty);
-                    }}
-                    disabled={!flatProperty}
-                    aria-label={`Select property ${property.name ?? "Unnamed property"}`}
-                  >
-                    <h3 className="text-sm font-semibold text-slate-900 text-balance">{property.name ?? "Unnamed property"}</h3>
-                    <p className="mt-1 text-xs text-slate-700">{property.address ?? "No address"}</p>
-                    <p className="mt-2 text-xs text-slate-600">
-                      {property.sector ?? "Unknown sector"} · {property.partnership ?? "Unknown partner"}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-600 tabular-nums">
-                      Ownership {property.ownership_percent == null ? "N/A" : `${decimalFormatter.format(property.ownership_percent)}%`}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
-
-        {selection.mode === "property" && selectedCity && selectedProperty && (
-          <>
-            <p className="mt-1 text-sm text-slate-700">{selectedProperty.address ?? "No address"}</p>
-            <p className="mt-1 text-sm text-slate-600">
-              {selectedCity.city}, {selectedCity.country}
-            </p>
-
-            <div className="mt-3 space-y-1 text-sm text-slate-700 tabular-nums">
-              <p>
-                <span className="text-slate-500">Sector</span> {selectedProperty.sector ?? "N/A"}
-              </p>
-              <p>
-                <span className="text-slate-500">Partner</span> {selectedProperty.partnership ?? "N/A"}
-              </p>
-              <p>
-                <span className="text-slate-500">Ownership</span>{" "}
-                {selectedProperty.ownership_percent == null
-                  ? "N/A"
-                  : `${decimalFormatter.format(selectedProperty.ownership_percent)}%`}
-              </p>
-              {SHOW_PROPERTY_COORDINATES_DEBUG && selectedFlatProperty && (
-                <p>
-                  <span className="text-slate-500">Coordinates</span>{" "}
-                  {selectedFlatProperty.lat.toFixed(6)}, {selectedFlatProperty.lng.toFixed(6)}
-                </p>
-              )}
-            </div>
-
-            {!PROPERTY_VALUES_ENABLED && (
-              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-900">
-                Property-level value is hidden until asset-level valuation data is available.
-              </p>
-            )}
-
-            <button
-              className="pointer-events-auto mt-4 rounded-md px-1 py-0.5 text-xs text-blue-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-              onClick={handleBackToCity}
-              type="button"
-            >
-              ← Back to {selectedCity.city} properties
-            </button>
-          </>
-        )}
-      </aside>
+      {selection.mode !== "global" && (
+        <MapSelectionPanel
+          mode={selection.mode === "property" ? "property" : "city"}
+          selectedCity={selectedCity}
+          selectedProperty={selectedProperty}
+          selectedPropertyCoordinates={
+            selectedFlatProperty
+              ? { lat: selectedFlatProperty.lat, lng: selectedFlatProperty.lng }
+              : null
+          }
+          showCoordinatesDebug={SHOW_PROPERTY_COORDINATES_DEBUG}
+          onClose={handleResetSelection}
+          onBackToCity={handleBackToCity}
+          onSelectProperty={handleSelectPropertyById}
+        />
+      )}
     </div>
   );
 }
