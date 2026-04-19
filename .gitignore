@@ -48,3 +48,8 @@ node_modules/
 /playwright/.cache/
 /playwright/.auth/
 /.playwright-cli/
+DEPLOYMENT.md
+CHANGELOG.md
+.gitignore
+.gitattributes
+.editorconfig
