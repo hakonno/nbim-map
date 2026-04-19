@@ -1,0 +1,207 @@
+{
+  "generated_at": "2026-04-19T15:02:50.200Z",
+  "source_input": "data/raw/re_20251231.csv",
+  "total_records": 20,
+  "entries": {
+    "prop_c699c008f9d491": {
+      "lat": 50.7874,
+      "lng": 5.52266,
+      "source": "address_country_photon",
+      "geocode_query": "Tongeren DC3, Heesterveldweg, 3700, Tongeren, Belgium",
+      "address": "Tongeren DC3, Heesterveldweg, 3700, Tongeren",
+      "city": "Tongeren",
+      "country": "Belgium",
+      "updated_at": "2026-04-19T15:02:36.167Z"
+    },
+    "prop_81f44b719f53a2": {
+      "lat": 51.0914713,
+      "lng": 4.2573122,
+      "source": "address_country_photon",
+      "geocode_query": "Bornem DC2, Pedro Colomalaan 11, 2880, Bornem, Belgium",
+      "address": "Bornem DC2, Pedro Colomalaan 11, 2880, Bornem",
+      "city": "Bornem",
+      "country": "Belgium",
+      "updated_at": "2026-04-19T15:02:36.478Z"
+    },
+    "prop_2d1e6d022bc9f0": {
+      "lat": 50.7874,
+      "lng": 5.52266,
+      "source": "address_country_photon",
+      "geocode_query": "Tongeren DC2, Heesterveldweg 14, 3700, Tongeren, Belgium",
+      "address": "Tongeren DC2, Heesterveldweg 14, 3700, Tongeren",
+      "city": "Tongeren",
+      "country": "Belgium",
+      "updated_at": "2026-04-19T15:02:36.887Z"
+    },
+    "prop_63db85b7ef150a": {
+      "lat": 51.0914713,
+      "lng": 4.2573122,
+      "source": "address_country_photon",
+      "geocode_query": "Bornem DC1, Pedro Colomalaan 11, 2880, Bornem, Belgium",
+      "address": "Bornem DC1, Pedro Colomalaan 11, 2880, Bornem",
+      "city": "Bornem",
+      "country": "Belgium",
+      "updated_at": "2026-04-19T15:02:37.086Z"
+    },
+    "prop_6bd44bc9b62bcb": {
+      "lat": 50.7908982,
+      "lng": 5.5267697,
+      "source": "address_country_photon",
+      "geocode_query": "Tongeren DC1, Limesweg 6, 3700, Tongeren, Belgium",
+      "address": "Tongeren DC1, Limesweg 6, 3700, Tongeren",
+      "city": "Tongeren",
+      "country": "Belgium",
+      "updated_at": "2026-04-19T15:02:37.505Z"
+    },
+    "prop_3a281b4132a0f1": {
+      "lat": 50.0864234,
+      "lng": 14.4156772,
+      "source": "city_country_photon",
+      "geocode_query": "Štěnovice, Czech Republic",
+      "address": "Pilsen-Stenovice DC2, Dobřanská 537, 332 09, Štěnovice",
+      "city": "Štěnovice",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:38.835Z"
+    },
+    "prop_e648f352867774": {
+      "lat": 50.1274617,
+      "lng": 14.6929238,
+      "source": "address_country_photon",
+      "geocode_query": "Prague-Jirny DC6, Poděbradská 607, 250 90, Prague, Czech Republic",
+      "address": "Prague-Jirny DC6, Poděbradská 607, 250 90, Prague",
+      "city": "Prague",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:39.346Z"
+    },
+    "prop_9f705815548a58": {
+      "lat": 49.9719329,
+      "lng": 14.6220727,
+      "source": "city_country_photon",
+      "geocode_query": "Říčany-Jažlovice, Czech Republic",
+      "address": "Prague D1 East DC2, Na Dlouhém 80, 251 01, Říčany-Jažlovice",
+      "city": "Říčany-Jažlovice",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:40.676Z"
+    },
+    "prop_67cde8c1357919": {
+      "lat": 49.9719329,
+      "lng": 14.6220727,
+      "source": "cache_city_country",
+      "geocode_query": "Říčany-Jažlovice, Czech Republic",
+      "address": "Prague D1 East DC3, Na Dlouhém 82, 251 01, Říčany-Jažlovice",
+      "city": "Říčany-Jažlovice",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:41.464Z"
+    },
+    "prop_9219bf2846b6d7": {
+      "lat": 50.1274617,
+      "lng": 14.6929238,
+      "source": "name_city_country_photon",
+      "geocode_query": "Prague-Jirny DC4 Extension, Prague, Czech Republic",
+      "address": "Prague-Jirny DC4 Extension, Poděbradská 607, 250 90, Prague",
+      "city": "Prague",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:42.519Z"
+    },
+    "prop_d271379a11b1e7": {
+      "lat": 50.0864234,
+      "lng": 14.4156772,
+      "source": "city_country_photon",
+      "geocode_query": "Prague, Czech Republic",
+      "address": "Prague D1 East DC8, Na Dlouhém Říčany-Jažlovice, 251 01, Prague",
+      "city": "Prague",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:43.734Z"
+    },
+    "prop_9e98b6337c50db": {
+      "lat": 50.1274617,
+      "lng": 14.6929238,
+      "source": "address_country_photon",
+      "geocode_query": "Prague-Jirny DC7, Poděbradská 607, 250 90, Prague, Czech Republic",
+      "address": "Prague-Jirny DC7, Poděbradská 607, 250 90, Prague",
+      "city": "Prague",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:44.265Z"
+    },
+    "prop_fb77915589c592": {
+      "lat": 50.0864234,
+      "lng": 14.4156772,
+      "source": "cache_city_country",
+      "geocode_query": "Prague, Czech Republic",
+      "address": "Prague D1 East DC9, Na Dlouhém Říčany-Jažlovice, 251 01, Prague",
+      "city": "Prague",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:45.107Z"
+    },
+    "prop_c5aeb22f64be35": {
+      "lat": 49.9719329,
+      "lng": 14.6220727,
+      "source": "cache_city_country",
+      "geocode_query": "Říčany-Jažlovice, Czech Republic",
+      "address": "Prague D1 East DC1, Na Dlouhém 79, 251 01, Říčany-Jažlovice",
+      "city": "Říčany-Jažlovice",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:46.205Z"
+    },
+    "prop_ac46ef28e6a3c7": {
+      "lat": 50.1274617,
+      "lng": 14.6929238,
+      "source": "address_country_photon",
+      "geocode_query": "Prague-Jirny DC5A, Poděbradská 607, 250 90, Prague, Czech Republic",
+      "address": "Prague-Jirny DC5A, Poděbradská 607, 250 90, Prague",
+      "city": "Prague",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:46.514Z"
+    },
+    "prop_fc55d28b73e787": {
+      "lat": 50.0864234,
+      "lng": 14.4156772,
+      "source": "cache_city_country",
+      "geocode_query": "Prague, Czech Republic",
+      "address": "Prague-Jirny DC4B Extension, Poděbradská 607, 250 90, Prague",
+      "city": "Prague",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:47.405Z"
+    },
+    "prop_676f923754a42c": {
+      "lat": 50.0864234,
+      "lng": 14.4156772,
+      "source": "cache_city_country",
+      "geocode_query": "Štěnovice, Czech Republic",
+      "address": "Pilsen-Stenovice DC3, Dobřanská 538, 332 09, Štěnovice",
+      "city": "Štěnovice",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:48.561Z"
+    },
+    "prop_d75c6fd7a2d8de": {
+      "lat": 49.6786153,
+      "lng": 13.4218247,
+      "source": "address_country_photon",
+      "geocode_query": "Pilsen-Stenovice DC1, Dobřanská, 332 09, Štěnovice, Czech Republic",
+      "address": "Pilsen-Stenovice DC1, Dobřanská, 332 09, Štěnovice",
+      "city": "Štěnovice",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:48.945Z"
+    },
+    "prop_bd482b7c41d4ae": {
+      "lat": 49.9719329,
+      "lng": 14.6220727,
+      "source": "cache_city_country",
+      "geocode_query": "Říčany-Jažlovice, Czech Republic",
+      "address": "Prague D1 East DC7B, Na Dlouhém 90, 251 01, Říčany-Jažlovice",
+      "city": "Říčany-Jažlovice",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:49.764Z"
+    },
+    "prop_98a95d940f9b48": {
+      "lat": 50.1274617,
+      "lng": 14.6929238,
+      "source": "address_country_photon",
+      "geocode_query": "Prague-Jirny DC5B, Poděbradská 607, 250 90, Prague, Czech Republic",
+      "address": "Prague-Jirny DC5B, Poděbradská 607, 250 90, Prague",
+      "city": "Prague",
+      "country": "Czech Republic",
+      "updated_at": "2026-04-19T15:02:50.198Z"
+    }
+  }
+}

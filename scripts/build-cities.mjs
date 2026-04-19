@@ -5,6 +5,7 @@ import process from "node:process";
 
 const DEFAULT_INPUT = path.join(process.cwd(), "data", "raw", "re_20251231.csv");
 const DEFAULT_OUTPUT = path.join(process.cwd(), "data", "cities.json");
+const DEFAULT_PROPERTY_COORDINATES = path.join(process.cwd(), "data", "property-coordinates.json");
 
 const COUNTRY_CENTERS = {
   belgium: [50.8333, 4.4699],
@@ -135,6 +136,7 @@ function parseArgs(argv) {
   const options = {
     input: DEFAULT_INPUT,
     output: DEFAULT_OUTPUT,
+    propertyCoordinates: DEFAULT_PROPERTY_COORDINATES,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -144,6 +146,9 @@ function parseArgs(argv) {
       index += 1;
     } else if (arg === "--output" && argv[index + 1]) {
       options.output = path.resolve(argv[index + 1]);
+      index += 1;
+    } else if (arg === "--property-coordinates" && argv[index + 1]) {
+      options.propertyCoordinates = path.resolve(argv[index + 1]);
       index += 1;
     }
   }
@@ -371,10 +376,72 @@ function resolveLatLng(city, country) {
   return { lat: null, lng: null, source: "missing" };
 }
 
+function isFiniteCoordinate(value) {
+  if (value == null) {
+    return false;
+  }
+
+  if (typeof value === "string" && value.trim() === "") {
+    return false;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= -180 && parsed <= 180;
+}
+
+function toNumericCoordinate(value) {
+  return isFiniteCoordinate(value) ? Number(value) : null;
+}
+
+async function loadPropertyCoordinates(filePath) {
+  try {
+    const text = await fs.readFile(filePath, "utf8");
+    const parsed = JSON.parse(text);
+
+    if (parsed && typeof parsed === "object" && parsed.entries && typeof parsed.entries === "object") {
+      return parsed.entries;
+    }
+
+    if (parsed && typeof parsed === "object") {
+      return parsed;
+    }
+
+    return {};
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      return {};
+    }
+    throw error;
+  }
+}
+
+function calculatePropertyCentroid(properties) {
+  const valid = properties.filter((property) => isFiniteCoordinate(property.lat) && isFiniteCoordinate(property.lng));
+
+  if (valid.length === 0) {
+    return null;
+  }
+
+  const total = valid.reduce(
+    (acc, property) => {
+      acc.lat += Number(property.lat);
+      acc.lng += Number(property.lng);
+      return acc;
+    },
+    { lat: 0, lng: 0 }
+  );
+
+  return {
+    lat: Number((total.lat / valid.length).toFixed(6)),
+    lng: Number((total.lng / valid.length).toFixed(6)),
+    count: valid.length,
+  };
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
 
-  console.log("[1/5] Parsing raw CSV...");
+  console.log("[1/6] Parsing raw CSV...");
   console.log(`- Input: ${options.input}`);
 
   const rawBuffer = await fs.readFile(options.input);
@@ -399,14 +466,20 @@ async function main() {
   console.log(`- Headers: ${headers.length}`);
   console.log(`- Rows: ${rows.length}`);
 
-  console.log("[2/5] Mapping columns dynamically...");
+  console.log("[2/6] Mapping columns dynamically...");
   const mapped = mapHeaders(headers);
   for (const [field, index] of Object.entries(mapped)) {
     console.log(`- ${field}: ${index === -1 ? "(not mapped)" : headers[index]}`);
   }
 
-  console.log("[3/5] Grouping into city-level nodes...");
+  console.log("[3/6] Loading pre-geocoded property coordinates...");
+  console.log(`- Property coordinate file: ${options.propertyCoordinates}`);
+  const propertyCoordinateEntries = await loadPropertyCoordinates(options.propertyCoordinates);
+  console.log(`- Property coordinate entries loaded: ${Object.keys(propertyCoordinateEntries).length}`);
+
+  console.log("[4/6] Grouping into city-level nodes...");
   const cityGroups = new Map();
+  let preGeocodedPropertyCount = 0;
 
   for (const values of rows) {
     const country = getValue(values, mapped.country) || "Unknown";
@@ -430,18 +503,29 @@ async function main() {
 
     const node = cityGroups.get(groupKey);
 
+    const partnership = getValue(values, mapped.partnership);
+    const ownershipRaw = getValue(values, mapped.ownership);
+
+    const propertyId = createHashId("prop", [country, partnership, address, ownershipRaw].join("|"));
+    const coordinateEntry = propertyCoordinateEntries[propertyId] ?? null;
+    const propertyLat = toNumericCoordinate(coordinateEntry?.lat);
+    const propertyLng = toNumericCoordinate(coordinateEntry?.lng);
+
+    if (propertyLat != null && propertyLng != null) {
+      preGeocodedPropertyCount += 1;
+    }
+
     const property = {
-      id: createHashId(
-        "prop",
-        [country, getValue(values, mapped.partnership), address, getValue(values, mapped.ownership)].join("|")
-      ),
+      id: propertyId,
       name: extractPropertyName(address),
       address: address || null,
-      partnership: getValue(values, mapped.partnership) || null,
+      partnership: partnership || null,
       sector: getValue(values, mapped.industry) || null,
-      ownership_percent: parseOwnership(getValue(values, mapped.ownership)),
+      ownership_percent: parseOwnership(ownershipRaw),
       value_nok: parseNumber(getValue(values, mapped.valueNok)),
       value_usd: parseNumber(getValue(values, mapped.valueUsd)),
+      lat: propertyLat,
+      lng: propertyLng,
     };
 
     node.properties.push(property);
@@ -452,24 +536,54 @@ async function main() {
   }
 
   console.log(`- City nodes created: ${cityGroups.size}`);
+  console.log(`- Properties with pre-geocoded coordinates: ${preGeocodedPropertyCount}`);
 
-  console.log("[4/5] Resolving static coordinates...");
+  console.log("[5/6] Resolving city and property coordinates...");
   let cityLookupCount = 0;
   let countryFallbackCount = 0;
   let missingCoordsCount = 0;
+  let cityCentroidCount = 0;
+  let propertyCityFallbackCount = 0;
+  let propertyMissingCoordsCount = 0;
 
   const cities = Array.from(cityGroups.values()).map((node) => {
-    const resolved = resolveLatLng(node.city, node.country);
-    node.lat = resolved.lat;
-    node.lng = resolved.lng;
+    const centroid = calculatePropertyCentroid(node.properties);
 
-    if (resolved.source === "city_lookup") {
-      cityLookupCount += 1;
-    } else if (resolved.source === "country_fallback") {
-      countryFallbackCount += 1;
+    if (centroid) {
+      node.lat = centroid.lat;
+      node.lng = centroid.lng;
+      cityCentroidCount += 1;
     } else {
-      missingCoordsCount += 1;
+      const resolved = resolveLatLng(node.city, node.country);
+      node.lat = resolved.lat;
+      node.lng = resolved.lng;
+
+      if (resolved.source === "city_lookup") {
+        cityLookupCount += 1;
+      } else if (resolved.source === "country_fallback") {
+        countryFallbackCount += 1;
+      } else {
+        missingCoordsCount += 1;
+      }
     }
+
+    node.properties = node.properties.map((property) => {
+      if (isFiniteCoordinate(property.lat) && isFiniteCoordinate(property.lng)) {
+        return property;
+      }
+
+      if (isFiniteCoordinate(node.lat) && isFiniteCoordinate(node.lng)) {
+        propertyCityFallbackCount += 1;
+        return {
+          ...property,
+          lat: Number(node.lat),
+          lng: Number(node.lng),
+        };
+      }
+
+      propertyMissingCoordsCount += 1;
+      return property;
+    });
 
     node.properties.sort((a, b) => {
       const nameCompare = String(a.name ?? "").localeCompare(String(b.name ?? ""));
@@ -494,9 +608,12 @@ async function main() {
 
   console.log(`- Resolved by city lookup: ${cityLookupCount}`);
   console.log(`- Resolved by country fallback: ${countryFallbackCount}`);
+  console.log(`- Resolved by property centroid: ${cityCentroidCount}`);
   console.log(`- Missing coordinates: ${missingCoordsCount}`);
+  console.log(`- Properties filled from city coordinates: ${propertyCityFallbackCount}`);
+  console.log(`- Properties still missing coordinates: ${propertyMissingCoordsCount}`);
 
-  console.log("[5/5] Writing city dataset...");
+  console.log("[6/6] Writing city dataset...");
   console.log(`- Output: ${options.output}`);
 
   await fs.mkdir(path.dirname(options.output), { recursive: true });
