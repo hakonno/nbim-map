@@ -79,9 +79,11 @@ function MapSelectionPanel({
       : selectedCity?.properties ?? [];
 
   return (
-    <aside className="safe-area-bottom absolute bottom-0 left-0 right-0 z-[500] max-h-[42svh] rounded-t-2xl border-t border-slate-200 bg-white/96 p-3 shadow-2xl backdrop-blur md:bottom-4 md:left-auto md:right-4 md:top-4 md:max-h-[calc(100svh-2rem)] md:w-[360px] md:rounded-2xl md:border md:p-4">
+    <aside className="safe-area-bottom pointer-events-auto absolute inset-x-2 bottom-2 z-[650] flex max-h-[min(58svh,30rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/96 p-3 shadow-2xl backdrop-blur sm:inset-x-3 sm:bottom-3 md:bottom-4 md:left-auto md:right-4 md:top-4 md:max-h-[calc(100svh-2rem)] md:w-[360px] md:p-4">
+      <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-300/80 md:hidden" />
+
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-lg font-semibold text-slate-900 text-balance">
+        <h2 className="text-base font-semibold text-slate-900 text-balance sm:text-lg">
           {mode === "global"
             ? "Search Investments"
             : mode === "property"
@@ -134,7 +136,7 @@ function MapSelectionPanel({
         <>
           <p className="mt-2 text-xs text-slate-600">Search in NBIM dataset. Select a result to zoom and open details.</p>
           {searchQuery.trim().length >= 2 && (
-            <div className="mt-2 max-h-[26svh] space-y-2 overflow-y-auto overscroll-contain pr-1 md:max-h-[calc(100svh-15rem)]">
+            <div className="mt-2 max-h-[32svh] space-y-2 overflow-y-auto overscroll-contain pr-1 md:max-h-[calc(100svh-15rem)]">
               {searchResults.length === 0 && (
                 <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
                   No local matches. Try another city, property name, or address.
@@ -166,7 +168,7 @@ function MapSelectionPanel({
             {integerFormatter.format(filteredCityProperties.length)} of {integerFormatter.format(selectedCity.properties.length)} investments shown
           </p>
 
-          <div className="mt-3 max-h-[26svh] space-y-2 overflow-y-auto overscroll-contain pr-1 md:max-h-[calc(100svh-11.5rem)]">
+          <div className="mt-3 max-h-[32svh] space-y-2 overflow-y-auto overscroll-contain pr-1 md:max-h-[calc(100svh-11.5rem)]">
             {filteredCityProperties.map((property) => (
               <button
                 key={property.id}
