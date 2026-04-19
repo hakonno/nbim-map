@@ -1,7 +1,7 @@
 "use client";
 
 import type { LeafletEvent, Map as LeafletMap } from "leaflet";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, ZoomControl, useMapEvents } from "react-leaflet";
 
 import MapIntroCard from "@/components/map/MapIntroCard";
@@ -30,6 +30,7 @@ type CityMapInnerProps = {
 const MOBILE_PANEL_MEDIA_QUERY = "(max-width: 767px)";
 const MOBILE_PANEL_HEIGHT_VAR = "--map-mobile-panel-height";
 const MOBILE_INTRO_HEIGHT_VAR = "--map-mobile-intro-height";
+const AUTO_RECENTER_TOLERANCE_PX = 32;
 
 type MapEventBridgeProps = {
   onMapReady: (map: LeafletMap) => void;
@@ -59,6 +60,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     selectedCityId: null,
     selectedPropertyId: null,
   });
+  const mobilePanelHeightRef = useRef<number | null>(null);
 
   const mappableCities = useMemo(
     () =>
@@ -188,6 +190,72 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       return [adjustedCenter.lat, adjustedCenter.lng];
     },
     [getMobileOverlayHeights, mapInstance]
+  );
+
+  const getFocusCenterForHeights = useCallback(
+    (target: [number, number], zoomLevel: number, panelHeightPx: number, introHeightPx: number): [number, number] => {
+      if (!mapInstance) {
+        return target;
+      }
+
+      const focusOffsetPx = (panelHeightPx - introHeightPx) / 2;
+      if (!Number.isFinite(focusOffsetPx) || Math.abs(focusOffsetPx) < 1) {
+        return target;
+      }
+
+      const targetPoint = mapInstance.project(target, zoomLevel);
+      const adjustedCenterPoint = targetPoint.add([0, focusOffsetPx]);
+      const adjustedCenter = mapInstance.unproject(adjustedCenterPoint, zoomLevel);
+      return [adjustedCenter.lat, adjustedCenter.lng];
+    },
+    [mapInstance]
+  );
+
+  const handleMobilePanelHeightChange = useCallback(
+    (nextPanelHeight: number) => {
+      const previousPanelHeight = mobilePanelHeightRef.current;
+      mobilePanelHeightRef.current = nextPanelHeight;
+
+      if (
+        !mapInstance ||
+        typeof window === "undefined" ||
+        !window.matchMedia(MOBILE_PANEL_MEDIA_QUERY).matches ||
+        previousPanelHeight === null ||
+        Math.abs(previousPanelHeight - nextPanelHeight) < 1
+      ) {
+        return;
+      }
+
+      const target: [number, number] | null =
+        selection.mode === "property" && selectedFlatProperty
+          ? [selectedFlatProperty.lat, selectedFlatProperty.lng]
+          : selection.mode === "city" && selectedCity && typeof selectedCity.lat === "number" && typeof selectedCity.lng === "number"
+            ? [selectedCity.lat, selectedCity.lng]
+            : null;
+
+      if (!target) {
+        return;
+      }
+
+      const zoomLevel = mapInstance.getZoom();
+      const { introHeightPx } = getMobileOverlayHeights();
+
+      const expectedPreviousCenter = getFocusCenterForHeights(target, zoomLevel, previousPanelHeight, introHeightPx);
+      const expectedNextCenter = getFocusCenterForHeights(target, zoomLevel, nextPanelHeight, introHeightPx);
+
+      const currentCenterPoint = mapInstance.project(mapInstance.getCenter(), zoomLevel);
+      const expectedPreviousPoint = mapInstance.project(expectedPreviousCenter, zoomLevel);
+      if (currentCenterPoint.distanceTo(expectedPreviousPoint) > AUTO_RECENTER_TOLERANCE_PX) {
+        return;
+      }
+
+      mapInstance.panTo(expectedNextCenter, {
+        animate: true,
+        duration: 0.3,
+        easeLinearity: 0.25,
+      });
+    },
+    [getFocusCenterForHeights, getMobileOverlayHeights, mapInstance, selectedCity, selectedFlatProperty, selection.mode]
   );
 
   const handleMobileZoomIn = useCallback(() => {
@@ -474,6 +542,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         onClose={handleResetSelection}
         onBackToCity={handleBackToCity}
         onSelectProperty={handleSelectPropertyById}
+        onPanelHeightChange={handleMobilePanelHeightChange}
       />
     </div>
   );

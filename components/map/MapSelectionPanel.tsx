@@ -21,6 +21,7 @@ type MapSelectionPanelProps = {
   onClose: () => void;
   onBackToCity: () => void;
   onSelectProperty: (propertyId: string) => void;
+  onPanelHeightChange: (height: number) => void;
 };
 
 function MapSelectionPanel({
@@ -37,6 +38,7 @@ function MapSelectionPanel({
   onClose,
   onBackToCity,
   onSelectProperty,
+  onPanelHeightChange,
 }: MapSelectionPanelProps) {
   const [isPanelExpanded, setIsPanelExpanded] = useState(true);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -50,6 +52,7 @@ function MapSelectionPanel({
     const updateMobilePanelHeight = () => {
       const nextHeight = Math.ceil(panelElement.getBoundingClientRect().height);
       document.documentElement.style.setProperty("--map-mobile-panel-height", `${nextHeight}px`);
+      onPanelHeightChange(nextHeight);
     };
 
     updateMobilePanelHeight();
@@ -69,7 +72,7 @@ function MapSelectionPanel({
       window.removeEventListener("resize", updateMobilePanelHeight);
       document.documentElement.style.removeProperty("--map-mobile-panel-height");
     };
-  }, []);
+  }, [onPanelHeightChange]);
 
   useEffect(() => {
     document.documentElement.style.setProperty("--map-mobile-panel-expanded", isPanelExpanded ? "1" : "0");
