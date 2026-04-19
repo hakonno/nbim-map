@@ -20,3 +20,18 @@ export type CityNode = {
   properties: CityProperty[];
   total_ownership_sum: number;
 };
+
+export type GlobalOverviewContract = {
+  totalCities: number;
+  totalCountries: number;
+  totalProperties: number;
+  estimatedPortfolioValueNok: number | null;
+  estimatedPortfolioValueUsd: number | null;
+};
+
+export type CityAggregateContract = {
+  cityId: string;
+  propertyCount: number;
+  ownershipExposurePercent: number | null;
+  estimatedExposureNok: number | null;
+};
