@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
 import type { CityNode, CityProperty } from "@/types/cities";
@@ -51,9 +51,6 @@ const integerFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
-const MOBILE_PANEL_EXPANDED_HEIGHT = "min(58svh, 30rem)";
-const MOBILE_PANEL_COLLAPSED_HEIGHT = "6rem";
-
 function MapSelectionPanel({
   mode,
   selectedCity,
@@ -70,17 +67,37 @@ function MapSelectionPanel({
   onSelectProperty,
 }: MapSelectionPanelProps) {
   const [isPanelExpanded, setIsPanelExpanded] = useState(true);
+  const panelRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
-    const panelHeight = isPanelExpanded
-      ? MOBILE_PANEL_EXPANDED_HEIGHT
-      : MOBILE_PANEL_COLLAPSED_HEIGHT;
-    document.documentElement.style.setProperty("--map-mobile-panel-height", panelHeight);
+    const panelElement = panelRef.current;
+    if (!panelElement) {
+      return;
+    }
+
+    const updateMobilePanelHeight = () => {
+      const nextHeight = Math.ceil(panelElement.getBoundingClientRect().height);
+      document.documentElement.style.setProperty("--map-mobile-panel-height", `${nextHeight}px`);
+    };
+
+    updateMobilePanelHeight();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        updateMobilePanelHeight();
+      });
+      resizeObserver.observe(panelElement);
+    }
+
+    window.addEventListener("resize", updateMobilePanelHeight);
 
     return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateMobilePanelHeight);
       document.documentElement.style.removeProperty("--map-mobile-panel-height");
     };
-  }, [isPanelExpanded]);
+  }, []);
 
   const handleTogglePanel = useCallback(() => {
     setIsPanelExpanded((current) => !current);
@@ -100,6 +117,7 @@ function MapSelectionPanel({
 
   return (
     <aside
+      ref={panelRef}
       className={`safe-area-bottom pointer-events-auto absolute inset-x-2 bottom-2 z-[650] flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/96 p-3 shadow-2xl backdrop-blur transition-[max-height] duration-300 ease-out sm:inset-x-3 sm:bottom-3 md:bottom-4 md:left-auto md:right-4 md:top-4 md:max-h-[calc(100svh-2rem)] md:w-[360px] md:p-4 ${
         isPanelExpanded ? "max-h-[min(58svh,30rem)]" : "max-h-[6rem]"
       }`}

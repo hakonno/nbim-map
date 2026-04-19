@@ -3,7 +3,7 @@
 :root {
   --background: #e7edf3;
   --foreground: #111827;
-  --map-mobile-panel-height: min(58svh, 30rem);
+  --map-mobile-panel-height: 6rem;
 }
 
 @theme inline {
