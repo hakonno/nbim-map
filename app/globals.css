@@ -118,21 +118,8 @@ body {
   .map-mobile-zoom-controls {
     display: flex;
     flex-direction: column;
-    top: calc((var(--map-mobile-intro-height) + (100dvh - var(--map-mobile-panel-height))) / 2);
-    transform: translateY(-50%);
-  }
-
-  .leaflet-bottom.leaflet-left .leaflet-control-zoom {
-    margin-bottom: calc(var(--map-mobile-panel-height) + 0.75rem + env(safe-area-inset-bottom));
-    margin-left: 0.5rem;
-    transition: margin-bottom 220ms ease-out;
-  }
-
-  .leaflet-touch .leaflet-control-zoom a {
-    width: 2.35rem;
-    height: 2.35rem;
-    line-height: 2.25rem;
-    font-size: 1.1rem;
+    top: calc(100dvh - var(--map-mobile-panel-height) - 0.5rem);
+    transform: translateY(-100%);
   }
 }
 

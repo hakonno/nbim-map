@@ -196,14 +196,28 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     }
 
     const targetZoom = Math.min(mapInstance.getZoom() + 1, mapInstance.getMaxZoom());
-    const focusPoint = getMobileFocusContainerPoint();
-
-    if (focusPoint) {
-      mapInstance.setZoomAround(focusPoint, targetZoom, { animate: true });
+    if (targetZoom === mapInstance.getZoom()) {
       return;
     }
 
-    mapInstance.zoomIn();
+    const focusPoint = getMobileFocusContainerPoint();
+
+    if (!focusPoint) {
+      mapInstance.zoomIn();
+      return;
+    }
+
+    const focusLatLng = mapInstance.containerPointToLatLng(focusPoint);
+    const projectedFocus = mapInstance.project(focusLatLng, targetZoom);
+    const containerCenter = mapInstance.getSize().divideBy(2);
+    const targetCenterPoint = projectedFocus.add(containerCenter).subtract(focusPoint);
+    const targetCenter = mapInstance.unproject(targetCenterPoint, targetZoom);
+
+    mapInstance.flyTo(targetCenter, targetZoom, {
+      animate: true,
+      duration: 0.35,
+      easeLinearity: 0.25,
+    });
   }, [getMobileFocusContainerPoint, mapInstance]);
 
   const handleMobileZoomOut = useCallback(() => {
@@ -212,14 +226,28 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     }
 
     const targetZoom = Math.max(mapInstance.getZoom() - 1, mapInstance.getMinZoom());
-    const focusPoint = getMobileFocusContainerPoint();
-
-    if (focusPoint) {
-      mapInstance.setZoomAround(focusPoint, targetZoom, { animate: true });
+    if (targetZoom === mapInstance.getZoom()) {
       return;
     }
 
-    mapInstance.zoomOut();
+    const focusPoint = getMobileFocusContainerPoint();
+
+    if (!focusPoint) {
+      mapInstance.zoomOut();
+      return;
+    }
+
+    const focusLatLng = mapInstance.containerPointToLatLng(focusPoint);
+    const projectedFocus = mapInstance.project(focusLatLng, targetZoom);
+    const containerCenter = mapInstance.getSize().divideBy(2);
+    const targetCenterPoint = projectedFocus.add(containerCenter).subtract(focusPoint);
+    const targetCenter = mapInstance.unproject(targetCenterPoint, targetZoom);
+
+    mapInstance.flyTo(targetCenter, targetZoom, {
+      animate: true,
+      duration: 0.35,
+      easeLinearity: 0.25,
+    });
   }, [getMobileFocusContainerPoint, mapInstance]);
 
   const flyToCity = useCallback(
@@ -377,25 +405,6 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         className="h-full w-full"
         worldCopyJump
       >
-
-      <div className="map-mobile-zoom-controls pointer-events-auto absolute left-2 z-[645]">
-        <button
-          type="button"
-          onClick={handleMobileZoomIn}
-          aria-label="Zoom in"
-          className="flex h-9 w-9 items-center justify-center rounded-t-md border border-slate-300 bg-white/95 text-xl leading-none text-slate-700 shadow-md backdrop-blur transition-colors hover:bg-white"
-        >
-          +
-        </button>
-        <button
-          type="button"
-          onClick={handleMobileZoomOut}
-          aria-label="Zoom out"
-          className="-mt-px flex h-9 w-9 items-center justify-center rounded-b-md border border-slate-300 bg-white/95 text-xl leading-none text-slate-700 shadow-md backdrop-blur transition-colors hover:bg-white"
-        >
-          -
-        </button>
-      </div>
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -416,6 +425,25 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
           />
         )}
       </MapContainer>
+
+      <div className="map-mobile-zoom-controls pointer-events-auto absolute left-2 z-[645]">
+        <button
+          type="button"
+          onClick={handleMobileZoomIn}
+          aria-label="Zoom in"
+          className="flex h-9 w-9 items-center justify-center rounded-t-md border border-slate-300 bg-white/95 text-xl leading-none text-slate-700 shadow-md backdrop-blur transition-colors hover:bg-white"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={handleMobileZoomOut}
+          aria-label="Zoom out"
+          className="-mt-px flex h-9 w-9 items-center justify-center rounded-b-md border border-slate-300 bg-white/95 text-xl leading-none text-slate-700 shadow-md backdrop-blur transition-colors hover:bg-white"
+        >
+          -
+        </button>
+      </div>
 
       <MapIntroCard
         mode={selection.mode}
