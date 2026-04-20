@@ -21,6 +21,7 @@ type CityMapProps = {
 export default function CityMap({ initialCities }: CityMapProps) {
   const [cities, setCities] = useState<CityNode[] | null>(initialCities ?? null);
   const [error, setError] = useState<string | null>(null);
+  const [reloadCount, setReloadCount] = useState(0);
 
   useEffect(() => {
     if (cities) {
@@ -57,7 +58,7 @@ export default function CityMap({ initialCities }: CityMapProps) {
     return () => {
       abortController.abort();
     };
-  }, [cities]);
+  }, [cities, reloadCount]);
 
   if (error) {
     return (
@@ -65,6 +66,16 @@ export default function CityMap({ initialCities }: CityMapProps) {
         <div>
           <p className="text-base font-semibold">Unable to load city investment map data.</p>
           <p className="mt-2 text-sm opacity-80">{error}</p>
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              setReloadCount((current) => current + 1);
+            }}
+            className="mt-4 rounded-md border border-rose-300 bg-white px-4 py-2 text-sm font-medium text-rose-800 transition hover:bg-rose-100"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
