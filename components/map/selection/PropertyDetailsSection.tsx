@@ -13,6 +13,7 @@ type PropertyDetailsSectionProps = {
   selectedPropertyCoordinates: PropertyCoordinates | null;
   showCoordinatesDebug: boolean;
   onBackToCity: () => void;
+  backLabel?: string;
 };
 
 export default function PropertyDetailsSection({
@@ -21,6 +22,7 @@ export default function PropertyDetailsSection({
   selectedPropertyCoordinates,
   showCoordinatesDebug,
   onBackToCity,
+  backLabel = "\u2190 Back to city list",
 }: PropertyDetailsSectionProps) {
   return (
     <>
@@ -55,7 +57,7 @@ export default function PropertyDetailsSection({
         onClick={onBackToCity}
         type="button"
       >
-        ← Back to city list
+        {backLabel}
       </button>
     </>
   );

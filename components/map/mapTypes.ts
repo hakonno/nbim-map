@@ -20,21 +20,12 @@ export type SearchResult = {
 };
 
 export type SelectionState =
-  | {
-      mode: "global";
-      selectedCityId: null;
-      selectedPropertyId: null;
-    }
-  | {
-      mode: "city";
-      selectedCityId: string;
-      selectedPropertyId: null;
-    }
-  | {
-      mode: "property";
-      selectedCityId: string;
-      selectedPropertyId: string;
-    };
+  {
+    mode: "global" | "country" | "city" | "property";
+    selectedCountry: string | null;
+    selectedCityId: string | null;
+    selectedPropertyId: string | null;
+  };
 
 export type PropertyCoordinates = {
   lat: number;

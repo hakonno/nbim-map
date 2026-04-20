@@ -1,10 +1,13 @@
 import type { CityNode } from "@/types/cities";
 
-export type CitySortOption = "investments" | "combined" | "alphabetical" | "proximity";
+import { getCityCountryValueNok } from "@/components/map/selection/countryValue";
+
+export type CitySortOption = "properties" | "country-value" | "alphabetical" | "proximity";
 
 export type SortedCityEntry = {
   city: CityNode;
   distanceKm: number | null;
+  countryValueNok: number | null;
 };
 
 const cityNameCollator = new Intl.Collator("en", {
@@ -45,28 +48,46 @@ export function sortCitiesForList(
   sortOption: CitySortOption,
   referencePoint: [number, number] | null
 ): SortedCityEntry[] {
-  const maxPropertyCount = Math.max(...cities.map((city) => city.properties.length), 1);
-  const maxOwnershipSum = Math.max(...cities.map((city) => city.total_ownership_sum), 1);
-
   const withDistance = cities.map((city) => {
     const hasCoordinates = typeof city.lat === "number" && typeof city.lng === "number";
-    const distanceKm = referencePoint && hasCoordinates ? haversineDistanceKm(referencePoint, [city.lat, city.lng]) : null;
-    const investmentsScore = city.properties.length / maxPropertyCount;
-    const ownershipScore = city.total_ownership_sum / maxOwnershipSum;
-    const combinedScore = investmentsScore * 0.55 + ownershipScore * 0.45;
+    const distanceKm = referencePoint && hasCoordinates ? haversineDistanceKm(referencePoint, [city.lat!, city.lng!]) : null;
+    const countryValueNok = getCityCountryValueNok(city);
 
     return {
       city,
       distanceKm,
-      combinedScore,
+      countryValueNok,
     };
   });
 
-  if (sortOption === "investments") {
+  if (sortOption === "properties") {
     return withDistance.sort((a, b) => {
       const propertyCountDelta = b.city.properties.length - a.city.properties.length;
       if (propertyCountDelta !== 0) {
         return propertyCountDelta;
+      }
+
+      return compareCityName(a.city, b.city);
+    });
+  }
+
+  if (sortOption === "country-value") {
+    return withDistance.sort((a, b) => {
+      if (a.countryValueNok == null && b.countryValueNok == null) {
+        return compareCityName(a.city, b.city);
+      }
+
+      if (a.countryValueNok == null) {
+        return 1;
+      }
+
+      if (b.countryValueNok == null) {
+        return -1;
+      }
+
+      const valueDelta = b.countryValueNok - a.countryValueNok;
+      if (valueDelta !== 0) {
+        return valueDelta;
       }
 
       return compareCityName(a.city, b.city);
@@ -100,12 +121,5 @@ export function sortCitiesForList(
     });
   }
 
-  return withDistance.sort((a, b) => {
-    const combinedDelta = b.combinedScore - a.combinedScore;
-    if (combinedDelta !== 0) {
-      return combinedDelta;
-    }
-
-    return compareCityName(a.city, b.city);
-  });
+  return withDistance.sort((a, b) => compareCityName(a.city, b.city));
 }

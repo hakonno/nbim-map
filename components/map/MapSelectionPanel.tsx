@@ -1,8 +1,9 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
-import type { PropertyCoordinates, SearchResult } from "@/components/map/mapTypes";
+import type { FlatProperty, PropertyCoordinates, SearchResult } from "@/components/map/mapTypes";
 import CityPropertiesSection from "@/components/map/selection/CityPropertiesSection";
+import CountryPropertiesSection from "@/components/map/selection/CountryPropertiesSection";
 import type { CitySortOption } from "@/components/map/selection/cityListSorting";
 import GlobalSearchSection from "@/components/map/selection/GlobalSearchSection";
 import type { PropertySortOption } from "@/components/map/selection/propertySorting";
@@ -10,8 +11,12 @@ import PropertyDetailsSection from "@/components/map/selection/PropertyDetailsSe
 import type { CityNode, CityProperty } from "@/types/cities";
 
 type MapSelectionPanelProps = {
-  mode: "global" | "city" | "property";
+  mode: "global" | "country" | "city" | "property";
+  selectedCountry: string | null;
   selectedCity: CityNode | null;
+  selectedCountryProperties: FlatProperty[];
+  selectedCountryValueNok: number | null;
+  totalRealEstateValueNok: number;
   selectedProperty: CityProperty | null;
   selectedPropertyCoordinates: PropertyCoordinates | null;
   searchQuery: string;
@@ -20,6 +25,7 @@ type MapSelectionPanelProps = {
   mappableCities: CityNode[];
   citySortOption: CitySortOption;
   onCitySortOptionChange: (option: CitySortOption) => void;
+  onSelectCountry: (country: string) => void;
   mapCenter: [number, number] | null;
   onSelectSearchResult: (result: SearchResult) => void;
   onSelectCity: (cityId: string) => void;
@@ -33,7 +39,11 @@ type MapSelectionPanelProps = {
 
 function MapSelectionPanel({
   mode,
+  selectedCountry,
   selectedCity,
+  selectedCountryProperties,
+  selectedCountryValueNok,
+  totalRealEstateValueNok,
   selectedProperty,
   selectedPropertyCoordinates,
   searchQuery,
@@ -42,6 +52,7 @@ function MapSelectionPanel({
   mappableCities,
   citySortOption,
   onCitySortOptionChange,
+  onSelectCountry,
   mapCenter,
   onSelectSearchResult,
   onSelectCity,
@@ -111,6 +122,17 @@ function MapSelectionPanel({
         })
       : selectedCity?.properties ?? [];
 
+  const filteredCountryProperties =
+    selectedCountry && cityPropertyFilter.length >= 2
+      ? selectedCountryProperties.filter((property) => {
+          const haystack = [property.name, property.address, property.cityName, property.sector, property.partnership]
+            .filter((part): part is string => Boolean(part && part.trim()))
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(cityPropertyFilter);
+        })
+      : selectedCountryProperties;
+
   return (
     <aside
       ref={panelRef}
@@ -136,6 +158,10 @@ function MapSelectionPanel({
           <h2 className="text-base font-semibold text-slate-900 text-balance sm:text-lg">
             {mode === "global"
               ? "Search Investments"
+              : mode === "country"
+              ? selectedCountry
+                ? `${formatCountryWithFlag(selectedCountry)} overview`
+                : "Country overview"
               : mode === "property"
               ? selectedProperty?.name ?? "Property details"
               : selectedCity
@@ -166,7 +192,13 @@ function MapSelectionPanel({
               value={searchQuery}
               onChange={(event) => onSearchQueryChange(event.target.value)}
               onFocus={() => setIsPanelExpanded(true)}
-              placeholder={mode === "global" ? "Search country, city or property" : "Filter properties in this city"}
+              placeholder={
+                mode === "global"
+                  ? "Search country, city or property"
+                  : mode === "country"
+                  ? "Filter properties in this country"
+                  : "Filter properties in this city"
+              }
               inputMode="search"
               enterKeyHint="search"
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:text-sm"
@@ -192,10 +224,25 @@ function MapSelectionPanel({
             cities={mappableCities}
             citySortOption={citySortOption}
             onCitySortOptionChange={onCitySortOptionChange}
+            onSelectCountry={onSelectCountry}
+            totalRealEstateValueNok={totalRealEstateValueNok}
             onSelectSearchResult={onSelectSearchResult}
             onSelectCity={onSelectCity}
             mapCenter={mapCenter}
           />
+        )}
+
+        {mode === "country" && selectedCountry && (
+          <>
+            <CountryPropertiesSection
+              country={selectedCountry}
+              filteredCountryProperties={filteredCountryProperties}
+              totalCountryProperties={selectedCountryProperties.length}
+              propertySortOption={propertySortOption}
+              onPropertySortOptionChange={setPropertySortOption}
+              onSelectProperty={onSelectProperty}
+            />
+          </>
         )}
 
         {mode === "city" && selectedCity && (
@@ -215,6 +262,7 @@ function MapSelectionPanel({
             selectedPropertyCoordinates={selectedPropertyCoordinates}
             showCoordinatesDebug={showCoordinatesDebug}
             onBackToCity={onBackToCity}
+            backLabel={selectedCountry ? "\u2190 Back to country list" : "\u2190 Back to city list"}
           />
         )}
       </div>

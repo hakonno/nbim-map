@@ -22,6 +22,7 @@ import {
 import type { FlatProperty, SearchResult, SelectionState } from "@/components/map/mapTypes";
 import { buildLocalSearchResults } from "@/components/map/searchResults";
 import type { CitySortOption } from "@/components/map/selection/cityListSorting";
+import { buildCountryAggregates } from "@/components/map/selection/countryListSorting";
 import type { CityNode } from "@/types/cities";
 
 type CityMapInnerProps = {
@@ -66,10 +67,11 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selection, setSelection] = useState<SelectionState>({
     mode: "global",
+    selectedCountry: null,
     selectedCityId: null,
     selectedPropertyId: null,
   });
-  const [citySortOption, setCitySortOption] = useState<CitySortOption>("investments");
+  const [citySortOption, setCitySortOption] = useState<CitySortOption>("properties");
   const [mapCenter, setMapCenter] = useState<[number, number]>(MAP_CENTER);
   const mobilePanelHeightRef = useRef<number | null>(null);
 
@@ -117,24 +119,53 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   );
 
   const selectedCity = useMemo(
-    () =>
-      selection.mode === "global"
-        ? null
-        : mappableCities.find((city) => city.id === selection.selectedCityId) ?? null,
-    [selection, mappableCities]
+    () => (selection.selectedCityId ? mappableCities.find((city) => city.id === selection.selectedCityId) ?? null : null),
+    [selection.selectedCityId, mappableCities]
   );
 
   const selectedProperty = useMemo(
-    () =>
-      selection.mode === "property"
-        ? selectedCity?.properties.find((property) => property.id === selection.selectedPropertyId) ?? null
-        : null,
-    [selection, selectedCity]
+    () => (selection.mode === "property" ? selectedCity?.properties.find((property) => property.id === selection.selectedPropertyId) ?? null : null),
+    [selection.mode, selection.selectedPropertyId, selectedCity]
   );
 
   const selectedFlatProperty = useMemo(
-    () => (selection.mode === "property" ? flatPropertyById.get(selection.selectedPropertyId) ?? null : null),
-    [selection, flatPropertyById]
+    () => (selection.mode === "property" && selection.selectedPropertyId ? flatPropertyById.get(selection.selectedPropertyId) ?? null : null),
+    [selection.mode, selection.selectedPropertyId, flatPropertyById]
+  );
+
+  const countryCitiesMap = useMemo(() => {
+    const byCountry = new Map<string, CityNode[]>();
+
+    for (const city of mappableCities) {
+      const current = byCountry.get(city.country);
+      if (current) {
+        current.push(city);
+      } else {
+        byCountry.set(city.country, [city]);
+      }
+    }
+
+    return byCountry;
+  }, [mappableCities]);
+
+  const selectedCountry = useMemo(
+    () => (selection.mode === "country" ? selection.selectedCountry : null),
+    [selection.mode, selection.selectedCountry]
+  );
+
+  const selectedCountryProperties = useMemo(
+    () => (selectedCountry ? flatProperties.filter((property) => property.country === selectedCountry) : []),
+    [flatProperties, selectedCountry]
+  );
+
+  const countryAggregatesByCountry = useMemo(() => {
+    const aggregates = buildCountryAggregates(mappableCities);
+    return new Map(aggregates.map((aggregate) => [aggregate.country, aggregate]));
+  }, [mappableCities]);
+
+  const selectedCountryAggregate = useMemo(
+    () => (selectedCountry ? countryAggregatesByCountry.get(selectedCountry) ?? null : null),
+    [countryAggregatesByCountry, selectedCountry]
   );
 
   const hasInternationalFund = useMemo(
@@ -242,6 +273,12 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
           ? [selectedFlatProperty.lat, selectedFlatProperty.lng]
           : selection.mode === "city" && selectedCity && typeof selectedCity.lat === "number" && typeof selectedCity.lng === "number"
             ? [selectedCity.lat, selectedCity.lng]
+            : selection.mode === "country" && selectedCountry
+              ? (() => {
+                  const countryCities = countryCitiesMap.get(selectedCountry) ?? [];
+                  const firstCity = countryCities.find((city) => typeof city.lat === "number" && typeof city.lng === "number");
+                  return firstCity ? ([firstCity.lat as number, firstCity.lng as number] as [number, number]) : null;
+                })()
             : null;
 
       if (!target) {
@@ -266,7 +303,16 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         easeLinearity: 0.25,
       });
     },
-    [getFocusCenterForHeights, getMobileOverlayHeights, mapInstance, selectedCity, selectedFlatProperty, selection.mode]
+    [
+      countryCitiesMap,
+      getFocusCenterForHeights,
+      getMobileOverlayHeights,
+      mapInstance,
+      selectedCity,
+      selectedCountry,
+      selectedFlatProperty,
+      selection.mode,
+    ]
   );
 
   const handleMobileZoomIn = useCallback(() => {
@@ -367,6 +413,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     (city: CityNode) => {
       setSelection({
         mode: "city",
+        selectedCountry: null,
         selectedCityId: city.id,
         selectedPropertyId: null,
       });
@@ -375,13 +422,63 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     [flyToCity]
   );
 
+  const flyToCountry = useCallback(
+    (country: string) => {
+      if (!mapInstance) {
+        return;
+      }
+
+      const countryCities = countryCitiesMap.get(country) ?? [];
+      const countryCoordinates = countryCities
+        .filter((city) => typeof city.lat === "number" && typeof city.lng === "number")
+        .map((city) => [city.lat as number, city.lng as number] as [number, number]);
+
+      if (countryCoordinates.length === 0) {
+        return;
+      }
+
+      if (countryCoordinates.length === 1) {
+        const [lat, lng] = countryCoordinates[0];
+        const targetZoom = Math.max(mapInstance.getZoom(), ZOOM_SHOW_PROPERTIES + 1);
+        const targetCenter = getFocusCenter([lat, lng], targetZoom);
+
+        mapInstance.flyTo(targetCenter, targetZoom, {
+          animate: true,
+          duration: 0.75,
+        });
+        return;
+      }
+
+      mapInstance.fitBounds(countryCoordinates, {
+        paddingTopLeft: [24, 96],
+        paddingBottomRight: [24, 120],
+        animate: true,
+      });
+    },
+    [countryCitiesMap, getFocusCenter, mapInstance]
+  );
+
+  const handleSelectCountry = useCallback(
+    (country: string) => {
+      setSelection({
+        mode: "country",
+        selectedCountry: country,
+        selectedCityId: null,
+        selectedPropertyId: null,
+      });
+      flyToCountry(country);
+    },
+    [flyToCountry]
+  );
+
   const handleSelectProperty = useCallback(
     (property: FlatProperty) => {
-      setSelection({
+      setSelection((current) => ({
         mode: "property",
+        selectedCountry: current.mode === "country" ? current.selectedCountry : null,
         selectedCityId: property.cityId,
         selectedPropertyId: property.id,
-      });
+      }));
       flyToProperty(property);
     },
     [flyToProperty]
@@ -418,8 +515,9 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       }
 
       return {
-        mode: "city",
-        selectedCityId: current.selectedCityId,
+        mode: current.selectedCountry ? "country" : "city",
+        selectedCountry: current.selectedCountry,
+        selectedCityId: current.selectedCountry ? null : current.selectedCityId,
         selectedPropertyId: null,
       };
     });
@@ -428,6 +526,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   const handleResetSelection = useCallback(() => {
     setSelection({
       mode: "global",
+      selectedCountry: null,
       selectedCityId: null,
       selectedPropertyId: null,
     });
@@ -452,6 +551,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         if (city) {
           setSelection({
             mode: "city",
+            selectedCountry: null,
             selectedCityId: city.id,
             selectedPropertyId: null,
           });
@@ -461,6 +561,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       if (result.type === "property" && result.propertyId) {
         setSelection({
           mode: "property",
+          selectedCountry: null,
           selectedCityId: result.cityId,
           selectedPropertyId: result.propertyId,
         });
@@ -539,17 +640,24 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       <MapIntroCard
         mode={selection.mode}
         selectedCity={selectedCity}
+        selectedCountry={selectedCountry}
+        selectedCountryPropertyCount={selectedCountryProperties.length}
+        selectedCountryCityCount={selectedCountryAggregate?.cityCount ?? 0}
+        selectedCountryValueNok={selectedCountryAggregate?.countryValueNok ?? null}
         showProperties={showProperties}
         countriesWithoutInternational={countriesWithoutInternational}
         hasInternationalFund={hasInternationalFund}
         fundRealEstateValueNok={FUND_REAL_ESTATE_VALUE_NOK}
         fundSharePercent={FUND_SHARE_PERCENT}
-        totalInvestments={flatProperties.length}
-      />
+        totalInvestments={flatProperties.length}        totalRealEstateValueNok={FUND_REAL_ESTATE_VALUE_NOK}      />
 
       <MapSelectionPanel
         mode={selection.mode}
+        selectedCountry={selectedCountry}
         selectedCity={selectedCity}
+        selectedCountryProperties={selectedCountryProperties}
+        selectedCountryValueNok={selectedCountryAggregate?.countryValueNok ?? null}
+        totalRealEstateValueNok={FUND_REAL_ESTATE_VALUE_NOK}
         selectedProperty={selectedProperty}
         selectedPropertyCoordinates={
           selectedFlatProperty
@@ -562,6 +670,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         mappableCities={mappableCities}
         citySortOption={citySortOption}
         onCitySortOptionChange={setCitySortOption}
+        onSelectCountry={handleSelectCountry}
         mapCenter={mapCenter}
         onSelectSearchResult={handleSelectSearchResult}
         onSelectCity={handleSelectCityById}

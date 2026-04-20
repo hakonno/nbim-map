@@ -49,7 +49,7 @@ function compareOptionalGroup(
   return compareByName(aProperty, bProperty);
 }
 
-export function sortCityPropertiesForList(properties: CityProperty[], sortOption: PropertySortOption) {
+export function sortCityPropertiesForList<T extends CityProperty>(properties: T[], sortOption: PropertySortOption): T[] {
   const sorted = [...properties];
 
   if (sortOption === "alphabetical") {

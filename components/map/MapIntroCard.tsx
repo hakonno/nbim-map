@@ -4,14 +4,19 @@ import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
 import type { CityNode } from "@/types/cities";
 
 type MapIntroCardProps = {
-  mode: "global" | "city" | "property";
+  mode: "global" | "country" | "city" | "property";
   selectedCity: CityNode | null;
+  selectedCountry: string | null;
+  selectedCountryPropertyCount: number;
+  selectedCountryCityCount: number;
+  selectedCountryValueNok: number | null;
   showProperties: boolean;
   countriesWithoutInternational: number;
   hasInternationalFund: boolean;
   fundRealEstateValueNok: number;
   fundSharePercent: number;
   totalInvestments: number;
+  totalRealEstateValueNok: number;
 };
 
 const integerFormatter = new Intl.NumberFormat("en-US", {
@@ -20,6 +25,11 @@ const integerFormatter = new Intl.NumberFormat("en-US", {
 
 const percentageFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 0,
+  maximumFractionDigits: 1,
+});
+
+const compactCurrencyFormatter = new Intl.NumberFormat("en-US", {
+  notation: "compact",
   maximumFractionDigits: 1,
 });
 
@@ -34,12 +44,17 @@ function GitHubMark({ className }: { className?: string }) {
 function MapIntroCard({
   mode,
   selectedCity,
+  selectedCountry,
+  selectedCountryPropertyCount,
+  selectedCountryCityCount,
+  selectedCountryValueNok,
   showProperties,
   countriesWithoutInternational,
   hasInternationalFund,
   fundRealEstateValueNok,
   fundSharePercent,
   totalInvestments,
+  totalRealEstateValueNok,
 }: MapIntroCardProps) {
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -133,6 +148,23 @@ function MapIntroCard({
               <p className="text-slate-500">Investments</p>
             </div>
           </div>
+        </>
+      ) : mode === "country" && selectedCountry ? (
+        <>
+          <h1 className="mt-0.5 text-[13px] font-semibold leading-tight text-slate-900 sm:mt-1 sm:text-xl">
+            {formatCountryWithFlag(selectedCountry)}
+          </h1>
+          {selectedCountryValueNok != null && totalRealEstateValueNok > 0 && (
+            <p className="mt-1 text-[11px] text-slate-700 sm:mt-2 sm:text-sm" role="status" aria-live="polite">
+              {percentageFormatter.format((selectedCountryValueNok / totalRealEstateValueNok) * 100)}% of total real estate value
+            </p>
+          )}
+          <p className="mt-1 text-[11px] text-slate-700 sm:text-sm">
+            {integerFormatter.format(selectedCountryPropertyCount)} properties across {integerFormatter.format(selectedCountryCityCount)} cities
+            {selectedCountryValueNok == null
+              ? ""
+              : ` · NOK ${compactCurrencyFormatter.format(selectedCountryValueNok)}`}
+          </p>
         </>
       ) : selectedCity ? (
         <>
