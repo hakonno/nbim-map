@@ -1,0 +1,20 @@
+# Build-only raw source data and pipeline artifacts
+data/raw/
+data/cities.test.json
+data/properties.json
+data/properties.test.json
+data/property-coordinates.json
+data/property-coordinates.test.json
+data/geocode-cache.json
+data/geocode-cache.test.json
+data/city-coordinates.json
+
+# Local testing and preprocessing tooling not needed by Next runtime build
+tests/
+scripts/
+playwright.config.ts
+
+# Local agent/context docs
+.agents/
+AGENTS.md
+CLAUDE.md
