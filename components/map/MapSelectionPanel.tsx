@@ -3,7 +3,9 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
 import type { PropertyCoordinates, SearchResult } from "@/components/map/mapTypes";
 import CityPropertiesSection from "@/components/map/selection/CityPropertiesSection";
+import type { CitySortOption } from "@/components/map/selection/cityListSorting";
 import GlobalSearchSection from "@/components/map/selection/GlobalSearchSection";
+import type { PropertySortOption } from "@/components/map/selection/propertySorting";
 import PropertyDetailsSection from "@/components/map/selection/PropertyDetailsSection";
 import type { CityNode, CityProperty } from "@/types/cities";
 
@@ -15,7 +17,12 @@ type MapSelectionPanelProps = {
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   searchResults: SearchResult[];
+  mappableCities: CityNode[];
+  citySortOption: CitySortOption;
+  onCitySortOptionChange: (option: CitySortOption) => void;
+  mapCenter: [number, number] | null;
   onSelectSearchResult: (result: SearchResult) => void;
+  onSelectCity: (cityId: string) => void;
   onClearSearch: () => void;
   showCoordinatesDebug: boolean;
   onClose: () => void;
@@ -32,7 +39,12 @@ function MapSelectionPanel({
   searchQuery,
   onSearchQueryChange,
   searchResults,
+  mappableCities,
+  citySortOption,
+  onCitySortOptionChange,
+  mapCenter,
   onSelectSearchResult,
+  onSelectCity,
   onClearSearch,
   showCoordinatesDebug,
   onClose,
@@ -41,6 +53,7 @@ function MapSelectionPanel({
   onPanelHeightChange,
 }: MapSelectionPanelProps) {
   const [isPanelExpanded, setIsPanelExpanded] = useState(true);
+  const [propertySortOption, setPropertySortOption] = useState<PropertySortOption>("ownership");
   const panelRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -176,7 +189,12 @@ function MapSelectionPanel({
           <GlobalSearchSection
             searchQuery={searchQuery}
             searchResults={searchResults}
+            cities={mappableCities}
+            citySortOption={citySortOption}
+            onCitySortOptionChange={onCitySortOptionChange}
             onSelectSearchResult={onSelectSearchResult}
+            onSelectCity={onSelectCity}
+            mapCenter={mapCenter}
           />
         )}
 
@@ -184,6 +202,8 @@ function MapSelectionPanel({
           <CityPropertiesSection
             selectedCity={selectedCity}
             filteredCityProperties={filteredCityProperties}
+            propertySortOption={propertySortOption}
+            onPropertySortOptionChange={setPropertySortOption}
             onSelectProperty={onSelectProperty}
           />
         )}

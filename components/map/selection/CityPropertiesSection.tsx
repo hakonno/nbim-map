@@ -1,3 +1,9 @@
+import { useMemo } from "react";
+
+import {
+  sortCityPropertiesForList,
+  type PropertySortOption,
+} from "@/components/map/selection/propertySorting";
 import type { CityNode } from "@/types/cities";
 
 const integerFormatter = new Intl.NumberFormat("en-US", {
@@ -12,22 +18,48 @@ const decimalFormatter = new Intl.NumberFormat("en-US", {
 type CityPropertiesSectionProps = {
   selectedCity: CityNode;
   filteredCityProperties: CityNode["properties"];
+  propertySortOption: PropertySortOption;
+  onPropertySortOptionChange: (option: PropertySortOption) => void;
   onSelectProperty: (propertyId: string) => void;
 };
 
 export default function CityPropertiesSection({
   selectedCity,
   filteredCityProperties,
+  propertySortOption,
+  onPropertySortOptionChange,
   onSelectProperty,
 }: CityPropertiesSectionProps) {
+  const sortedCityProperties = useMemo(
+    () => sortCityPropertiesForList(filteredCityProperties, propertySortOption),
+    [filteredCityProperties, propertySortOption]
+  );
+
   return (
     <>
       <p className="mt-1 text-sm text-slate-700">
         {integerFormatter.format(filteredCityProperties.length)} of {integerFormatter.format(selectedCity.properties.length)} investments shown
       </p>
 
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <label htmlFor="property-sort" className="text-xs font-medium text-slate-700">
+          Sort properties by
+        </label>
+        <select
+          id="property-sort"
+          value={propertySortOption}
+          onChange={(event) => onPropertySortOptionChange(event.target.value as PropertySortOption)}
+          className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+        >
+          <option value="ownership">Ownership</option>
+          <option value="alphabetical">Alphabetical</option>
+          <option value="partnership">Partner</option>
+          <option value="sector">Sector</option>
+        </select>
+      </div>
+
       <div className="mt-3 max-h-[32svh] space-y-2 overflow-y-auto overscroll-contain pr-1 md:max-h-[calc(100svh-11.5rem)]">
-        {filteredCityProperties.map((property) => (
+        {sortedCityProperties.map((property) => (
           <button
             key={property.id}
             type="button"
@@ -47,7 +79,7 @@ export default function CityPropertiesSection({
           </button>
         ))}
 
-        {filteredCityProperties.length === 0 && (
+        {sortedCityProperties.length === 0 && (
           <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
             No properties match this filter.
           </p>

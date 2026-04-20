@@ -1,18 +1,39 @@
 import type { SearchResult } from "@/components/map/mapTypes";
+import GlobalCityListSection from "@/components/map/selection/GlobalCityListSection";
+import type { CitySortOption } from "@/components/map/selection/cityListSorting";
+import type { CityNode } from "@/types/cities";
 
 type GlobalSearchSectionProps = {
   searchQuery: string;
   searchResults: SearchResult[];
   onSelectSearchResult: (result: SearchResult) => void;
+  cities: CityNode[];
+  citySortOption: CitySortOption;
+  onCitySortOptionChange: (option: CitySortOption) => void;
+  onSelectCity: (cityId: string) => void;
+  mapCenter: [number, number] | null;
 };
 
 export default function GlobalSearchSection({
   searchQuery,
   searchResults,
   onSelectSearchResult,
+  cities,
+  citySortOption,
+  onCitySortOptionChange,
+  onSelectCity,
+  mapCenter,
 }: GlobalSearchSectionProps) {
   if (searchQuery.trim().length < 2) {
-    return <p className="mt-2 text-xs text-slate-600">Search in NBIM dataset. Select a result to zoom and open details.</p>;
+    return (
+      <GlobalCityListSection
+        cities={cities}
+        sortOption={citySortOption}
+        onSortOptionChange={onCitySortOptionChange}
+        onSelectCity={onSelectCity}
+        mapCenter={mapCenter}
+      />
+    );
   }
 
   return (

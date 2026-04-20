@@ -21,6 +21,7 @@ import {
 } from "@/components/map/mapConstants";
 import type { FlatProperty, SearchResult, SelectionState } from "@/components/map/mapTypes";
 import { buildLocalSearchResults } from "@/components/map/searchResults";
+import type { CitySortOption } from "@/components/map/selection/cityListSorting";
 import type { CityNode } from "@/types/cities";
 
 type CityMapInnerProps = {
@@ -35,18 +36,26 @@ const AUTO_RECENTER_TOLERANCE_PX = 32;
 type MapEventBridgeProps = {
   onMapReady: (map: LeafletMap) => void;
   onZoomChange: (zoom: number) => void;
+  onCenterChange: (center: [number, number]) => void;
 };
 
-function MapEventBridge({ onMapReady, onZoomChange }: MapEventBridgeProps) {
+function MapEventBridge({ onMapReady, onZoomChange, onCenterChange }: MapEventBridgeProps) {
   const map = useMapEvents({
     zoomend: (e: LeafletEvent) => {
       onZoomChange((e.target as { getZoom: () => number }).getZoom());
+    },
+    moveend: (e: LeafletEvent) => {
+      const center = (e.target as { getCenter: () => { lat: number; lng: number } }).getCenter();
+      onCenterChange([center.lat, center.lng]);
     },
   });
 
   useEffect(() => {
     onMapReady(map);
-  }, [map, onMapReady]);
+
+    const center = map.getCenter();
+    onCenterChange([center.lat, center.lng]);
+  }, [map, onCenterChange, onMapReady]);
 
   return null;
 }
@@ -60,6 +69,8 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     selectedCityId: null,
     selectedPropertyId: null,
   });
+  const [citySortOption, setCitySortOption] = useState<CitySortOption>("investments");
+  const [mapCenter, setMapCenter] = useState<[number, number]>(MAP_CENTER);
   const mobilePanelHeightRef = useRef<number | null>(null);
 
   const mappableCities = useMemo(
@@ -388,6 +399,18 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     [flatPropertyById, handleSelectProperty]
   );
 
+  const handleSelectCityById = useCallback(
+    (cityId: string) => {
+      const city = mappableCities.find((candidate) => candidate.id === cityId);
+      if (!city) {
+        return;
+      }
+
+      handleSelectCity(city);
+    },
+    [handleSelectCity, mappableCities]
+  );
+
   const handleBackToCity = useCallback(() => {
     setSelection((current) => {
       if (current.mode !== "property") {
@@ -478,7 +501,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <ZoomControl position="bottomleft" />
-        <MapEventBridge onMapReady={setMapInstance} onZoomChange={setZoom} />
+        <MapEventBridge onMapReady={setMapInstance} onZoomChange={setZoom} onCenterChange={setMapCenter} />
 
         {mapInstance && (
           <MapMarkersLayer
@@ -536,7 +559,12 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
         searchResults={localSearchResults}
+        mappableCities={mappableCities}
+        citySortOption={citySortOption}
+        onCitySortOptionChange={setCitySortOption}
+        mapCenter={mapCenter}
         onSelectSearchResult={handleSelectSearchResult}
+        onSelectCity={handleSelectCityById}
         onClearSearch={handleClearSearch}
         showCoordinatesDebug={SHOW_PROPERTY_COORDINATES_DEBUG}
         onClose={handleResetSelection}
