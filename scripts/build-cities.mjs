@@ -10,14 +10,27 @@ import {
   parseCsvLine,
   parseNonEmptyLines,
 } from "./lib/csv-utils.mjs";
-import { readJsonIfExists } from "./lib/fs-json-utils.mjs";
+import { resolveActiveCsvInput, resolveActiveReleaseFile } from "./lib/active-dataset.mjs";
+import { readJsonIfExists, saveJson } from "./lib/fs-json-utils.mjs";
 import { mapHeaders } from "./lib/header-mapping.mjs";
 import { createSha1Id } from "./lib/hash-utils.mjs";
 import { parseNumber, parsePercent } from "./lib/number-utils.mjs";
 
-const DEFAULT_INPUT = path.join(process.cwd(), "data", "raw", "re_20251231.csv");
-const DEFAULT_OUTPUT = path.join(process.cwd(), "data", "cities.json");
-const DEFAULT_PROPERTY_COORDINATES = path.join(process.cwd(), "data", "property-coordinates.json");
+const LEGACY_DEFAULT_INPUT = path.join(process.cwd(), "data", "raw", "re_20251231.csv");
+const DEFAULT_INPUT = resolveActiveCsvInput(LEGACY_DEFAULT_INPUT);
+const RUNTIME_CITIES_OUTPUT = path.join(process.cwd(), "data", "cities.json");
+const RUNTIME_REALESTATE_OUTPUT = path.join(process.cwd(), "data", "realestate.json");
+const DEFAULT_OUTPUT = resolveActiveReleaseFile("cities.json", RUNTIME_CITIES_OUTPUT);
+const DEFAULT_REALESTATE_OUTPUT = resolveActiveReleaseFile("realestate.json", RUNTIME_REALESTATE_OUTPUT);
+const LEGACY_DEFAULT_PROPERTY_COORDINATES = path.join(
+  process.cwd(),
+  "data",
+  "property-coordinates.json"
+);
+const DEFAULT_PROPERTY_COORDINATES = resolveActiveReleaseFile(
+  "property-coordinates.json",
+  LEGACY_DEFAULT_PROPERTY_COORDINATES
+);
 const DEFAULT_CITY_COORDINATES = path.join(process.cwd(), "data", "city-coordinates.json");
 
 const HEADER_RULES = [
@@ -34,6 +47,7 @@ function parseArgs(argv) {
   const options = {
     input: DEFAULT_INPUT,
     output: DEFAULT_OUTPUT,
+    realestateOutput: DEFAULT_REALESTATE_OUTPUT,
     propertyCoordinates: DEFAULT_PROPERTY_COORDINATES,
     cityCoordinates: DEFAULT_CITY_COORDINATES,
   };
@@ -53,6 +67,12 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === "--realestate-output" && argv[index + 1]) {
+      options.realestateOutput = path.resolve(argv[index + 1]);
+      index += 1;
+      continue;
+    }
+
     if (arg === "--property-coordinates" && argv[index + 1]) {
       options.propertyCoordinates = path.resolve(argv[index + 1]);
       index += 1;
@@ -66,6 +86,16 @@ function parseArgs(argv) {
   }
 
   return options;
+}
+
+async function mirrorRuntimeSnapshot(sourcePath, runtimePath) {
+  if (path.resolve(sourcePath) === path.resolve(runtimePath)) {
+    return false;
+  }
+
+  await fs.mkdir(path.dirname(runtimePath), { recursive: true });
+  await fs.copyFile(sourcePath, runtimePath);
+  return true;
 }
 
 function getValue(values, index) {
@@ -367,6 +397,171 @@ function resolveCitiesFromGroups(cityGroups, cityCoordinates) {
   };
 }
 
+function createCountryId(country) {
+  return createSha1Id("country", normalizeText(country), 14);
+}
+
+function buildPropertyDictionary(cities) {
+  const partnerships = new Set();
+  const sectors = new Set();
+
+  for (const city of cities) {
+    for (const property of city.properties) {
+      if (property.partnership) {
+        partnerships.add(property.partnership);
+      }
+
+      if (property.sector) {
+        sectors.add(property.sector);
+      }
+    }
+  }
+
+  const partnershipList = Array.from(partnerships).sort((a, b) => a.localeCompare(b));
+  const sectorList = Array.from(sectors).sort((a, b) => a.localeCompare(b));
+
+  return {
+    partnerships: partnershipList,
+    sectors: sectorList,
+    partnershipToId: new Map(partnershipList.map((value, index) => [value, index])),
+    sectorToId: new Map(sectorList.map((value, index) => [value, index])),
+  };
+}
+
+function buildCountryValueProfiles(cities) {
+  const profiles = new Map();
+
+  for (const city of cities) {
+    const countryId = createCountryId(city.country);
+
+    if (!profiles.has(countryId)) {
+      profiles.set(countryId, {
+        valueNok: new Set(),
+        valueUsd: new Set(),
+      });
+    }
+
+    const profile = profiles.get(countryId);
+
+    for (const property of city.properties) {
+      if (typeof property.value_nok === "number") {
+        profile.valueNok.add(property.value_nok);
+      }
+
+      if (typeof property.value_usd === "number") {
+        profile.valueUsd.add(property.value_usd);
+      }
+    }
+  }
+
+  return profiles;
+}
+
+function buildNormalizedRealestate({ cities, sourceInput }) {
+  const countryValueProfiles = buildCountryValueProfiles(cities);
+  const dictionary = buildPropertyDictionary(cities);
+
+  const countries = {};
+  const cityEntities = {};
+  const propertyEntities = {};
+
+  for (const city of cities) {
+    const countryId = createCountryId(city.country);
+    const countryProfile = countryValueProfiles.get(countryId);
+
+    const hasSingleValueNok = (countryProfile?.valueNok.size ?? 0) === 1;
+    const hasSingleValueUsd = (countryProfile?.valueUsd.size ?? 0) === 1;
+
+    if (!countries[countryId]) {
+      countries[countryId] = {
+        country: city.country,
+        city_ids: [],
+        property_count: 0,
+        total_ownership_sum: 0,
+        value_nok: hasSingleValueNok ? Array.from(countryProfile.valueNok)[0] : null,
+        value_usd: hasSingleValueUsd ? Array.from(countryProfile.valueUsd)[0] : null,
+        value_scope:
+          hasSingleValueNok && hasSingleValueUsd ? "country_unique" : "property_mixed",
+      };
+    }
+
+    const country = countries[countryId];
+    country.city_ids.push(city.id);
+    country.property_count += city.properties.length;
+    country.total_ownership_sum = Number(
+      (country.total_ownership_sum + city.total_ownership_sum).toFixed(2)
+    );
+
+    const propertyIds = [];
+
+    for (const property of city.properties) {
+      const partnershipId = property.partnership
+        ? dictionary.partnershipToId.get(property.partnership) ?? null
+        : null;
+      const sectorId = property.sector
+        ? dictionary.sectorToId.get(property.sector) ?? null
+        : null;
+
+      const propertyNode = {
+        city_id: city.id,
+        name: property.name,
+        address: property.address,
+        partnership_id: partnershipId,
+        sector_id: sectorId,
+        ownership_percent: property.ownership_percent,
+        lat: property.lat,
+        lng: property.lng,
+      };
+
+      if (!hasSingleValueNok) {
+        propertyNode.value_nok = property.value_nok;
+      }
+
+      if (!hasSingleValueUsd) {
+        propertyNode.value_usd = property.value_usd;
+      }
+
+      propertyEntities[property.id] = propertyNode;
+      propertyIds.push(property.id);
+    }
+
+    cityEntities[city.id] = {
+      city: city.city,
+      country_id: countryId,
+      lat: city.lat,
+      lng: city.lng,
+      total_ownership_sum: city.total_ownership_sum,
+      property_ids: propertyIds,
+    };
+  }
+
+  for (const country of Object.values(countries)) {
+    country.city_ids.sort((a, b) => a.localeCompare(b));
+  }
+
+  return {
+    version: 1,
+    generated_at: new Date().toISOString(),
+    source_input: sourceInput,
+    stats: {
+      countries: Object.keys(countries).length,
+      cities: Object.keys(cityEntities).length,
+      properties: Object.keys(propertyEntities).length,
+      dictionary_partnerships: dictionary.partnerships.length,
+      dictionary_sectors: dictionary.sectors.length,
+    },
+    dictionary: {
+      partnerships: dictionary.partnerships,
+      sectors: dictionary.sectors,
+    },
+    entities: {
+      countries,
+      cities: cityEntities,
+      properties: propertyEntities,
+    },
+  };
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
 
@@ -418,14 +613,36 @@ async function main() {
   console.log(`- Properties filled from city coordinates: ${stats.propertyCityFallbackCount}`);
   console.log(`- Properties still missing coordinates: ${stats.propertyMissingCoordsCount}`);
 
-  console.log("[6/6] Writing city dataset...");
+  console.log("[6/7] Writing city dataset...");
   console.log(`- Output: ${options.output}`);
+  await saveJson(options.output, cities);
+  const mirroredCityRuntime = await mirrorRuntimeSnapshot(options.output, RUNTIME_CITIES_OUTPUT);
 
-  await fs.mkdir(path.dirname(options.output), { recursive: true });
-  await fs.writeFile(options.output, `${JSON.stringify(cities)}\n`, "utf8");
+  console.log("[7/7] Writing normalized real estate graph...");
+  console.log(`- Output: ${options.realestateOutput}`);
+
+  const normalizedRealestate = buildNormalizedRealestate({
+    cities,
+    sourceInput: path.relative(process.cwd(), options.input),
+  });
+
+  await saveJson(options.realestateOutput, normalizedRealestate);
+  const mirroredRealestateRuntime = await mirrorRuntimeSnapshot(
+    options.realestateOutput,
+    RUNTIME_REALESTATE_OUTPUT
+  );
 
   const totalProperties = cities.reduce((sum, city) => sum + city.properties.length, 0);
   console.log(`- Wrote ${cities.length} cities with ${totalProperties} aggregated properties`);
+  console.log(`- Wrote ${normalizedRealestate.stats.countries} countries to normalized graph`);
+  if (mirroredCityRuntime) {
+    console.log(`- Mirrored active runtime city snapshot: ${path.relative(process.cwd(), RUNTIME_CITIES_OUTPUT)}`);
+  }
+  if (mirroredRealestateRuntime) {
+    console.log(
+      `- Mirrored active runtime realestate snapshot: ${path.relative(process.cwd(), RUNTIME_REALESTATE_OUTPUT)}`
+    );
+  }
   console.log("- MVP layer 1 dataset is ready");
 }
 

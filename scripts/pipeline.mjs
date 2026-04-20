@@ -10,15 +10,23 @@ import {
   parseCsvLine,
   parseNonEmptyLines,
 } from "./lib/csv-utils.mjs";
+import { resolveActiveCsvInput, resolveActiveReleaseFile } from "./lib/active-dataset.mjs";
 import { readJsonIfExists, saveJson } from "./lib/fs-json-utils.mjs";
 import { mapHeaders } from "./lib/header-mapping.mjs";
 import { createSha1Id, sha1Digest } from "./lib/hash-utils.mjs";
 import { parseNumber, parsePercent } from "./lib/number-utils.mjs";
 
-const DEFAULT_INPUT = path.join(process.cwd(), "data", "raw", "re_20251231.csv");
-const DEFAULT_OUTPUT = path.join(process.cwd(), "data", "properties.json");
-const DEFAULT_COORDINATE_OUTPUT = path.join(process.cwd(), "data", "property-coordinates.json");
-const DEFAULT_CACHE_FILE = path.join(process.cwd(), "data", "geocode-cache.json");
+const LEGACY_DEFAULT_INPUT = path.join(process.cwd(), "data", "raw", "re_20251231.csv");
+const DEFAULT_INPUT = resolveActiveCsvInput(LEGACY_DEFAULT_INPUT);
+const LEGACY_DEFAULT_OUTPUT = path.join(process.cwd(), "data", "properties.json");
+const LEGACY_DEFAULT_COORDINATE_OUTPUT = path.join(process.cwd(), "data", "property-coordinates.json");
+const LEGACY_DEFAULT_CACHE_FILE = path.join(process.cwd(), "data", "geocode-cache.json");
+const DEFAULT_OUTPUT = resolveActiveReleaseFile("properties.json", LEGACY_DEFAULT_OUTPUT);
+const DEFAULT_COORDINATE_OUTPUT = resolveActiveReleaseFile(
+  "property-coordinates.json",
+  LEGACY_DEFAULT_COORDINATE_OUTPUT
+);
+const DEFAULT_CACHE_FILE = resolveActiveReleaseFile("geocode-cache.json", LEGACY_DEFAULT_CACHE_FILE);
 
 const DEFAULT_GEOCODER_BASE_URL = "https://nominatim.openstreetmap.org/search";
 const DEFAULT_PHOTON_BASE_URL = "https://photon.komoot.io/api";
