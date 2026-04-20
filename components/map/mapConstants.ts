@@ -41,7 +41,25 @@ export function getCityColors(propertyCount: number, maxPropertyCount: number, i
   };
 }
 
-export function getPropertyColors(ownershipPercent: number | null, isSelected: boolean) {
+export function getPropertyColors(
+  ownershipPercent: number | null,
+  isSelected: boolean,
+  isNbimOffice = false
+) {
+  if (isNbimOffice) {
+    if (isSelected) {
+      return {
+        stroke: "#92400e",
+        fill: "#f59e0b",
+      };
+    }
+
+    return {
+      stroke: "#b45309",
+      fill: "#fbbf24",
+    };
+  }
+
   if (ownershipPercent == null) {
     return {
       stroke: isSelected ? "#334155" : "#64748b",

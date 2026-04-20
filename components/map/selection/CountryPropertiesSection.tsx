@@ -5,6 +5,7 @@ import {
   sortCityPropertiesForList,
   type PropertySortOption,
 } from "@/components/map/selection/propertySorting";
+import { OfficeBadge, SectorBadge } from "@/components/map/selection/propertyVisuals";
 
 const integerFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
@@ -37,10 +38,14 @@ export default function CountryPropertiesSection({
     [filteredCountryProperties, propertySortOption]
   );
 
+  const containsOfficeLocations = filteredCountryProperties.some(
+    (property) => property.is_nbim_office
+  );
+
   return (
     <>
       <p className="mt-1 text-sm text-slate-700">
-        {integerFormatter.format(filteredCountryProperties.length)} of {integerFormatter.format(totalCountryProperties)} properties shown in {country}
+        {integerFormatter.format(filteredCountryProperties.length)} of {integerFormatter.format(totalCountryProperties)} {containsOfficeLocations ? "locations" : "properties"} shown in {country}
       </p>
 
       <div className="mt-3 flex items-center justify-between gap-2">
@@ -65,16 +70,23 @@ export default function CountryPropertiesSection({
           <button
             key={property.id}
             type="button"
-            className="pointer-events-auto w-full cursor-pointer rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition-colors hover:border-blue-300 hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+            className="pointer-events-auto w-full cursor-pointer rounded-xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-3 text-left shadow-sm transition-colors hover:border-blue-300 hover:from-blue-50 hover:to-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
             onClick={() => onSelectProperty(property.id)}
-            aria-label={`Select property ${property.name ?? "Unnamed property"}`}
+            aria-label={`Select property ${property.office_name ?? property.name ?? "Unnamed property"}`}
           >
-            <h3 className="text-sm font-semibold text-slate-900 text-balance">{property.name ?? "Unnamed property"}</h3>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <SectorBadge sector={property.sector} />
+              {property.is_nbim_office && (
+                <OfficeBadge officeCategory={property.office_category ?? null} />
+              )}
+            </div>
+
+            <h3 className="mt-2 text-sm font-semibold text-slate-900 text-balance">
+              {property.office_name ?? property.name ?? "Unnamed property"}
+            </h3>
             <p className="mt-1 text-xs text-slate-700">{property.address ?? "No address"}</p>
             <p className="mt-1 text-xs text-slate-600">{property.cityName}, {property.country}</p>
-            <p className="mt-2 text-xs text-slate-600">
-              {property.sector ?? "Unknown sector"} · {property.partnership ?? "Unknown partner"}
-            </p>
+            <p className="mt-2 text-xs text-slate-600">{property.partnership ?? "Unknown partner"}</p>
             <p className="mt-1 text-xs text-slate-600 tabular-nums">
               Ownership {property.ownership_percent == null ? "N/A" : `${decimalFormatter.format(property.ownership_percent)}%`}
             </p>

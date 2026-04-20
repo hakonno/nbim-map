@@ -17,6 +17,9 @@ export type SearchResult = {
   lng: number;
   cityId: string;
   propertyId?: string;
+  sector?: string | null;
+  isOffice?: boolean;
+  officeCategory?: "office" | "head_office" | "real_estate_office" | null;
 };
 
 export type SelectionState =

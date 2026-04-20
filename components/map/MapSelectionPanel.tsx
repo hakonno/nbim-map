@@ -15,7 +15,6 @@ type MapSelectionPanelProps = {
   selectedCountry: string | null;
   selectedCity: CityNode | null;
   selectedCountryProperties: FlatProperty[];
-  selectedCountryValueNok: number | null;
   totalRealEstateValueNok: number;
   selectedProperty: CityProperty | null;
   selectedPropertyCoordinates: PropertyCoordinates | null;
@@ -42,7 +41,6 @@ function MapSelectionPanel({
   selectedCountry,
   selectedCity,
   selectedCountryProperties,
-  selectedCountryValueNok,
   totalRealEstateValueNok,
   selectedProperty,
   selectedPropertyCoordinates,
@@ -163,7 +161,7 @@ function MapSelectionPanel({
                 ? `${formatCountryWithFlag(selectedCountry)} overview`
                 : "Country overview"
               : mode === "property"
-              ? selectedProperty?.name ?? "Property details"
+              ? selectedProperty?.office_name ?? selectedProperty?.name ?? "Property details"
               : selectedCity
                 ? `${selectedCity.city}, ${formatCountryWithFlag(selectedCity.country)}`
                 : "Search Investments"}

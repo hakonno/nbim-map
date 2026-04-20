@@ -41,14 +41,22 @@ export function buildLocalSearchResults(
     .map((property) => ({
       id: `property-${property.id}`,
       type: "property",
-      name: property.name?.trim() || "Unnamed property",
-      subtitle: [property.address, property.cityName, formatCountryWithFlag(property.country)]
+      name: property.office_name?.trim() || property.name?.trim() || "Unnamed property",
+      subtitle: [
+        property.is_nbim_office ? "Actual NBIM office" : null,
+        property.address,
+        property.cityName,
+        formatCountryWithFlag(property.country),
+      ]
         .filter((part): part is string => Boolean(part && part.trim()))
         .join(" · "),
       lat: property.lat,
       lng: property.lng,
       cityId: property.cityId,
       propertyId: property.id,
+      sector: property.sector,
+      isOffice: Boolean(property.is_nbim_office),
+      officeCategory: property.office_category ?? null,
     }));
 
   return [...cityMatches, ...propertyMatches].slice(0, limit);
