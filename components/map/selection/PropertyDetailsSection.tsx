@@ -16,6 +16,7 @@ type PropertyDetailsSectionProps = {
   selectedCity: CityNode;
   selectedProperty: CityProperty;
   selectedPropertyCoordinates: PropertyCoordinates | null;
+  googleMapsEmbedApiKey: string;
   showCoordinatesDebug: boolean;
   onBackToCity: () => void;
   backLabel?: string;
@@ -25,6 +26,7 @@ export default function PropertyDetailsSection({
   selectedCity,
   selectedProperty,
   selectedPropertyCoordinates,
+  googleMapsEmbedApiKey,
   showCoordinatesDebug,
   onBackToCity,
   backLabel = "\u2190 Back to city list",
@@ -32,6 +34,14 @@ export default function PropertyDetailsSection({
   const isOfficeLocation = Boolean(selectedProperty.is_nbim_office);
   const displayName = selectedProperty.office_name ?? selectedProperty.name ?? "Property";
   const partnerOrEntity = selectedProperty.office_entity ?? selectedProperty.partnership ?? "N/A";
+  const hasValidCoordinates = Boolean(
+    selectedPropertyCoordinates &&
+      Number.isFinite(selectedPropertyCoordinates.lat) &&
+      Number.isFinite(selectedPropertyCoordinates.lng)
+  );
+  const streetViewEmbedUrl = googleMapsEmbedApiKey && hasValidCoordinates && selectedPropertyCoordinates
+    ? `https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(googleMapsEmbedApiKey)}&location=${selectedPropertyCoordinates.lat},${selectedPropertyCoordinates.lng}&source=outdoor&radius=120`
+    : null;
 
   return (
     <>
@@ -94,6 +104,20 @@ export default function PropertyDetailsSection({
                 ? ` · Entity: ${selectedProperty.office_entity}`
                 : ""}
             </p>
+          </div>
+        )}
+
+        {streetViewEmbedUrl && (
+          <div className="border-t border-slate-200/90 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Street View</p>
+            <iframe
+              allowFullScreen
+              className="mt-2 h-56 w-full rounded-lg border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              src={streetViewEmbedUrl}
+              title={`Street View for ${displayName}`}
+            />
           </div>
         )}
       </section>

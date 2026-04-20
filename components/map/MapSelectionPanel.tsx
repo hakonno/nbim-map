@@ -34,6 +34,7 @@ type MapSelectionPanelProps = {
   onBackToCity: () => void;
   onSelectProperty: (propertyId: string) => void;
   onPanelHeightChange: (height: number) => void;
+  googleMapsEmbedApiKey: string;
 };
 
 function MapSelectionPanel({
@@ -60,6 +61,7 @@ function MapSelectionPanel({
   onBackToCity,
   onSelectProperty,
   onPanelHeightChange,
+  googleMapsEmbedApiKey,
 }: MapSelectionPanelProps) {
   const [isPanelExpanded, setIsPanelExpanded] = useState(true);
   const [propertySortOption, setPropertySortOption] = useState<PropertySortOption>("ownership");
@@ -261,6 +263,7 @@ function MapSelectionPanel({
             showCoordinatesDebug={showCoordinatesDebug}
             onBackToCity={onBackToCity}
             backLabel={selectedCountry ? "\u2190 Back to country list" : "\u2190 Back to city list"}
+            googleMapsEmbedApiKey={googleMapsEmbedApiKey}
           />
         )}
       </div>
