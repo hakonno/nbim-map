@@ -460,6 +460,20 @@ function buildCountryValueProfiles(cities) {
 function buildNormalizedRealestate({ cities, sourceInput }) {
   const countryValueProfiles = buildCountryValueProfiles(cities);
   const dictionary = buildPropertyDictionary(cities);
+  const countryValueModes = new Map();
+
+  for (const [countryId, profile] of countryValueProfiles.entries()) {
+    const hasSingleValueNok = profile.valueNok.size === 1;
+    const hasSingleValueUsd = profile.valueUsd.size === 1;
+
+    countryValueModes.set(countryId, {
+      hasSingleValueNok,
+      hasSingleValueUsd,
+      valueNok: hasSingleValueNok ? Array.from(profile.valueNok)[0] : null,
+      valueUsd: hasSingleValueUsd ? Array.from(profile.valueUsd)[0] : null,
+      valueScope: hasSingleValueNok && hasSingleValueUsd ? "country_unique" : "property_mixed",
+    });
+  }
 
   const countries = {};
   const cityEntities = {};
@@ -467,10 +481,13 @@ function buildNormalizedRealestate({ cities, sourceInput }) {
 
   for (const city of cities) {
     const countryId = createCountryId(city.country);
-    const countryProfile = countryValueProfiles.get(countryId);
-
-    const hasSingleValueNok = (countryProfile?.valueNok.size ?? 0) === 1;
-    const hasSingleValueUsd = (countryProfile?.valueUsd.size ?? 0) === 1;
+    const valueMode = countryValueModes.get(countryId) ?? {
+      hasSingleValueNok: false,
+      hasSingleValueUsd: false,
+      valueNok: null,
+      valueUsd: null,
+      valueScope: "property_mixed",
+    };
 
     if (!countries[countryId]) {
       countries[countryId] = {
@@ -478,10 +495,9 @@ function buildNormalizedRealestate({ cities, sourceInput }) {
         city_ids: [],
         property_count: 0,
         total_ownership_sum: 0,
-        value_nok: hasSingleValueNok ? Array.from(countryProfile.valueNok)[0] : null,
-        value_usd: hasSingleValueUsd ? Array.from(countryProfile.valueUsd)[0] : null,
-        value_scope:
-          hasSingleValueNok && hasSingleValueUsd ? "country_unique" : "property_mixed",
+        value_nok: valueMode.valueNok,
+        value_usd: valueMode.valueUsd,
+        value_scope: valueMode.valueScope,
       };
     }
 
@@ -513,11 +529,11 @@ function buildNormalizedRealestate({ cities, sourceInput }) {
         lng: property.lng,
       };
 
-      if (!hasSingleValueNok) {
+      if (!valueMode.hasSingleValueNok) {
         propertyNode.value_nok = property.value_nok;
       }
 
-      if (!hasSingleValueUsd) {
+      if (!valueMode.hasSingleValueUsd) {
         propertyNode.value_usd = property.value_usd;
       }
 
