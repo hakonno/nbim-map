@@ -16,6 +16,7 @@ type MapIntroCardProps = {
   fundRealEstateValueNok: number;
   fundSharePercent: number;
   totalInvestments: number;
+  totalNbimOffices: number;
   totalRealEstateValueNok: number;
 };
 
@@ -54,6 +55,7 @@ function MapIntroCard({
   fundRealEstateValueNok,
   fundSharePercent,
   totalInvestments,
+  totalNbimOffices,
   totalRealEstateValueNok,
 }: MapIntroCardProps) {
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -125,6 +127,7 @@ function MapIntroCard({
           <p className="mt-1 text-[11px] text-slate-700 sm:hidden">
             NOK {integerFormatter.format(fundRealEstateValueNok)} · {percentageFormatter.format(fundSharePercent)}% of fund · {integerFormatter.format(countriesWithoutInternational)} countries
             {hasInternationalFund ? " + 1 intl fund" : ""}
+            {totalNbimOffices > 0 ? ` · ${integerFormatter.format(totalNbimOffices)} offices` : ""}
           </p>
 
           <div className="mt-3 hidden grid-cols-2 gap-2 text-sm sm:grid">
@@ -144,8 +147,13 @@ function MapIntroCard({
               <p className="text-slate-500">Countries</p>
             </div>
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
-              <p className="font-semibold text-slate-900 tabular-nums">{integerFormatter.format(totalInvestments)}</p>
-              <p className="text-slate-500">Investments</p>
+              <p className="font-semibold text-slate-900 tabular-nums">
+                {integerFormatter.format(totalInvestments)}
+                {totalNbimOffices > 0 ? ` + ${integerFormatter.format(totalNbimOffices)}` : ""}
+              </p>
+              <p className="text-slate-500">
+                {totalNbimOffices > 0 ? "Investments + offices" : "Investments"}
+              </p>
             </div>
           </div>
         </>

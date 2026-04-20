@@ -35,7 +35,17 @@ export default function MapMarkersLayer({
   onSelectProperty,
 }: MapMarkersLayerProps) {
   const getPropertyLabel = (property: FlatProperty) => {
-    const baseLabel = property.name?.trim() || property.address?.trim() || "Property";
+    const baseLabel = property.office_name?.trim() || property.name?.trim() || property.address?.trim() || "Property";
+
+    if (property.is_nbim_office) {
+      const officeType =
+        property.office_category === "head_office"
+          ? "Head office"
+          : property.office_category === "real_estate_office"
+            ? "Real estate office"
+            : "NBIM office";
+      return `${baseLabel} · ${officeType}`;
+    }
 
     if (property.ownership_percent == null) {
       return baseLabel;
@@ -90,7 +100,27 @@ export default function MapMarkersLayer({
       {showProperties &&
         flatProperties.map((property) => {
           const isSelected = selection.mode === "property" && selection.selectedPropertyId === property.id;
-          const propertyColors = getPropertyColors(property.ownership_percent, isSelected);
+          const propertyColors = getPropertyColors(
+            property.ownership_percent,
+            isSelected,
+            Boolean(property.is_nbim_office)
+          );
+
+          const markerRadius = property.is_nbim_office
+            ? showPropertyDetail
+              ? 9
+              : 6
+            : showPropertyDetail
+              ? 8
+              : 5;
+
+          const markerLabelClassName = [
+            "map-marker-label",
+            isSelected ? "map-marker-label--selected" : "",
+            property.is_nbim_office ? "map-marker-label--office" : "",
+          ]
+            .filter(Boolean)
+            .join(" ");
 
           if (isSelected) {
             const showLabel = shouldShowPropertyLabel(property, isSelected);
@@ -125,7 +155,7 @@ export default function MapMarkersLayer({
                   }}
                 >
                   {showLabel && (
-                    <Tooltip direction="top" offset={[0, -5]} opacity={1} permanent className="map-marker-label map-marker-label--selected">
+                    <Tooltip direction="top" offset={[0, -5]} opacity={1} permanent className={markerLabelClassName}>
                       {getPropertyLabel(property)}
                     </Tooltip>
                   )}
@@ -140,7 +170,7 @@ export default function MapMarkersLayer({
             <CircleMarker
               key={property.id}
               center={[property.lat, property.lng]}
-              radius={showPropertyDetail ? 8 : 5}
+              radius={markerRadius}
               pathOptions={{
                 color: propertyColors.stroke,
                 fillColor: propertyColors.fill,
@@ -154,7 +184,7 @@ export default function MapMarkersLayer({
               }}
             >
               {showLabel && (
-                <Tooltip direction="top" offset={[0, -4]} opacity={1} permanent className="map-marker-label">
+                <Tooltip direction="top" offset={[0, -4]} opacity={1} permanent className={markerLabelClassName}>
                   {getPropertyLabel(property)}
                 </Tooltip>
               )}

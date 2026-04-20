@@ -5,6 +5,7 @@ import GlobalCityListSection from "@/components/map/selection/GlobalCityListSect
 import GlobalCountryListSection from "@/components/map/selection/GlobalCountryListSection";
 import type { CitySortOption } from "@/components/map/selection/cityListSorting";
 import type { CountrySortOption } from "@/components/map/selection/countryListSorting";
+import { OfficeBadge, SectorBadge } from "@/components/map/selection/propertyVisuals";
 import type { CityNode } from "@/types/cities";
 
 type GlobalSearchSectionProps = {
@@ -105,10 +106,20 @@ export default function GlobalSearchSection({
             onClick={() => onSelectSearchResult(result)}
           >
             <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
-              {result.type === "city" ? "City" : "Property"}
+              {result.type === "city"
+                ? "City"
+                : result.isOffice
+                  ? "Office location"
+                  : "Property"}
             </p>
             <h3 className="text-sm font-semibold text-slate-900 text-balance">{result.name}</h3>
             {result.subtitle && <p className="mt-1 text-xs text-slate-700">{result.subtitle}</p>}
+            {result.type === "property" && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <SectorBadge sector={result.sector} />
+                {result.isOffice && <OfficeBadge officeCategory={result.officeCategory ?? null} />}
+              </div>
+            )}
           </button>
         ))}
       </div>

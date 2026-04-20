@@ -94,6 +94,19 @@ body {
   color: #92400e;
 }
 
+.map-marker-label.map-marker-label--office.leaflet-tooltip {
+  border-color: rgba(217, 119, 6, 0.68);
+  background: rgba(255, 251, 235, 0.96);
+  color: #92400e;
+}
+
+.map-marker-label.map-marker-label--office.map-marker-label--selected.leaflet-tooltip {
+  border-color: rgba(180, 83, 9, 0.82);
+  background: rgba(255, 237, 213, 0.98);
+  box-shadow: 0 3px 10px rgba(180, 83, 9, 0.25);
+  color: #7c2d12;
+}
+
 .map-marker-label.leaflet-tooltip::before {
   display: none;
 }
