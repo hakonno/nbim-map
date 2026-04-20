@@ -422,7 +422,7 @@ async function main() {
   console.log(`- Output: ${options.output}`);
 
   await fs.mkdir(path.dirname(options.output), { recursive: true });
-  await fs.writeFile(options.output, `${JSON.stringify(cities, null, 2)}\n`, "utf8");
+  await fs.writeFile(options.output, `${JSON.stringify(cities)}\n`, "utf8");
 
   const totalProperties = cities.reduce((sum, city) => sum + city.properties.length, 0);
   console.log(`- Wrote ${cities.length} cities with ${totalProperties} aggregated properties`);
