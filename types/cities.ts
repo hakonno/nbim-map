@@ -9,6 +9,10 @@ export type CityProperty = {
   ownership_percent: number | null;
   value_nok: number | null;
   value_usd: number | null;
+  is_nbim_office?: boolean;
+  office_name?: string | null;
+  office_category?: "office" | "head_office" | "real_estate_office" | null;
+  office_entity?: string | null;
 };
 
 export type CityNode = {

@@ -1,0 +1,78 @@
+[
+  {
+    "id": "new-york",
+    "office_name": "New York office",
+    "office_category": "office",
+    "office_entity": "Norges Bank Investment Management",
+    "city": "New York",
+    "country": "United States",
+    "address": "505 Fifth Avenue, 20th Floor, New York, NY 10017, USA",
+    "lat": 40.7522717,
+    "lng": -73.9813705,
+    "match_hints": [
+      "505 Fifth Avenue",
+      "505 5th Avenue"
+    ]
+  },
+  {
+    "id": "singapore",
+    "office_name": "Singapore office",
+    "office_category": "office",
+    "office_entity": "Norges Bank Investment Management",
+    "city": "Singapore",
+    "country": "Singapore",
+    "address": "One Raffles Quay, #27-01 North Tower, Singapore 048583",
+    "lat": 1.2815006,
+    "lng": 103.8521266,
+    "match_hints": [
+      "One Raffles Quay",
+      "North Tower"
+    ]
+  },
+  {
+    "id": "london",
+    "office_name": "London office",
+    "office_category": "office",
+    "office_entity": "Norges Bank Investment Management",
+    "city": "London",
+    "country": "United Kingdom",
+    "address": "Queensberry House, 3 Old Burlington Street, London W1S 3AE, England",
+    "lat": 51.5106547,
+    "lng": -0.1405146,
+    "match_hints": [
+      "Queensberry House",
+      "3 Old Burlington Street"
+    ]
+  },
+  {
+    "id": "oslo-head",
+    "office_name": "Head office",
+    "office_category": "head_office",
+    "office_entity": "Norges Bank Investment Management",
+    "city": "Oslo",
+    "country": "Norway",
+    "address": "Bankplassen 2, P.O. Box 1179 Sentrum, NO-0107 Oslo, Norway",
+    "lat": 59.908624,
+    "lng": 10.742356,
+    "match_hints": [
+      "Bankplassen 2",
+      "NO-0107 Oslo"
+    ]
+  },
+  {
+    "id": "paris",
+    "office_name": "Paris office",
+    "office_category": "real_estate_office",
+    "office_entity": "NBRE Management Europe Ltd. French Branch",
+    "city": "Paris",
+    "country": "France",
+    "address": "6-8 Boulevard Haussmann, 75009 Paris, France",
+    "lat": 48.8722517,
+    "lng": 2.3386966,
+    "match_hints": [
+      "6/8 Haussmann",
+      "6/8 Boulevard Haussmann",
+      "6-8 Boulevard Haussmann"
+    ]
+  }
+]
