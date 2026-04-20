@@ -27,9 +27,10 @@ import type { CityNode } from "@/types/cities";
 
 type CityMapInnerProps = {
   cities: CityNode[];
+  googleMapsEmbedApiKey: string;
 };
 
-export default function CityMapInner({ cities }: CityMapInnerProps) {
+export default function CityMapInner({ cities, googleMapsEmbedApiKey }: CityMapInnerProps) {
   const [zoom, setZoom] = useState(MAP_DEFAULT_ZOOM);
   const [mapInstance, setMapInstance] = useState<LeafletMap | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -393,6 +394,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         onBackToCity={handleBackToCity}
         onSelectProperty={handleSelectPropertyById}
         onPanelHeightChange={handleMobilePanelHeightChange}
+        googleMapsEmbedApiKey={googleMapsEmbedApiKey}
       />
     </div>
   );
