@@ -27,6 +27,7 @@ npm run build
 npm run start
 npm run lint
 npm run test
+npm run dataset:activate -- --year 2026 --source /path/to/re_20261231.csv
 npm run pipeline
 npm run pipeline:properties
 npm run pipeline:cities
@@ -34,12 +35,22 @@ npm run pipeline:cities
 
 ## Data Pipeline
 
-The pipeline reads raw CSV input from `data/raw/` and generates:
+The pipeline reads raw CSV input from `data/raw/<year>/` (based on `data/active-dataset.json`) and generates:
 
-- `data/properties.json`
-- `data/property-coordinates.json`
+- `data/releases/<active-year>/properties.json`
+- `data/releases/<active-year>/property-coordinates.json`
+- `data/releases/<active-year>/geocode-cache.json`
+- `data/releases/<active-year>/cities.json`
+- `data/releases/<active-year>/realestate.json` (normalized graph: countries -> cities -> properties)
+
+For runtime convenience, active snapshots are mirrored to:
+
 - `data/cities.json`
-- `data/geocode-cache.json`
+- `data/realestate.json`
+
+`data/realestate.json` is optimized for ID-based lookups and deduplicated country-level values. It includes dictionaries for repeated property strings (`partnerships`, `sectors`) and references those values by numeric IDs.
+
+For a simple file-by-file data overview and yearly update flow, see `data/README.md`.
 
 ## Deployment
 
