@@ -3,7 +3,9 @@
 :root {
   --background: #e7edf3;
   --foreground: #111827;
+  --map-mobile-intro-height: 6rem;
   --map-mobile-panel-height: 6rem;
+  --map-mobile-panel-expanded: 1;
 }
 
 @theme inline {
@@ -71,8 +73,37 @@ body {
   outline-offset: 2px;
 }
 
+.map-marker-label.leaflet-tooltip {
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  border-radius: 999px;
+  background: rgba(248, 250, 252, 0.95);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+  color: #0f172a;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.1;
+  padding: 0.2rem 0.45rem;
+  white-space: nowrap;
+  text-shadow: none;
+}
+
+.map-marker-label.map-marker-label--selected.leaflet-tooltip {
+  border-color: rgba(180, 83, 9, 0.7);
+  background: rgba(255, 247, 237, 0.96);
+  box-shadow: 0 3px 10px rgba(180, 83, 9, 0.22);
+  color: #92400e;
+}
+
+.map-marker-label.leaflet-tooltip::before {
+  display: none;
+}
+
 .safe-area-bottom {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.map-mobile-zoom-controls {
+  display: none;
 }
 
 @media (max-width: 767px) {
@@ -80,17 +111,15 @@ body {
     -webkit-tap-highlight-color: transparent;
   }
 
-  .leaflet-bottom.leaflet-left .leaflet-control-zoom {
-    margin-bottom: calc(var(--map-mobile-panel-height) + 0.75rem + env(safe-area-inset-bottom));
-    margin-left: 0.5rem;
-    transition: margin-bottom 220ms ease-out;
+  .leaflet-bottom.leaflet-left {
+    display: none;
   }
 
-  .leaflet-touch .leaflet-control-zoom a {
-    width: 2.35rem;
-    height: 2.35rem;
-    line-height: 2.25rem;
-    font-size: 1.1rem;
+  .map-mobile-zoom-controls {
+    display: flex;
+    flex-direction: column;
+    top: calc(100dvh - var(--map-mobile-panel-height) - 0.5rem);
+    transform: translateY(-100%);
   }
 }
 

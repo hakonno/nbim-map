@@ -1,8 +1,11 @@
 import type { CityNode } from "@/types/cities";
 
+// City-level zoom: properties become visible and the city list is used as the main context.
 export const ZOOM_SHOW_PROPERTIES = 7;
-export const ZOOM_PROPERTY_DETAIL = 10;
-export const ZOOM_PROPERTY_FOCUS = 12;
+// Property-level zoom: used when opening a specific property or property details.
+export const ZOOM_PROPERTY_DETAIL = 17;
+// Property focus zoom: used when flying to a selected property from search or the list.
+export const ZOOM_PROPERTY_FOCUS = 15;
 export const MAP_DEFAULT_ZOOM = 3;
 export const MAP_CENTER: [number, number] = [25, 5];
 
@@ -47,18 +50,34 @@ export function getPropertyColors(ownershipPercent: number | null, isSelected: b
   }
 
   const ratio = Math.min(1, Math.max(0, ownershipPercent / 100));
-  const hue = Math.round(8 + ratio * 122);
+  // Bias hue progression toward the high end so 70% and 100% are easier to distinguish.
+  const perceptualRatio = Math.pow(ratio, 1.35);
+  const hue = Math.round(perceptualRatio * 120);
+
+  if (ratio >= 0.95) {
+    if (isSelected) {
+      return {
+        stroke: "#14532d",
+        fill: "#22c55e",
+      };
+    }
+
+    return {
+      stroke: "#166534",
+      fill: "#4ade80",
+    };
+  }
 
   if (isSelected) {
     return {
-      stroke: `hsl(${hue}, 78%, 30%)`,
-      fill: `hsl(${hue}, 86%, 54%)`,
+      stroke: `hsl(${hue}, 88%, ${Math.round(34 - ratio * 6)}%)`,
+      fill: `hsl(${hue}, 92%, ${Math.round(52 - ratio * 6)}%)`,
     };
   }
 
   return {
-    stroke: `hsl(${hue}, 72%, 40%)`,
-    fill: `hsl(${hue}, 82%, 61%)`,
+    stroke: `hsl(${hue}, 82%, ${Math.round(42 - ratio * 10)}%)`,
+    fill: `hsl(${hue}, 88%, ${Math.round(60 - ratio * 14)}%)`,
   };
 }
 

@@ -1,44 +1,70 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
-import type { PropertyCoordinates, SearchResult } from "@/components/map/mapTypes";
+import type { FlatProperty, PropertyCoordinates, SearchResult } from "@/components/map/mapTypes";
 import CityPropertiesSection from "@/components/map/selection/CityPropertiesSection";
+import CountryPropertiesSection from "@/components/map/selection/CountryPropertiesSection";
+import type { CitySortOption } from "@/components/map/selection/cityListSorting";
 import GlobalSearchSection from "@/components/map/selection/GlobalSearchSection";
+import type { PropertySortOption } from "@/components/map/selection/propertySorting";
 import PropertyDetailsSection from "@/components/map/selection/PropertyDetailsSection";
 import type { CityNode, CityProperty } from "@/types/cities";
 
 type MapSelectionPanelProps = {
-  mode: "global" | "city" | "property";
+  mode: "global" | "country" | "city" | "property";
+  selectedCountry: string | null;
   selectedCity: CityNode | null;
+  selectedCountryProperties: FlatProperty[];
+  selectedCountryValueNok: number | null;
+  totalRealEstateValueNok: number;
   selectedProperty: CityProperty | null;
   selectedPropertyCoordinates: PropertyCoordinates | null;
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
   searchResults: SearchResult[];
+  mappableCities: CityNode[];
+  citySortOption: CitySortOption;
+  onCitySortOptionChange: (option: CitySortOption) => void;
+  onSelectCountry: (country: string) => void;
+  mapCenter: [number, number] | null;
   onSelectSearchResult: (result: SearchResult) => void;
+  onSelectCity: (cityId: string) => void;
   onClearSearch: () => void;
   showCoordinatesDebug: boolean;
   onClose: () => void;
   onBackToCity: () => void;
   onSelectProperty: (propertyId: string) => void;
+  onPanelHeightChange: (height: number) => void;
 };
 
 function MapSelectionPanel({
   mode,
+  selectedCountry,
   selectedCity,
+  selectedCountryProperties,
+  selectedCountryValueNok,
+  totalRealEstateValueNok,
   selectedProperty,
   selectedPropertyCoordinates,
   searchQuery,
   onSearchQueryChange,
   searchResults,
+  mappableCities,
+  citySortOption,
+  onCitySortOptionChange,
+  onSelectCountry,
+  mapCenter,
   onSelectSearchResult,
+  onSelectCity,
   onClearSearch,
   showCoordinatesDebug,
   onClose,
   onBackToCity,
   onSelectProperty,
+  onPanelHeightChange,
 }: MapSelectionPanelProps) {
   const [isPanelExpanded, setIsPanelExpanded] = useState(true);
+  const [propertySortOption, setPropertySortOption] = useState<PropertySortOption>("ownership");
   const panelRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -50,6 +76,7 @@ function MapSelectionPanel({
     const updateMobilePanelHeight = () => {
       const nextHeight = Math.ceil(panelElement.getBoundingClientRect().height);
       document.documentElement.style.setProperty("--map-mobile-panel-height", `${nextHeight}px`);
+      onPanelHeightChange(nextHeight);
     };
 
     updateMobilePanelHeight();
@@ -69,7 +96,15 @@ function MapSelectionPanel({
       window.removeEventListener("resize", updateMobilePanelHeight);
       document.documentElement.style.removeProperty("--map-mobile-panel-height");
     };
-  }, []);
+  }, [onPanelHeightChange]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty("--map-mobile-panel-expanded", isPanelExpanded ? "1" : "0");
+
+    return () => {
+      document.documentElement.style.removeProperty("--map-mobile-panel-expanded");
+    };
+  }, [isPanelExpanded]);
 
   const handleTogglePanel = useCallback(() => {
     setIsPanelExpanded((current) => !current);
@@ -86,6 +121,17 @@ function MapSelectionPanel({
           return haystack.includes(cityPropertyFilter);
         })
       : selectedCity?.properties ?? [];
+
+  const filteredCountryProperties =
+    selectedCountry && cityPropertyFilter.length >= 2
+      ? selectedCountryProperties.filter((property) => {
+          const haystack = [property.name, property.address, property.cityName, property.sector, property.partnership]
+            .filter((part): part is string => Boolean(part && part.trim()))
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(cityPropertyFilter);
+        })
+      : selectedCountryProperties;
 
   return (
     <aside
@@ -112,6 +158,10 @@ function MapSelectionPanel({
           <h2 className="text-base font-semibold text-slate-900 text-balance sm:text-lg">
             {mode === "global"
               ? "Search Investments"
+              : mode === "country"
+              ? selectedCountry
+                ? `${formatCountryWithFlag(selectedCountry)} overview`
+                : "Country overview"
               : mode === "property"
               ? selectedProperty?.name ?? "Property details"
               : selectedCity
@@ -142,7 +192,13 @@ function MapSelectionPanel({
               value={searchQuery}
               onChange={(event) => onSearchQueryChange(event.target.value)}
               onFocus={() => setIsPanelExpanded(true)}
-              placeholder={mode === "global" ? "Search country, city or property" : "Filter properties in this city"}
+              placeholder={
+                mode === "global"
+                  ? "Search country, city or property"
+                  : mode === "country"
+                  ? "Filter properties in this country"
+                  : "Filter properties in this city"
+              }
               inputMode="search"
               enterKeyHint="search"
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:text-sm"
@@ -165,14 +221,36 @@ function MapSelectionPanel({
           <GlobalSearchSection
             searchQuery={searchQuery}
             searchResults={searchResults}
+            cities={mappableCities}
+            citySortOption={citySortOption}
+            onCitySortOptionChange={onCitySortOptionChange}
+            onSelectCountry={onSelectCountry}
+            totalRealEstateValueNok={totalRealEstateValueNok}
             onSelectSearchResult={onSelectSearchResult}
+            onSelectCity={onSelectCity}
+            mapCenter={mapCenter}
           />
+        )}
+
+        {mode === "country" && selectedCountry && (
+          <>
+            <CountryPropertiesSection
+              country={selectedCountry}
+              filteredCountryProperties={filteredCountryProperties}
+              totalCountryProperties={selectedCountryProperties.length}
+              propertySortOption={propertySortOption}
+              onPropertySortOptionChange={setPropertySortOption}
+              onSelectProperty={onSelectProperty}
+            />
+          </>
         )}
 
         {mode === "city" && selectedCity && (
           <CityPropertiesSection
             selectedCity={selectedCity}
             filteredCityProperties={filteredCityProperties}
+            propertySortOption={propertySortOption}
+            onPropertySortOptionChange={setPropertySortOption}
             onSelectProperty={onSelectProperty}
           />
         )}
@@ -184,6 +262,7 @@ function MapSelectionPanel({
             selectedPropertyCoordinates={selectedPropertyCoordinates}
             showCoordinatesDebug={showCoordinatesDebug}
             onBackToCity={onBackToCity}
+            backLabel={selectedCountry ? "\u2190 Back to country list" : "\u2190 Back to city list"}
           />
         )}
       </div>

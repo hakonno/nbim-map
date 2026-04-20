@@ -1,7 +1,7 @@
 "use client";
 
 import type { LeafletEvent, Map as LeafletMap } from "leaflet";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, TileLayer, ZoomControl, useMapEvents } from "react-leaflet";
 
 import MapIntroCard from "@/components/map/MapIntroCard";
@@ -21,27 +21,42 @@ import {
 } from "@/components/map/mapConstants";
 import type { FlatProperty, SearchResult, SelectionState } from "@/components/map/mapTypes";
 import { buildLocalSearchResults } from "@/components/map/searchResults";
+import type { CitySortOption } from "@/components/map/selection/cityListSorting";
+import { buildCountryAggregates } from "@/components/map/selection/countryListSorting";
 import type { CityNode } from "@/types/cities";
 
 type CityMapInnerProps = {
   cities: CityNode[];
 };
 
+const MOBILE_PANEL_MEDIA_QUERY = "(max-width: 767px)";
+const MOBILE_PANEL_HEIGHT_VAR = "--map-mobile-panel-height";
+const MOBILE_INTRO_HEIGHT_VAR = "--map-mobile-intro-height";
+const AUTO_RECENTER_TOLERANCE_PX = 32;
+
 type MapEventBridgeProps = {
   onMapReady: (map: LeafletMap) => void;
   onZoomChange: (zoom: number) => void;
+  onCenterChange: (center: [number, number]) => void;
 };
 
-function MapEventBridge({ onMapReady, onZoomChange }: MapEventBridgeProps) {
+function MapEventBridge({ onMapReady, onZoomChange, onCenterChange }: MapEventBridgeProps) {
   const map = useMapEvents({
     zoomend: (e: LeafletEvent) => {
       onZoomChange((e.target as { getZoom: () => number }).getZoom());
+    },
+    moveend: (e: LeafletEvent) => {
+      const center = (e.target as { getCenter: () => { lat: number; lng: number } }).getCenter();
+      onCenterChange([center.lat, center.lng]);
     },
   });
 
   useEffect(() => {
     onMapReady(map);
-  }, [map, onMapReady]);
+
+    const center = map.getCenter();
+    onCenterChange([center.lat, center.lng]);
+  }, [map, onCenterChange, onMapReady]);
 
   return null;
 }
@@ -52,9 +67,13 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selection, setSelection] = useState<SelectionState>({
     mode: "global",
+    selectedCountry: null,
     selectedCityId: null,
     selectedPropertyId: null,
   });
+  const [citySortOption, setCitySortOption] = useState<CitySortOption>("properties");
+  const [mapCenter, setMapCenter] = useState<[number, number]>(MAP_CENTER);
+  const mobilePanelHeightRef = useRef<number | null>(null);
 
   const mappableCities = useMemo(
     () =>
@@ -100,24 +119,53 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   );
 
   const selectedCity = useMemo(
-    () =>
-      selection.mode === "global"
-        ? null
-        : mappableCities.find((city) => city.id === selection.selectedCityId) ?? null,
-    [selection, mappableCities]
+    () => (selection.selectedCityId ? mappableCities.find((city) => city.id === selection.selectedCityId) ?? null : null),
+    [selection.selectedCityId, mappableCities]
   );
 
   const selectedProperty = useMemo(
-    () =>
-      selection.mode === "property"
-        ? selectedCity?.properties.find((property) => property.id === selection.selectedPropertyId) ?? null
-        : null,
-    [selection, selectedCity]
+    () => (selection.mode === "property" ? selectedCity?.properties.find((property) => property.id === selection.selectedPropertyId) ?? null : null),
+    [selection.mode, selection.selectedPropertyId, selectedCity]
   );
 
   const selectedFlatProperty = useMemo(
-    () => (selection.mode === "property" ? flatPropertyById.get(selection.selectedPropertyId) ?? null : null),
-    [selection, flatPropertyById]
+    () => (selection.mode === "property" && selection.selectedPropertyId ? flatPropertyById.get(selection.selectedPropertyId) ?? null : null),
+    [selection.mode, selection.selectedPropertyId, flatPropertyById]
+  );
+
+  const countryCitiesMap = useMemo(() => {
+    const byCountry = new Map<string, CityNode[]>();
+
+    for (const city of mappableCities) {
+      const current = byCountry.get(city.country);
+      if (current) {
+        current.push(city);
+      } else {
+        byCountry.set(city.country, [city]);
+      }
+    }
+
+    return byCountry;
+  }, [mappableCities]);
+
+  const selectedCountry = useMemo(
+    () => (selection.mode === "country" ? selection.selectedCountry : null),
+    [selection.mode, selection.selectedCountry]
+  );
+
+  const selectedCountryProperties = useMemo(
+    () => (selectedCountry ? flatProperties.filter((property) => property.country === selectedCountry) : []),
+    [flatProperties, selectedCountry]
+  );
+
+  const countryAggregatesByCountry = useMemo(() => {
+    const aggregates = buildCountryAggregates(mappableCities);
+    return new Map(aggregates.map((aggregate) => [aggregate.country, aggregate]));
+  }, [mappableCities]);
+
+  const selectedCountryAggregate = useMemo(
+    () => (selectedCountry ? countryAggregatesByCountry.get(selectedCountry) ?? null : null),
+    [countryAggregatesByCountry, selectedCountry]
   );
 
   const hasInternationalFund = useMemo(
@@ -126,8 +174,8 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   );
 
   const countriesWithoutInternational = useMemo(
-    () => Math.max(0, totalCountries - (hasInternationalFund ? 1 : 0)),
-    [totalCountries, hasInternationalFund]
+    () => totalCountries,
+    [totalCountries]
   );
 
   const localSearchResults = useMemo(
@@ -138,6 +186,195 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   const showProperties = zoom >= ZOOM_SHOW_PROPERTIES;
   const showPropertyDetail = zoom >= ZOOM_PROPERTY_DETAIL;
 
+  const getMobileOverlayHeights = useCallback(() => {
+    const rootStyle = getComputedStyle(document.documentElement);
+    const panelHeightRaw = rootStyle.getPropertyValue(MOBILE_PANEL_HEIGHT_VAR).trim();
+    const introHeightRaw = rootStyle.getPropertyValue(MOBILE_INTRO_HEIGHT_VAR).trim();
+
+    const panelHeightPx = Number.parseFloat(panelHeightRaw);
+    const introHeightPx = Number.parseFloat(introHeightRaw);
+
+    return {
+      panelHeightPx: Number.isFinite(panelHeightPx) && panelHeightPx > 0 ? panelHeightPx : 0,
+      introHeightPx: Number.isFinite(introHeightPx) && introHeightPx > 0 ? introHeightPx : 0,
+    };
+  }, []);
+
+  const getMobileFocusContainerPoint = useCallback((): [number, number] | null => {
+    if (!mapInstance || typeof window === "undefined" || !window.matchMedia(MOBILE_PANEL_MEDIA_QUERY).matches) {
+      return null;
+    }
+
+    const { panelHeightPx, introHeightPx } = getMobileOverlayHeights();
+    const size = mapInstance.getSize();
+    const visibleTop = introHeightPx;
+    const visibleBottom = Math.max(visibleTop + 1, size.y - panelHeightPx);
+
+    return [size.x / 2, (visibleTop + visibleBottom) / 2];
+  }, [getMobileOverlayHeights, mapInstance]);
+
+  const getFocusCenter = useCallback(
+    (target: [number, number], zoomLevel: number): [number, number] => {
+      if (!mapInstance || typeof window === "undefined" || !window.matchMedia(MOBILE_PANEL_MEDIA_QUERY).matches) {
+        return target;
+      }
+
+      const { panelHeightPx, introHeightPx } = getMobileOverlayHeights();
+      const focusOffsetPx = (panelHeightPx - introHeightPx) / 2;
+
+      if (!Number.isFinite(focusOffsetPx) || Math.abs(focusOffsetPx) < 1) {
+        return target;
+      }
+
+      const targetPoint = mapInstance.project(target, zoomLevel);
+      const adjustedCenterPoint = targetPoint.add([0, focusOffsetPx]);
+      const adjustedCenter = mapInstance.unproject(adjustedCenterPoint, zoomLevel);
+      return [adjustedCenter.lat, adjustedCenter.lng];
+    },
+    [getMobileOverlayHeights, mapInstance]
+  );
+
+  const getFocusCenterForHeights = useCallback(
+    (target: [number, number], zoomLevel: number, panelHeightPx: number, introHeightPx: number): [number, number] => {
+      if (!mapInstance) {
+        return target;
+      }
+
+      const focusOffsetPx = (panelHeightPx - introHeightPx) / 2;
+      if (!Number.isFinite(focusOffsetPx) || Math.abs(focusOffsetPx) < 1) {
+        return target;
+      }
+
+      const targetPoint = mapInstance.project(target, zoomLevel);
+      const adjustedCenterPoint = targetPoint.add([0, focusOffsetPx]);
+      const adjustedCenter = mapInstance.unproject(adjustedCenterPoint, zoomLevel);
+      return [adjustedCenter.lat, adjustedCenter.lng];
+    },
+    [mapInstance]
+  );
+
+  const handleMobilePanelHeightChange = useCallback(
+    (nextPanelHeight: number) => {
+      const previousPanelHeight = mobilePanelHeightRef.current;
+      mobilePanelHeightRef.current = nextPanelHeight;
+
+      if (
+        !mapInstance ||
+        typeof window === "undefined" ||
+        !window.matchMedia(MOBILE_PANEL_MEDIA_QUERY).matches ||
+        previousPanelHeight === null ||
+        Math.abs(previousPanelHeight - nextPanelHeight) < 1
+      ) {
+        return;
+      }
+
+      const target: [number, number] | null =
+        selection.mode === "property" && selectedFlatProperty
+          ? [selectedFlatProperty.lat, selectedFlatProperty.lng]
+          : selection.mode === "city" && selectedCity && typeof selectedCity.lat === "number" && typeof selectedCity.lng === "number"
+            ? [selectedCity.lat, selectedCity.lng]
+            : selection.mode === "country" && selectedCountry
+              ? (() => {
+                  const countryCities = countryCitiesMap.get(selectedCountry) ?? [];
+                  const firstCity = countryCities.find((city) => typeof city.lat === "number" && typeof city.lng === "number");
+                  return firstCity ? ([firstCity.lat as number, firstCity.lng as number] as [number, number]) : null;
+                })()
+            : null;
+
+      if (!target) {
+        return;
+      }
+
+      const zoomLevel = mapInstance.getZoom();
+      const { introHeightPx } = getMobileOverlayHeights();
+
+      const expectedPreviousCenter = getFocusCenterForHeights(target, zoomLevel, previousPanelHeight, introHeightPx);
+      const expectedNextCenter = getFocusCenterForHeights(target, zoomLevel, nextPanelHeight, introHeightPx);
+
+      const currentCenterPoint = mapInstance.project(mapInstance.getCenter(), zoomLevel);
+      const expectedPreviousPoint = mapInstance.project(expectedPreviousCenter, zoomLevel);
+      if (currentCenterPoint.distanceTo(expectedPreviousPoint) > AUTO_RECENTER_TOLERANCE_PX) {
+        return;
+      }
+
+      mapInstance.panTo(expectedNextCenter, {
+        animate: true,
+        duration: 0.3,
+        easeLinearity: 0.25,
+      });
+    },
+    [
+      countryCitiesMap,
+      getFocusCenterForHeights,
+      getMobileOverlayHeights,
+      mapInstance,
+      selectedCity,
+      selectedCountry,
+      selectedFlatProperty,
+      selection.mode,
+    ]
+  );
+
+  const handleMobileZoomIn = useCallback(() => {
+    if (!mapInstance) {
+      return;
+    }
+
+    const targetZoom = Math.min(mapInstance.getZoom() + 1, mapInstance.getMaxZoom());
+    if (targetZoom === mapInstance.getZoom()) {
+      return;
+    }
+
+    const focusPoint = getMobileFocusContainerPoint();
+
+    if (!focusPoint) {
+      mapInstance.zoomIn();
+      return;
+    }
+
+    const focusLatLng = mapInstance.containerPointToLatLng(focusPoint);
+    const projectedFocus = mapInstance.project(focusLatLng, targetZoom);
+    const containerCenter = mapInstance.getSize().divideBy(2);
+    const targetCenterPoint = projectedFocus.add(containerCenter).subtract(focusPoint);
+    const targetCenter = mapInstance.unproject(targetCenterPoint, targetZoom);
+
+    mapInstance.flyTo(targetCenter, targetZoom, {
+      animate: true,
+      duration: 0.35,
+      easeLinearity: 0.25,
+    });
+  }, [getMobileFocusContainerPoint, mapInstance]);
+
+  const handleMobileZoomOut = useCallback(() => {
+    if (!mapInstance) {
+      return;
+    }
+
+    const targetZoom = Math.max(mapInstance.getZoom() - 1, mapInstance.getMinZoom());
+    if (targetZoom === mapInstance.getZoom()) {
+      return;
+    }
+
+    const focusPoint = getMobileFocusContainerPoint();
+
+    if (!focusPoint) {
+      mapInstance.zoomOut();
+      return;
+    }
+
+    const focusLatLng = mapInstance.containerPointToLatLng(focusPoint);
+    const projectedFocus = mapInstance.project(focusLatLng, targetZoom);
+    const containerCenter = mapInstance.getSize().divideBy(2);
+    const targetCenterPoint = projectedFocus.add(containerCenter).subtract(focusPoint);
+    const targetCenter = mapInstance.unproject(targetCenterPoint, targetZoom);
+
+    mapInstance.flyTo(targetCenter, targetZoom, {
+      animate: true,
+      duration: 0.35,
+      easeLinearity: 0.25,
+    });
+  }, [getMobileFocusContainerPoint, mapInstance]);
+
   const flyToCity = useCallback(
     (city: CityNode) => {
       if (!mapInstance || typeof city.lat !== "number" || typeof city.lng !== "number") {
@@ -145,12 +382,14 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       }
 
       const targetZoom = Math.max(mapInstance.getZoom(), ZOOM_SHOW_PROPERTIES + 1);
-      mapInstance.flyTo([city.lat, city.lng], targetZoom, {
+      const targetCenter = getFocusCenter([city.lat, city.lng], targetZoom);
+
+      mapInstance.flyTo(targetCenter, targetZoom, {
         animate: true,
         duration: 0.75,
       });
     },
-    [mapInstance]
+    [getFocusCenter, mapInstance]
   );
 
   const flyToProperty = useCallback(
@@ -160,18 +399,21 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       }
 
       const targetZoom = Math.max(mapInstance.getZoom(), ZOOM_PROPERTY_FOCUS);
-      mapInstance.flyTo([property.lat, property.lng], targetZoom, {
+      const targetCenter = getFocusCenter([property.lat, property.lng], targetZoom);
+
+      mapInstance.flyTo(targetCenter, targetZoom, {
         animate: true,
         duration: 0.75,
       });
     },
-    [mapInstance]
+    [getFocusCenter, mapInstance]
   );
 
   const handleSelectCity = useCallback(
     (city: CityNode) => {
       setSelection({
         mode: "city",
+        selectedCountry: null,
         selectedCityId: city.id,
         selectedPropertyId: null,
       });
@@ -180,13 +422,63 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     [flyToCity]
   );
 
+  const flyToCountry = useCallback(
+    (country: string) => {
+      if (!mapInstance) {
+        return;
+      }
+
+      const countryCities = countryCitiesMap.get(country) ?? [];
+      const countryCoordinates = countryCities
+        .filter((city) => typeof city.lat === "number" && typeof city.lng === "number")
+        .map((city) => [city.lat as number, city.lng as number] as [number, number]);
+
+      if (countryCoordinates.length === 0) {
+        return;
+      }
+
+      if (countryCoordinates.length === 1) {
+        const [lat, lng] = countryCoordinates[0];
+        const targetZoom = Math.max(mapInstance.getZoom(), ZOOM_SHOW_PROPERTIES + 1);
+        const targetCenter = getFocusCenter([lat, lng], targetZoom);
+
+        mapInstance.flyTo(targetCenter, targetZoom, {
+          animate: true,
+          duration: 0.75,
+        });
+        return;
+      }
+
+      mapInstance.fitBounds(countryCoordinates, {
+        paddingTopLeft: [24, 96],
+        paddingBottomRight: [24, 120],
+        animate: true,
+      });
+    },
+    [countryCitiesMap, getFocusCenter, mapInstance]
+  );
+
+  const handleSelectCountry = useCallback(
+    (country: string) => {
+      setSelection({
+        mode: "country",
+        selectedCountry: country,
+        selectedCityId: null,
+        selectedPropertyId: null,
+      });
+      flyToCountry(country);
+    },
+    [flyToCountry]
+  );
+
   const handleSelectProperty = useCallback(
     (property: FlatProperty) => {
-      setSelection({
+      setSelection((current) => ({
         mode: "property",
+        selectedCountry: current.mode === "country" ? current.selectedCountry : null,
         selectedCityId: property.cityId,
         selectedPropertyId: property.id,
-      });
+      }));
       flyToProperty(property);
     },
     [flyToProperty]
@@ -204,6 +496,18 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     [flatPropertyById, handleSelectProperty]
   );
 
+  const handleSelectCityById = useCallback(
+    (cityId: string) => {
+      const city = mappableCities.find((candidate) => candidate.id === cityId);
+      if (!city) {
+        return;
+      }
+
+      handleSelectCity(city);
+    },
+    [handleSelectCity, mappableCities]
+  );
+
   const handleBackToCity = useCallback(() => {
     setSelection((current) => {
       if (current.mode !== "property") {
@@ -211,8 +515,9 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       }
 
       return {
-        mode: "city",
-        selectedCityId: current.selectedCityId,
+        mode: current.selectedCountry ? "country" : "city",
+        selectedCountry: current.selectedCountry,
+        selectedCityId: current.selectedCountry ? null : current.selectedCityId,
         selectedPropertyId: null,
       };
     });
@@ -221,6 +526,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
   const handleResetSelection = useCallback(() => {
     setSelection({
       mode: "global",
+      selectedCountry: null,
       selectedCityId: null,
       selectedPropertyId: null,
     });
@@ -230,11 +536,11 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
     }
 
     mapInstance.closePopup();
-    mapInstance.flyTo(MAP_CENTER, MAP_DEFAULT_ZOOM, {
+    mapInstance.flyTo(getFocusCenter(MAP_CENTER, MAP_DEFAULT_ZOOM), MAP_DEFAULT_ZOOM, {
       animate: true,
       duration: 0.9,
     });
-  }, [mapInstance]);
+  }, [getFocusCenter, mapInstance]);
 
   const handleSelectSearchResult = useCallback(
     (result: SearchResult) => {
@@ -245,6 +551,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         if (city) {
           setSelection({
             mode: "city",
+            selectedCountry: null,
             selectedCityId: city.id,
             selectedPropertyId: null,
           });
@@ -254,6 +561,7 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       if (result.type === "property" && result.propertyId) {
         setSelection({
           mode: "property",
+          selectedCountry: null,
           selectedCityId: result.cityId,
           selectedPropertyId: result.propertyId,
         });
@@ -264,12 +572,15 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
       }
 
       const minimumTargetZoom = result.type === "property" ? ZOOM_PROPERTY_FOCUS : ZOOM_SHOW_PROPERTIES + 1;
-      mapInstance.flyTo([result.lat, result.lng], Math.max(mapInstance.getZoom(), minimumTargetZoom), {
+      const targetZoom = Math.max(mapInstance.getZoom(), minimumTargetZoom);
+      const targetCenter = getFocusCenter([result.lat, result.lng], targetZoom);
+
+      mapInstance.flyTo(targetCenter, targetZoom, {
         animate: true,
         duration: 0.8,
       });
     },
-    [mapInstance, mappableCities]
+    [getFocusCenter, mapInstance, mappableCities]
   );
 
   const handleClearSearch = useCallback(() => {
@@ -291,33 +602,62 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <ZoomControl position="bottomleft" />
-        <MapEventBridge onMapReady={setMapInstance} onZoomChange={setZoom} />
+        <MapEventBridge onMapReady={setMapInstance} onZoomChange={setZoom} onCenterChange={setMapCenter} />
 
-        <MapMarkersLayer
-          showProperties={showProperties}
-          showPropertyDetail={showPropertyDetail}
-          mappableCities={mappableCities}
-          flatProperties={flatProperties}
-          selection={selection}
-          maxPropertyCount={maxPropertyCount}
-          onSelectCity={handleSelectCity}
-          onSelectProperty={handleSelectProperty}
-        />
+        {mapInstance && (
+          <MapMarkersLayer
+            showProperties={showProperties}
+            showPropertyDetail={showPropertyDetail}
+            mappableCities={mappableCities}
+            flatProperties={flatProperties}
+            selection={selection}
+            maxPropertyCount={maxPropertyCount}
+            onSelectCity={handleSelectCity}
+            onSelectProperty={handleSelectProperty}
+          />
+        )}
       </MapContainer>
+
+      <div className="map-mobile-zoom-controls pointer-events-auto absolute left-2 z-[645]">
+        <button
+          type="button"
+          onClick={handleMobileZoomIn}
+          aria-label="Zoom in"
+          className="flex h-9 w-9 items-center justify-center rounded-t-md border border-slate-300 bg-white/95 text-xl leading-none text-slate-700 shadow-md backdrop-blur transition-colors hover:bg-white"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={handleMobileZoomOut}
+          aria-label="Zoom out"
+          className="-mt-px flex h-9 w-9 items-center justify-center rounded-b-md border border-slate-300 bg-white/95 text-xl leading-none text-slate-700 shadow-md backdrop-blur transition-colors hover:bg-white"
+        >
+          -
+        </button>
+      </div>
 
       <MapIntroCard
         mode={selection.mode}
         selectedCity={selectedCity}
+        selectedCountry={selectedCountry}
+        selectedCountryPropertyCount={selectedCountryProperties.length}
+        selectedCountryCityCount={selectedCountryAggregate?.cityCount ?? 0}
+        selectedCountryValueNok={selectedCountryAggregate?.countryValueNok ?? null}
         showProperties={showProperties}
         countriesWithoutInternational={countriesWithoutInternational}
         hasInternationalFund={hasInternationalFund}
         fundRealEstateValueNok={FUND_REAL_ESTATE_VALUE_NOK}
         fundSharePercent={FUND_SHARE_PERCENT}
-      />
+        totalInvestments={flatProperties.length}        totalRealEstateValueNok={FUND_REAL_ESTATE_VALUE_NOK}      />
 
       <MapSelectionPanel
         mode={selection.mode}
+        selectedCountry={selectedCountry}
         selectedCity={selectedCity}
+        selectedCountryProperties={selectedCountryProperties}
+        selectedCountryValueNok={selectedCountryAggregate?.countryValueNok ?? null}
+        totalRealEstateValueNok={FUND_REAL_ESTATE_VALUE_NOK}
         selectedProperty={selectedProperty}
         selectedPropertyCoordinates={
           selectedFlatProperty
@@ -327,12 +667,19 @@ export default function CityMapInner({ cities }: CityMapInnerProps) {
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
         searchResults={localSearchResults}
+        mappableCities={mappableCities}
+        citySortOption={citySortOption}
+        onCitySortOptionChange={setCitySortOption}
+        onSelectCountry={handleSelectCountry}
+        mapCenter={mapCenter}
         onSelectSearchResult={handleSelectSearchResult}
+        onSelectCity={handleSelectCityById}
         onClearSearch={handleClearSearch}
         showCoordinatesDebug={SHOW_PROPERTY_COORDINATES_DEBUG}
         onClose={handleResetSelection}
         onBackToCity={handleBackToCity}
         onSelectProperty={handleSelectPropertyById}
+        onPanelHeightChange={handleMobilePanelHeightChange}
       />
     </div>
   );

@@ -1,18 +1,90 @@
+import { useState } from "react";
+
 import type { SearchResult } from "@/components/map/mapTypes";
+import GlobalCityListSection from "@/components/map/selection/GlobalCityListSection";
+import GlobalCountryListSection from "@/components/map/selection/GlobalCountryListSection";
+import type { CitySortOption } from "@/components/map/selection/cityListSorting";
+import type { CountrySortOption } from "@/components/map/selection/countryListSorting";
+import type { CityNode } from "@/types/cities";
 
 type GlobalSearchSectionProps = {
   searchQuery: string;
   searchResults: SearchResult[];
   onSelectSearchResult: (result: SearchResult) => void;
+  cities: CityNode[];
+  citySortOption: CitySortOption;
+  onCitySortOptionChange: (option: CitySortOption) => void;
+  onSelectCity: (cityId: string) => void;
+  onSelectCountry: (country: string) => void;
+  totalRealEstateValueNok: number;
+  mapCenter: [number, number] | null;
 };
 
 export default function GlobalSearchSection({
   searchQuery,
   searchResults,
   onSelectSearchResult,
+  cities,
+  citySortOption,
+  onCitySortOptionChange,
+  onSelectCity,
+  onSelectCountry,
+  totalRealEstateValueNok,
+  mapCenter,
 }: GlobalSearchSectionProps) {
+  const [globalListMode, setGlobalListMode] = useState<"cities" | "countries">("cities");
+  const [countrySortOption, setCountrySortOption] = useState<CountrySortOption>("country-value");
+
   if (searchQuery.trim().length < 2) {
-    return <p className="mt-2 text-xs text-slate-600">Search in NBIM dataset. Select a result to zoom and open details.</p>;
+    return (
+      <>
+        <div className="mt-2 flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <button
+            type="button"
+            onClick={() => setGlobalListMode("cities")}
+            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+              globalListMode === "cities"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+            aria-pressed={globalListMode === "cities"}
+          >
+            Cities
+          </button>
+          <button
+            type="button"
+            onClick={() => setGlobalListMode("countries")}
+            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+              globalListMode === "countries"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+            aria-pressed={globalListMode === "countries"}
+          >
+            Countries
+          </button>
+        </div>
+
+        {globalListMode === "cities" ? (
+          <GlobalCityListSection
+            cities={cities}
+            sortOption={citySortOption}
+            onSortOptionChange={onCitySortOptionChange}
+            onSelectCity={onSelectCity}
+            mapCenter={mapCenter}
+            totalRealEstateValueNok={totalRealEstateValueNok}
+          />
+        ) : (
+          <GlobalCountryListSection
+            cities={cities}
+            sortOption={countrySortOption}
+            onSortOptionChange={setCountrySortOption}
+            onSelectCountry={onSelectCountry}
+            totalRealEstateValueNok={totalRealEstateValueNok}
+          />
+        )}
+      </>
+    );
   }
 
   return (

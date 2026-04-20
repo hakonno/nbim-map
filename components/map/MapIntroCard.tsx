@@ -1,16 +1,22 @@
-import { memo } from "react";
+import { memo, useEffect, useRef } from "react";
 
 import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
 import type { CityNode } from "@/types/cities";
 
 type MapIntroCardProps = {
-  mode: "global" | "city" | "property";
+  mode: "global" | "country" | "city" | "property";
   selectedCity: CityNode | null;
+  selectedCountry: string | null;
+  selectedCountryPropertyCount: number;
+  selectedCountryCityCount: number;
+  selectedCountryValueNok: number | null;
   showProperties: boolean;
   countriesWithoutInternational: number;
   hasInternationalFund: boolean;
   fundRealEstateValueNok: number;
   fundSharePercent: number;
+  totalInvestments: number;
+  totalRealEstateValueNok: number;
 };
 
 const integerFormatter = new Intl.NumberFormat("en-US", {
@@ -19,6 +25,11 @@ const integerFormatter = new Intl.NumberFormat("en-US", {
 
 const percentageFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 0,
+  maximumFractionDigits: 1,
+});
+
+const compactCurrencyFormatter = new Intl.NumberFormat("en-US", {
+  notation: "compact",
   maximumFractionDigits: 1,
 });
 
@@ -33,22 +44,63 @@ function GitHubMark({ className }: { className?: string }) {
 function MapIntroCard({
   mode,
   selectedCity,
+  selectedCountry,
+  selectedCountryPropertyCount,
+  selectedCountryCityCount,
+  selectedCountryValueNok,
   showProperties,
   countriesWithoutInternational,
   hasInternationalFund,
   fundRealEstateValueNok,
   fundSharePercent,
+  totalInvestments,
+  totalRealEstateValueNok,
 }: MapIntroCardProps) {
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const cardElement = cardRef.current;
+    if (!cardElement) {
+      return;
+    }
+
+    const updateMobileIntroHeight = () => {
+      const nextHeight = Math.ceil(cardElement.getBoundingClientRect().height);
+      document.documentElement.style.setProperty("--map-mobile-intro-height", `${nextHeight}px`);
+    };
+
+    updateMobileIntroHeight();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        updateMobileIntroHeight();
+      });
+      resizeObserver.observe(cardElement);
+    }
+
+    window.addEventListener("resize", updateMobileIntroHeight);
+
+    return () => {
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateMobileIntroHeight);
+      document.documentElement.style.removeProperty("--map-mobile-intro-height");
+    };
+  }, []);
+
   return (
-    <div className="pointer-events-none absolute left-0 right-0 top-0 z-[650] w-auto border-b border-white/80 bg-white/92 px-2.5 py-2 shadow-md backdrop-blur sm:left-4 sm:right-auto sm:top-4 sm:w-[calc(100%-2rem)] sm:max-w-sm sm:rounded-2xl sm:border sm:p-4 sm:shadow-xl">
+    <div
+      ref={cardRef}
+      className="pointer-events-none absolute left-0 right-0 top-0 z-[650] w-auto border-b border-white/80 bg-white/92 px-2.5 py-2 shadow-md backdrop-blur sm:left-4 sm:right-auto sm:top-4 sm:w-[calc(100%-2rem)] sm:max-w-sm sm:rounded-2xl sm:border sm:p-4 sm:shadow-xl"
+    >
       <div className="pointer-events-auto absolute right-2 top-2 flex items-center gap-1.5 sm:hidden">
         <a
           href="https://www.nbim.no/en/investments/all-investments/#/2025-12-31/2-real_estate"
           target="_blank"
           rel="noreferrer"
-          className="inline-flex h-6 items-center rounded-md border border-slate-200/90 bg-white/80 px-2 text-[10px] font-medium text-slate-600 shadow-sm backdrop-blur transition-colors hover:text-slate-800"
+          className="inline-flex h-6 items-center rounded-md border border-slate-200/90 bg-white/80 px-2 text-[10px] font-medium text-slate-600 underline underline-offset-2 shadow-sm backdrop-blur transition-colors hover:text-slate-800"
         >
-          Source: NBIM
+          Source
         </a>
         <a
           href="https://github.com/hakonno/nbim-map"
@@ -61,13 +113,13 @@ function MapIntroCard({
         </a>
       </div>
 
-      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700 sm:text-xs">NBIM&apos;s Real Estate Investments</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700 sm:text-xs">Norway’s Sovereign Wealth Fund</p>
 
       {mode === "global" ? (
         <>
-          <h1 className="mt-0.5 text-[13px] font-semibold leading-tight text-slate-900 sm:mt-1 sm:text-xl">Norway‑owned properties worldwide</h1>
+          <h1 className="mt-0.5 text-[13px] font-semibold leading-tight text-slate-900 sm:mt-1 sm:text-xl">Real Estate Investments</h1>
           <p className="mt-1 hidden text-[11px] text-slate-700 sm:mt-2 sm:block sm:text-sm" role="status" aria-live="polite">
-            Unlisted office, retail, and logistics properties in major cities.
+            Unlisted office, retail, and logistics Norway‑owned properties worldwide.
           </p>
 
           <p className="mt-1 text-[11px] text-slate-700 sm:hidden">
@@ -77,26 +129,42 @@ function MapIntroCard({
 
           <div className="mt-3 hidden grid-cols-2 gap-2 text-sm sm:grid">
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
-              <p className="text-slate-500">Value</p>
-              <p className="font-semibold text-slate-900 tabular-nums">NOK {integerFormatter.format(fundRealEstateValueNok)}</p>
+              <p className="font-semibold text-slate-900 tabular-nums">{integerFormatter.format(fundRealEstateValueNok)}</p>
+              <p className="text-slate-500">Value in NOK</p>
             </div>
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
-              <p className="text-slate-500">of fund&apos;s total investments</p>
               <p className="font-semibold text-slate-900 tabular-nums">{percentageFormatter.format(fundSharePercent)}%</p>
+              <p className="text-slate-500">of fund&apos;s total investments</p>
             </div>
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
-              <p className="text-slate-500">Countries</p>
               <p className="font-semibold text-slate-900 tabular-nums">
                 {integerFormatter.format(countriesWithoutInternational)}
-                {hasInternationalFund ? " + 1 intl fund" : ""} 
-                {/* todo: add info later */}
+                {hasInternationalFund ? " + 1 intl fund" : ""}
               </p>
+              <p className="text-slate-500">Countries</p>
             </div>
-            {/* <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
+            <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
+              <p className="font-semibold text-slate-900 tabular-nums">{integerFormatter.format(totalInvestments)}</p>
               <p className="text-slate-500">Investments</p>
-              <p className="font-semibold text-slate-900 tabular-nums">{integerFormatter.format(globalOverview.totalProperties)}</p>
-            </div> */}
+            </div>
           </div>
+        </>
+      ) : mode === "country" && selectedCountry ? (
+        <>
+          <h1 className="mt-0.5 text-[13px] font-semibold leading-tight text-slate-900 sm:mt-1 sm:text-xl">
+            {formatCountryWithFlag(selectedCountry)}
+          </h1>
+          {selectedCountryValueNok != null && totalRealEstateValueNok > 0 && (
+            <p className="mt-1 text-[11px] text-slate-700 sm:mt-2 sm:text-sm" role="status" aria-live="polite">
+              {percentageFormatter.format((selectedCountryValueNok / totalRealEstateValueNok) * 100)}% of total real estate value
+            </p>
+          )}
+          <p className="mt-1 text-[11px] text-slate-700 sm:text-sm">
+            {integerFormatter.format(selectedCountryPropertyCount)} properties across {integerFormatter.format(selectedCountryCityCount)} cities
+            {selectedCountryValueNok == null
+              ? ""
+              : ` · NOK ${compactCurrencyFormatter.format(selectedCountryValueNok)}`}
+          </p>
         </>
       ) : selectedCity ? (
         <>
