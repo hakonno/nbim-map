@@ -24,11 +24,13 @@
     "start": "next start",
     "lint": "eslint",
     "test": "playwright test",
+    "dataset:activate": "node scripts/activate-dataset.mjs",
     "pipeline": "npm run pipeline:properties && npm run pipeline:cities",
     "pipeline:cities": "node scripts/build-cities.mjs",
     "pipeline:properties": "node scripts/pipeline.mjs"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "leaflet": "^1.9.4",
     "next": "16.2.4",
     "react": "19.2.4",

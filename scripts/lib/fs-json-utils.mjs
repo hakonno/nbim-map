@@ -14,7 +14,9 @@ export async function readJsonIfExists(filePath, fallbackValue) {
   }
 }
 
-export async function saveJson(filePath, value) {
+export async function saveJson(filePath, value, options = {}) {
+  const spacing = options.pretty ? 2 : undefined;
+
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  await fs.writeFile(filePath, `${JSON.stringify(value, null, spacing)}\n`, "utf8");
 }

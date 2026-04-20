@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "active_year": "2025",
+  "csv_path": "data/raw/2025/re_20251231.csv",
+  "release_path": "data/releases/2025",
+  "activated_at": "2026-04-20T13:23:46.087Z",
+  "previous_active_year": "2025"
+}
