@@ -118,6 +118,9 @@ export default function PropertyDetailsSection({
               src={streetViewEmbedUrl}
               title={`Street View for ${displayName}`}
             />
+            <p className="mt-1.5 text-[11px] text-slate-400">
+              Street view is approximate. May not point exactly at the property.
+            </p>
           </div>
         )}
       </section>

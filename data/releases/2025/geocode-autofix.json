@@ -1,0 +1,99 @@
+{
+  "mode": "apply",
+  "generated_at": "2026-04-21T15:54:44.057Z",
+  "report_file": "/Users/hakonklausen/Unsynced_programmering_mac/nbim-map/data/releases/2025/geocode-validation.json",
+  "coordinates_file": "/Users/hakonklausen/Unsynced_programmering_mac/nbim-map/data/releases/2025/property-coordinates.json",
+  "selected_codes": [
+    "zip_distance_outlier",
+    "zip_state_mismatch",
+    "zip_postcode_mismatch",
+    "country_fallback_for_us_zip"
+  ],
+  "total_candidates_in_report": 4,
+  "matching_candidates": 4,
+  "selected_for_run": 4,
+  "applied": 4,
+  "skipped_missing_entries": 0,
+  "skipped_invalid_targets": 0,
+  "applied_fixes": [
+    {
+      "property_key": "prop_439caee42f228d",
+      "address": "Kent-Northwest Corp Park 18, 21020-21040 84th Ave S, 98032, Kent",
+      "city": "Kent",
+      "country": "United States",
+      "previous": {
+        "lat": 47.387008850788455,
+        "lng": -122.26526470142815,
+        "source": "autofix_zip_center"
+      },
+      "updated": {
+        "lat": 47.387008850788455,
+        "lng": -122.26526470142815,
+        "source": "autofix_zip_center"
+      },
+      "issue_codes": [
+        "zip_state_mismatch",
+        "address_range_detected"
+      ]
+    },
+    {
+      "property_key": "prop_0617ff26580518",
+      "address": "Kent-Northwest Corp Park 17, 20860-20866 84th Ave S, 98032, Kent",
+      "city": "Kent",
+      "country": "United States",
+      "previous": {
+        "lat": 47.387008850788455,
+        "lng": -122.26526470142815,
+        "source": "autofix_zip_center"
+      },
+      "updated": {
+        "lat": 47.387008850788455,
+        "lng": -122.26526470142815,
+        "source": "autofix_zip_center"
+      },
+      "issue_codes": [
+        "zip_state_mismatch",
+        "address_range_detected"
+      ]
+    },
+    {
+      "property_key": "prop_48c2efb707c75a",
+      "address": "Kent-Northwest Corp Park 11, 20608 87th Ave S, 98031, Kent",
+      "city": "Kent",
+      "country": "United States",
+      "previous": {
+        "lat": 47.40573150079005,
+        "lng": -122.1925985308371,
+        "source": "autofix_zip_center"
+      },
+      "updated": {
+        "lat": 47.40573150079005,
+        "lng": -122.1925985308371,
+        "source": "autofix_zip_center"
+      },
+      "issue_codes": [
+        "zip_state_mismatch"
+      ]
+    },
+    {
+      "property_key": "prop_658ee89fc5aa78",
+      "address": "Franklin Park 1, 10800-10900 Belmont Ave, 60131, Franklin Park",
+      "city": "Franklin Park",
+      "country": "United States",
+      "previous": {
+        "lat": 41.929756139121345,
+        "lng": -87.87659448598326,
+        "source": "autofix_zip_center"
+      },
+      "updated": {
+        "lat": 41.929756139121345,
+        "lng": -87.87659448598326,
+        "source": "autofix_zip_center"
+      },
+      "issue_codes": [
+        "zip_state_mismatch",
+        "address_range_detected"
+      ]
+    }
+  ]
+}
