@@ -218,6 +218,15 @@ export default function CityMapInner({ cities, googleMapsEmbedApiKey }: CityMapI
     [handleSelectCity, investmentMappableCities]
   );
 
+  const handleBackToGlobal = useCallback(() => {
+    setSelection({
+      mode: "global",
+      selectedCountry: null,
+      selectedCityId: null,
+      selectedPropertyId: null,
+    });
+  }, []);
+
   const handleBackToCity = useCallback(() => {
     setSelection((current) => {
       if (current.mode !== "property") {
@@ -391,6 +400,7 @@ export default function CityMapInner({ cities, googleMapsEmbedApiKey }: CityMapI
         onClearSearch={handleClearSearch}
         showCoordinatesDebug={SHOW_PROPERTY_COORDINATES_DEBUG}
         onClose={handleResetSelection}
+        onBackToGlobal={handleBackToGlobal}
         onBackToCity={handleBackToCity}
         onSelectProperty={handleSelectPropertyById}
         onPanelHeightChange={handleMobilePanelHeightChange}
