@@ -53,3 +53,8 @@ CHANGELOG.md
 .gitignore
 .gitattributes
 .editorconfig
+
+# local tooling
+/devtools
+data/releases/*/nbim-coordinates.json
+data/releases/*/nbim-coordinate-apply-report.json
