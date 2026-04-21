@@ -27,7 +27,12 @@
     "dataset:activate": "node scripts/activate-dataset.mjs",
     "pipeline": "npm run pipeline:properties && npm run pipeline:cities",
     "pipeline:cities": "node scripts/build-cities.mjs",
-    "pipeline:properties": "node scripts/pipeline.mjs"
+    "pipeline:properties": "node scripts/pipeline.mjs",
+    "validate:geocoding": "node scripts/validate-geocoding.mjs",
+    "fix:geocoding": "node scripts/fix-geocode-outliers.mjs",
+    "fix:geocoding:apply": "node scripts/fix-geocode-outliers.mjs --apply",
+    "fix:geocoding:apply-all": "node scripts/fix-geocode-outliers.mjs --apply --geocode-missing-zips",
+    "pipeline:full": "npm run pipeline:properties && npm run validate:geocoding && npm run fix:geocoding:apply-all && npm run pipeline:cities"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

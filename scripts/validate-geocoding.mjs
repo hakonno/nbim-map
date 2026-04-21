@@ -252,8 +252,13 @@ function normalizeUsZip(value) {
 }
 
 function extractUsZip(address) {
-  const match = String(address ?? "").match(/(?:^|[^0-9])(\d{5})(?:-\d{4})?(?!\d)/);
-  return match ? match[1] : null;
+  // NBIM address format: "Name, Street, ZIP, City" — ZIP is second-to-last comma-separated part
+  const parts = String(address ?? "").split(",").map((s) => s.trim());
+  for (let i = parts.length - 2; i >= 0; i--) {
+    const m = parts[i].match(/^(\d{5})(?:-\d{4})?$/);
+    if (m) return m[1];
+  }
+  return null;
 }
 
 function normalizeUsState(value) {
@@ -485,8 +490,9 @@ function evaluateEntry(entryKey, entry, context, options) {
   }
 
   let zipContext = null;
+  const isAutofix = String(entry?.source ?? "").startsWith("autofix_");
 
-  if (isUnitedStates) {
+  if (isUnitedStates && !isAutofix) {
     const addressZip = extractUsZip(entry?.address);
     if (addressZip) {
       zipContext = context.usZipContexts.get(addressZip) ?? null;

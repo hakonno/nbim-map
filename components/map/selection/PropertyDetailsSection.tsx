@@ -118,9 +118,16 @@ export default function PropertyDetailsSection({
               src={streetViewEmbedUrl}
               title={`Street View for ${displayName}`}
             />
+            <p className="mt-1.5 text-[11px] text-slate-400">
+              May not show the actual property — street view is approximate.
+            </p>
           </div>
         )}
       </section>
+
+      <p className="mt-2 px-0.5 text-[11px] text-slate-400">
+        Pin location is approximate and may be inaccurate as we are working on improving accuracy.
+      </p>
 
       <button
         className="pointer-events-auto mt-4 rounded-md px-1 py-0.5 text-xs text-blue-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"

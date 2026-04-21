@@ -27,6 +27,9 @@ const DEFAULT_FIX_CODES = new Set([
   "country_fallback_for_us_zip",
 ]);
 
+const DEFAULT_PHOTON_URL = "https://photon.komoot.io/api";
+const ZIP_GEOCODE_DELAY_MS = 350;
+
 function parseArgs(argv) {
   const options = {
     coordinatesFile: DEFAULT_COORDINATE_FILE,
@@ -35,6 +38,8 @@ function parseArgs(argv) {
     apply: false,
     maxFixes: null,
     codes: null,
+    geocodeMissingZips: false,
+    photonUrl: DEFAULT_PHOTON_URL,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -82,6 +87,17 @@ function parseArgs(argv) {
       options.apply = true;
       continue;
     }
+
+    if (arg === "--geocode-missing-zips") {
+      options.geocodeMissingZips = true;
+      continue;
+    }
+
+    if (arg === "--photon-url" && argv[index + 1]) {
+      options.photonUrl = argv[index + 1];
+      index += 1;
+      continue;
+    }
   }
 
   return options;
@@ -112,6 +128,110 @@ function shouldIncludeCandidate(candidate, activeCodes) {
 
   const issueCodes = Array.isArray(candidate.issue_codes) ? candidate.issue_codes : [];
   return issueCodes.some((code) => activeCodes.has(code));
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function geocodeSingleZip(zip, photonUrl) {
+  const query = `${zip}, United States`;
+  const url = `${photonUrl}?q=${encodeURIComponent(query)}&limit=3&lang=en`;
+  const response = await fetch(url, {
+    headers: { "User-Agent": "nbim-map-geocode-fix/1.0" },
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Photon returned ${response.status} for ZIP ${zip}`);
+  }
+
+  const data = await response.json();
+  const features = Array.isArray(data?.features) ? data.features : [];
+
+  // Pick the feature whose postcode matches and is in the US
+  const match = features.find((f) => {
+    const props = f?.properties ?? {};
+    const country = String(props.country ?? "").toLowerCase();
+    const postcode = String(props.postcode ?? "").replace(/-\d+$/, "");
+    return (
+      (country.includes("united states") || country.includes("usa") || props.country_code === "US") &&
+      postcode === zip
+    );
+  }) ?? features[0];
+
+  if (!match) return null;
+
+  const [lng, lat] = match.geometry?.coordinates ?? [];
+  if (typeof lat !== "number" || typeof lng !== "number") return null;
+
+  const props = match.properties ?? {};
+  return {
+    lat,
+    lng,
+    zip,
+    state: String(props.state ?? props.county ?? ""),
+    country_code: String(props.country_code ?? "US"),
+  };
+}
+
+async function resolveMissingZipFixes(findings, photonUrl) {
+  // Collect unique ZIPs from zip_context_missing findings
+  const zipToFindings = new Map();
+
+  for (const finding of findings) {
+    const zipIssue = finding.issues?.find((i) => i.code === "zip_context_missing");
+    if (!zipIssue) continue;
+    const zip = zipIssue.details?.zip ?? finding.issues?.find((i) => i.details?.zip)?.details?.zip;
+    if (!zip) continue;
+    if (!zipToFindings.has(zip)) zipToFindings.set(zip, []);
+    zipToFindings.get(zip).push(finding);
+  }
+
+  if (zipToFindings.size === 0) return [];
+
+  console.log(`Geocoding ${zipToFindings.size} missing ZIP(s) via Photon...`);
+
+  const fixes = [];
+
+  for (const [zip, affectedFindings] of zipToFindings) {
+    process.stdout.write(`  ZIP ${zip}... `);
+
+    let result = null;
+    try {
+      result = await geocodeSingleZip(zip, photonUrl);
+    } catch {
+      console.log("error, skipping");
+    }
+
+    if (result) {
+      console.log(`${result.lat.toFixed(4)}, ${result.lng.toFixed(4)} (${result.state})`);
+      for (const finding of affectedFindings) {
+        fixes.push({
+          property_key: finding.property_key,
+          address: finding.address ?? "",
+          city: finding.city ?? "",
+          country: finding.country ?? "",
+          issue_codes: finding.issues?.map((i) => i.code) ?? [],
+          suggested_fix: {
+            type: "zip_center",
+            confidence: "medium",
+            reason: "photon_zip_geocode",
+            zip,
+            state: result.state,
+            lat: result.lat,
+            lng: result.lng,
+          },
+        });
+      }
+    } else {
+      console.log("no result, skipping");
+    }
+
+    await sleep(ZIP_GEOCODE_DELAY_MS);
+  }
+
+  return fixes;
 }
 
 async function main() {
@@ -166,6 +286,15 @@ async function main() {
     throw new Error(`Coordinate file does not contain an entries object: ${options.coordinatesFile}`);
   }
 
+  let allToApply = [...limitedCandidates];
+
+  if (options.geocodeMissingZips) {
+    const allFindings = Array.isArray(report.findings) ? report.findings : [];
+    const missingZipFixes = await resolveMissingZipFixes(allFindings, options.photonUrl);
+    console.log(`ZIP geocoding resolved ${missingZipFixes.length} additional fix(es).`);
+    allToApply = allToApply.concat(missingZipFixes);
+  }
+
   const nowIso = new Date().toISOString();
   let applied = 0;
   let skippedMissing = 0;
@@ -173,7 +302,7 @@ async function main() {
 
   const appliedFixes = [];
 
-  for (const candidate of limitedCandidates) {
+  for (const candidate of allToApply) {
     const entryKey = candidate.property_key;
     const entry = entries[entryKey];
 
@@ -236,7 +365,7 @@ async function main() {
     selected_codes: [...activeCodes],
     total_candidates_in_report: allCandidates.length,
     matching_candidates: selectedCandidates.length,
-    selected_for_run: limitedCandidates.length,
+    selected_for_run: allToApply.length,
     applied,
     skipped_missing_entries: skippedMissing,
     skipped_invalid_targets: skippedInvalidTarget,
