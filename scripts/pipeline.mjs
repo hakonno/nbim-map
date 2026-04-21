@@ -32,6 +32,7 @@ const DEFAULT_GEOCODER_BASE_URL = "https://nominatim.openstreetmap.org/search";
 const DEFAULT_PHOTON_BASE_URL = "https://photon.komoot.io/api";
 const DEFAULT_DELAY_MS = 250;
 const DEFAULT_TIMEOUT_MS = 15000;
+const MAX_US_ZIP_DISTANCE_KM = 120;
 
 const HEADER_RULES = [
   { key: "region", required: true, aliases: ["region"] },
@@ -223,7 +224,26 @@ function createCacheKey(query) {
   return sha1Digest(String(query).trim().toLowerCase());
 }
 
-function sanitizeCoordinate(value) {
+function sanitizeLatitude(value) {
+  if (value == null) {
+    return null;
+  }
+
+  if (typeof value === "string" && value.trim() === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  if (parsed < -90 || parsed > 90) {
+    return null;
+  }
+  return parsed;
+}
+
+function sanitizeLongitude(value) {
   if (value == null) {
     return null;
   }
@@ -240,6 +260,69 @@ function sanitizeCoordinate(value) {
     return null;
   }
   return parsed;
+}
+
+function splitAddressParts(address) {
+  return String(address ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function normalizeStreetNumberRanges(value) {
+  return String(value ?? "").replace(/\b(\d{1,6})-(\d{1,6})(?=\s+[A-Za-z])/g, "$1");
+}
+
+function normalizeAddressForQuery(address) {
+  return normalizeStreetNumberRanges(String(address ?? "").replace(/\s+/g, " ").trim());
+}
+
+function stripLikelyPropertyName(address) {
+  const parts = splitAddressParts(address);
+  if (parts.length < 2) {
+    return normalizeAddressForQuery(address);
+  }
+
+  const first = parts[0];
+  const second = parts[1];
+  const firstHasDigit = /\d/.test(first);
+  const duplicatedPrefix = normalizeText(first) === normalizeText(second);
+
+  if (!firstHasDigit || duplicatedPrefix) {
+    return normalizeAddressForQuery(parts.slice(1).join(", "));
+  }
+
+  return normalizeAddressForQuery(parts.join(", "));
+}
+
+function isUnitedStates(country) {
+  return normalizeText(country) === "unitedstates";
+}
+
+function normalizeUsZip(value) {
+  const match = String(value ?? "").match(/\b(\d{5})(?:-\d{4})?\b/);
+  return match ? match[1] : null;
+}
+
+function extractUsZipFromAddress(address) {
+  return normalizeUsZip(address);
+}
+
+function haversineDistanceKm(aLat, aLng, bLat, bLng) {
+  const toRadians = (value) => (value * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+
+  const dLat = toRadians(bLat - aLat);
+  const dLng = toRadians(bLng - aLng);
+  const lat1 = toRadians(aLat);
+  const lat2 = toRadians(bLat);
+
+  const sinLat = Math.sin(dLat / 2);
+  const sinLng = Math.sin(dLng / 2);
+  const a = sinLat * sinLat + Math.cos(lat1) * Math.cos(lat2) * sinLng * sinLng;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadiusKm * c;
 }
 
 function resolveCountryCenter(country) {
@@ -278,12 +361,41 @@ function uniqueQueryCandidates(candidates) {
   return output;
 }
 
-function buildGeocodeCandidates(record) {
-  const address = String(record.address ?? "").trim();
+function buildGeocodeCandidates(record, geocodeContext = {}) {
+  const address = normalizeAddressForQuery(record.address);
+  const coreAddress = stripLikelyPropertyName(record.address);
+  const addressMainSegment = splitAddressParts(coreAddress)[0] ?? "";
   const city = String(record.city ?? "").trim();
   const country = String(record.country ?? "").trim();
+  const usState = String(geocodeContext.usState ?? "").trim();
+  const usZip = String(geocodeContext.usZip ?? "").trim();
+
+  const countryAwareCoreAddress = coreAddress
+    ? [coreAddress, isUnitedStates(country) ? usState || null : null, country].filter(Boolean).join(", ")
+    : "";
+
+  const streetCityStateQuery =
+    addressMainSegment && city && country
+      ? [
+          addressMainSegment,
+          city,
+          isUnitedStates(country) ? usState || null : null,
+          isUnitedStates(country) ? usZip || null : null,
+          country,
+        ]
+          .filter(Boolean)
+          .join(", ")
+      : "";
 
   const rawCandidates = [
+    {
+      label: "address_core_country",
+      query: countryAwareCoreAddress,
+    },
+    {
+      label: "street_city_country",
+      query: streetCityStateQuery,
+    },
     {
       label: "address_country",
       query: address && country ? `${address}, ${country}` : "",
@@ -293,8 +405,19 @@ function buildGeocodeCandidates(record) {
       query: address && city && country ? `${address}, ${city}, ${country}` : "",
     },
     {
+      label: "name_city_state_country",
+      query:
+        record.name && city && country && isUnitedStates(country) && usState
+          ? `${record.name}, ${city}, ${usState}, ${country}`
+          : "",
+    },
+    {
       label: "name_city_country",
       query: record.name && city && country ? `${record.name}, ${city}, ${country}` : "",
+    },
+    {
+      label: "city_state_country",
+      query: city && country && isUnitedStates(country) && usState ? `${city}, ${usState}, ${country}` : "",
     },
     {
       label: "city_country",
@@ -350,7 +473,7 @@ async function geocodeWithNominatim(query, options, waitForTurn) {
     q: query,
     format: "jsonv2",
     limit: "1",
-    addressdetails: "0",
+    addressdetails: "1",
   });
 
   const url = `${options.geocoderBaseUrl}?${params.toString()}`;
@@ -387,8 +510,9 @@ async function geocodeWithNominatim(query, options, waitForTurn) {
       }
 
       const first = payload[0];
-      const lat = sanitizeCoordinate(first.lat);
-      const lng = sanitizeCoordinate(first.lon);
+      const lat = sanitizeLatitude(first.lat);
+      const lng = sanitizeLongitude(first.lon);
+      const address = first.address && typeof first.address === "object" ? first.address : {};
 
       if (lat == null || lng == null) {
         return null;
@@ -398,6 +522,13 @@ async function geocodeWithNominatim(query, options, waitForTurn) {
         lat,
         lng,
         display_name: String(first.display_name ?? ""),
+        country: String(address.country ?? ""),
+        country_code: String(address.country_code ?? ""),
+        city: String(
+          address.city ?? address.town ?? address.village ?? address.municipality ?? address.county ?? "",
+        ),
+        state: String(address.state ?? ""),
+        postcode: String(address.postcode ?? ""),
         provider: "nominatim",
       };
     } finally {
@@ -456,8 +587,10 @@ async function geocodeWithPhoton(query, options, waitForTurn) {
         return null;
       }
 
-      const lng = sanitizeCoordinate(coordinates[0]);
-      const lat = sanitizeCoordinate(coordinates[1]);
+      const lng = sanitizeLongitude(coordinates[0]);
+      const lat = sanitizeLatitude(coordinates[1]);
+      const properties =
+        features[0]?.properties && typeof features[0].properties === "object" ? features[0].properties : {};
 
       if (lat == null || lng == null) {
         return null;
@@ -466,7 +599,12 @@ async function geocodeWithPhoton(query, options, waitForTurn) {
       return {
         lat,
         lng,
-        display_name: String(features[0]?.properties?.name ?? ""),
+        display_name: String(properties.name ?? ""),
+        country: String(properties.country ?? ""),
+        country_code: String(properties.countrycode ?? ""),
+        city: String(properties.city ?? properties.town ?? properties.village ?? properties.locality ?? ""),
+        state: String(properties.state ?? properties.region ?? ""),
+        postcode: String(properties.postcode ?? ""),
         provider: "photon",
       };
     } finally {
@@ -477,28 +615,238 @@ async function geocodeWithPhoton(query, options, waitForTurn) {
   return null;
 }
 
-async function resolveRecordCoordinates(record, options, cache, waitForTurn, stats) {
-  const candidates = buildGeocodeCandidates(record);
+function normalizeCountryCode(value) {
+  const normalized = normalizeText(value);
+  return normalized.slice(0, 2);
+}
+
+function countryMatches(recordCountry, geocodeResult) {
+  if (!recordCountry) {
+    return true;
+  }
+
+  const expectedCountry = normalizeText(recordCountry);
+  const actualCountry = normalizeText(geocodeResult.country ?? "");
+  if (actualCountry && expectedCountry && actualCountry !== expectedCountry) {
+    return false;
+  }
+
+  if (expectedCountry === "unitedstates") {
+    const countryCode = normalizeCountryCode(geocodeResult.country_code ?? "");
+    if (countryCode && countryCode !== "us") {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function validateGeocodeResult(record, geocodeResult, usZipContext) {
+  if (!countryMatches(record.country, geocodeResult)) {
+    return { valid: false, reason: "country_mismatch" };
+  }
+
+  if (!isUnitedStates(record.country) || !usZipContext?.usZip) {
+    return { valid: true, reason: null };
+  }
+
+  const resultZip =
+    normalizeUsZip(geocodeResult.postcode) ||
+    normalizeUsZip(geocodeResult.display_name) ||
+    normalizeUsZip(geocodeResult.city);
+
+  if (resultZip && resultZip !== usZipContext.usZip) {
+    return { valid: false, reason: "zip_mismatch" };
+  }
+
+  const zipLat = sanitizeLatitude(usZipContext.usZipLat);
+  const zipLng = sanitizeLongitude(usZipContext.usZipLng);
+  if (zipLat == null || zipLng == null) {
+    return { valid: true, reason: null };
+  }
+
+  const distance = haversineDistanceKm(zipLat, zipLng, geocodeResult.lat, geocodeResult.lng);
+  if (distance > MAX_US_ZIP_DISTANCE_KM) {
+    return { valid: false, reason: "zip_distance" };
+  }
+
+  return { valid: true, reason: null };
+}
+
+async function resolveUsZipContext(record, options, cache, waitForTurn, stats, zipContextCache) {
+  const emptyContext = {
+    usZip: null,
+    usState: null,
+    usZipLat: null,
+    usZipLng: null,
+  };
+
+  if (!isUnitedStates(record.country)) {
+    return emptyContext;
+  }
+
+  const usZip = extractUsZipFromAddress(record.address);
+  if (!usZip) {
+    return emptyContext;
+  }
+
+  const cachedContext = zipContextCache.get(usZip);
+  if (cachedContext) {
+    stats.usZipCacheHits += 1;
+    return cachedContext;
+  }
+
+  const query = `${usZip}, ${record.country}`;
+  const cacheKey = createCacheKey(query);
+  const cacheEntry = cache.entries[cacheKey];
+
+  if (cacheEntry && cacheEntry.status === "ok") {
+    const context = {
+      usZip,
+      usState: String(cacheEntry.state ?? "").trim() || null,
+      usZipLat: sanitizeLatitude(cacheEntry.lat),
+      usZipLng: sanitizeLongitude(cacheEntry.lng),
+    };
+    zipContextCache.set(usZip, context);
+    stats.usZipCacheHits += 1;
+    return context;
+  }
+
+  if (cacheEntry && (cacheEntry.status === "not_found" || cacheEntry.status === "invalid")) {
+    const context = {
+      usZip,
+      usState: null,
+      usZipLat: null,
+      usZipLng: null,
+    };
+    zipContextCache.set(usZip, context);
+    return context;
+  }
+
+  if (options.noGeocode) {
+    const context = {
+      usZip,
+      usState: null,
+      usZipLat: null,
+      usZipLng: null,
+    };
+    zipContextCache.set(usZip, context);
+    return context;
+  }
+
+  let geocodeResult = null;
+  let hadRequestError = false;
+
+  try {
+    geocodeResult = await geocodeWithPhoton(query, options, waitForTurn);
+  } catch {
+    stats.photonRequestErrors += 1;
+    hadRequestError = true;
+  }
+
+  if (!geocodeResult && options.enableNominatim) {
+    try {
+      geocodeResult = await geocodeWithNominatim(query, options, waitForTurn);
+    } catch {
+      stats.nominatimRequestErrors += 1;
+      hadRequestError = true;
+    }
+  }
+
+  if (geocodeResult) {
+    cache.entries[cacheKey] = {
+      status: "ok",
+      lat: geocodeResult.lat,
+      lng: geocodeResult.lng,
+      display_name: geocodeResult.display_name,
+      provider: geocodeResult.provider,
+      country: geocodeResult.country,
+      country_code: geocodeResult.country_code,
+      city: geocodeResult.city,
+      state: geocodeResult.state,
+      postcode: geocodeResult.postcode,
+      query,
+      updated_at: new Date().toISOString(),
+    };
+
+    const context = {
+      usZip,
+      usState: String(geocodeResult.state ?? "").trim() || null,
+      usZipLat: geocodeResult.lat,
+      usZipLng: geocodeResult.lng,
+    };
+    zipContextCache.set(usZip, context);
+    stats.usZipResolved += 1;
+    return context;
+  }
+
+  if (!hadRequestError) {
+    cache.entries[cacheKey] = {
+      status: "not_found",
+      query,
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  const context = {
+    usZip,
+    usState: null,
+    usZipLat: null,
+    usZipLng: null,
+  };
+  zipContextCache.set(usZip, context);
+  return context;
+}
+
+async function resolveRecordCoordinates(record, options, cache, waitForTurn, stats, zipContextCache) {
+  const usZipContext = await resolveUsZipContext(record, options, cache, waitForTurn, stats, zipContextCache);
+  const candidates = buildGeocodeCandidates(record, usZipContext);
 
   for (const candidate of candidates) {
     const cacheKey = createCacheKey(candidate.query);
     const cached = cache.entries[cacheKey];
 
     if (cached && cached.status === "ok") {
-      const lat = sanitizeCoordinate(cached.lat);
-      const lng = sanitizeCoordinate(cached.lng);
+      const lat = sanitizeLatitude(cached.lat);
+      const lng = sanitizeLongitude(cached.lng);
+
       if (lat != null && lng != null) {
-        stats.cacheHits += 1;
-        return {
-          lat,
-          lng,
-          source: `cache_${candidate.label}`,
-          geocode_query: candidate.query,
+        const validation = validateGeocodeResult(
+          record,
+          {
+            lat,
+            lng,
+            display_name: String(cached.display_name ?? ""),
+            country: String(cached.country ?? ""),
+            country_code: String(cached.country_code ?? ""),
+            city: String(cached.city ?? ""),
+            state: String(cached.state ?? ""),
+            postcode: String(cached.postcode ?? ""),
+          },
+          usZipContext,
+        );
+
+        if (validation.valid) {
+          stats.cacheHits += 1;
+          return {
+            lat,
+            lng,
+            source: `cache_${candidate.label}`,
+            geocode_query: candidate.query,
+          };
+        }
+
+        cache.entries[cacheKey] = {
+          ...cached,
+          status: "invalid",
+          invalid_reason: validation.reason,
+          updated_at: new Date().toISOString(),
         };
+        stats.cacheRejected += 1;
       }
     }
 
-    if (cached && cached.status === "not_found") {
+    if (cached && (cached.status === "not_found" || cached.status === "invalid")) {
       stats.cacheMisses += 1;
       continue;
     }
@@ -527,17 +875,43 @@ async function resolveRecordCoordinates(record, options, cache, waitForTurn, sta
     }
 
     if (geocodeResult) {
+      const validation = validateGeocodeResult(record, geocodeResult, usZipContext);
+      if (!validation.valid) {
+        cache.entries[cacheKey] = {
+          status: "invalid",
+          query: candidate.query,
+          lat: geocodeResult.lat,
+          lng: geocodeResult.lng,
+          display_name: geocodeResult.display_name,
+          provider: geocodeResult.provider,
+          country: geocodeResult.country,
+          country_code: geocodeResult.country_code,
+          city: geocodeResult.city,
+          state: geocodeResult.state,
+          postcode: geocodeResult.postcode,
+          invalid_reason: validation.reason,
+          updated_at: new Date().toISOString(),
+        };
+        stats.geocodeRejected += 1;
+        continue;
+      }
+
       cache.entries[cacheKey] = {
         status: "ok",
         lat: geocodeResult.lat,
         lng: geocodeResult.lng,
         display_name: geocodeResult.display_name,
         provider: geocodeResult.provider,
+        country: geocodeResult.country,
+        country_code: geocodeResult.country_code,
+        city: geocodeResult.city,
+        state: geocodeResult.state,
+        postcode: geocodeResult.postcode,
         query: candidate.query,
         updated_at: new Date().toISOString(),
       };
 
-      if (candidate.label === "city_country") {
+      if (candidate.label === "city_country" || candidate.label === "city_state_country") {
         stats.cityLevelGeocoded += 1;
       } else {
         stats.addressLevelGeocoded += 1;
@@ -644,6 +1018,10 @@ function createGeocodeStats() {
   return {
     cacheHits: 0,
     cacheMisses: 0,
+    cacheRejected: 0,
+    geocodeRejected: 0,
+    usZipCacheHits: 0,
+    usZipResolved: 0,
     addressLevelGeocoded: 0,
     cityLevelGeocoded: 0,
     photonResolved: 0,
@@ -658,10 +1036,11 @@ async function geocodeRecords(records, options, cache) {
   const waitForTurn = createRateLimiter(options.delayMs);
   const stats = createGeocodeStats();
   const coordinateEntries = {};
+  const zipContextCache = new Map();
 
   for (let index = 0; index < records.length; index += 1) {
     const record = records[index];
-    const resolved = await resolveRecordCoordinates(record, options, cache, waitForTurn, stats);
+    const resolved = await resolveRecordCoordinates(record, options, cache, waitForTurn, stats, zipContextCache);
 
     record.lat = resolved.lat;
     record.lng = resolved.lng;
@@ -761,6 +1140,10 @@ async function main() {
   console.log(`- Wrote ${totalRecords} records`);
   console.log(`- Cache hits: ${stats.cacheHits}`);
   console.log(`- Cache not-found skips: ${stats.cacheMisses}`);
+  console.log(`- Cache entries rejected by validation: ${stats.cacheRejected}`);
+  console.log(`- Live geocode results rejected by validation: ${stats.geocodeRejected}`);
+  console.log(`- US ZIP context cache hits: ${stats.usZipCacheHits}`);
+  console.log(`- US ZIP contexts resolved live: ${stats.usZipResolved}`);
   console.log(`- Address-level geocodes: ${stats.addressLevelGeocoded}`);
   console.log(`- City-level geocodes: ${stats.cityLevelGeocoded}`);
   console.log(`- Resolved via Photon fallback: ${stats.photonResolved}`);
