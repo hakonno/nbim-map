@@ -31,6 +31,7 @@ type MapSelectionPanelProps = {
   onClearSearch: () => void;
   showCoordinatesDebug: boolean;
   onClose: () => void;
+  onBackToGlobal: () => void;
   onBackToCity: () => void;
   onSelectProperty: (propertyId: string) => void;
   onPanelHeightChange: (height: number) => void;
@@ -58,6 +59,7 @@ function MapSelectionPanel({
   onClearSearch,
   showCoordinatesDebug,
   onClose,
+  onBackToGlobal,
   onBackToCity,
   onSelectProperty,
   onPanelHeightChange,
@@ -170,14 +172,35 @@ function MapSelectionPanel({
           </h2>
 
           {mode !== "global" && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="pointer-events-auto rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-              aria-label="Close details and return to map overview"
-            >
-              Close
-            </button>
+            <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={mode === "property" ? onBackToCity : onBackToGlobal}
+                className="pointer-events-auto rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                aria-label={
+                  mode === "property"
+                    ? selectedCountry
+                      ? "Back to country list"
+                      : "Back to city list"
+                    : "Back to search"
+                }
+              >
+                {mode === "property"
+                  ? selectedCountry
+                    ? "← Country"
+                    : "← City"
+                  : "← Back"}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="pointer-events-auto rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm leading-none transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                aria-label="Zoom to world map"
+                title="World map"
+              >
+                🌍
+              </button>
+            </div>
           )}
         </div>
 
