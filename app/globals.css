@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
+@import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css";
 
 :root {
   --background: #e7edf3;
@@ -71,6 +73,28 @@ body {
 .leaflet-control-zoom a:focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
+}
+
+.cluster-name-label.leaflet-tooltip {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: #1e293b;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 0;
+  pointer-events: none;
+  text-shadow:
+    0 1px 3px rgba(255, 255, 255, 0.9),
+    0 -1px 3px rgba(255, 255, 255, 0.9),
+    1px 0 3px rgba(255, 255, 255, 0.9),
+    -1px 0 3px rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+}
+
+.cluster-name-label.leaflet-tooltip::before {
+  display: none;
 }
 
 .map-marker-label.leaflet-tooltip {

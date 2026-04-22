@@ -327,13 +327,10 @@ export default function CityMapInner({ cities, googleMapsEmbedApiKey }: CityMapI
 
         {mapInstance && (
           <MapMarkersLayer
-            showProperties={showProperties}
             showPropertyDetail={showPropertyDetail}
-            mappableCities={investmentMappableCities}
+            zoom={zoom}
             flatProperties={flatProperties}
             selection={selection}
-            maxPropertyCount={maxPropertyCount}
-            onSelectCity={handleSelectCity}
             onSelectProperty={handleSelectProperty}
           />
         )}
