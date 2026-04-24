@@ -1,13 +1,54 @@
 "use client";
 
 import L from "leaflet";
+import { useMemo } from "react";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { Marker, Tooltip } from "react-leaflet";
 
-import { getPropertyColors } from "@/components/map/mapConstants";
+import {
+  getPropertyColors,
+  ZOOM_PROPERTY_FOCUS,
+} from "@/components/map/mapConstants";
 import type { FlatProperty, SelectionState } from "@/components/map/mapTypes";
 
 const integerFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+
+type ClusterMarkerMeta = {
+  o: number | null;
+  f: boolean;
+};
+
+function encodeClusterMeta(property: FlatProperty): string {
+  const meta: ClusterMarkerMeta = {
+    o: typeof property.ownership_percent === "number" ? property.ownership_percent : null,
+    f: Boolean(property.is_nbim_office),
+  };
+  return JSON.stringify(meta);
+}
+
+function decodeClusterMeta(value: unknown): ClusterMarkerMeta | null {
+  if (typeof value !== "string") return null;
+  try {
+    const parsed = JSON.parse(value) as ClusterMarkerMeta;
+    if (typeof parsed !== "object" || parsed === null) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (ch) => {
+    switch (ch) {
+      case "&": return "&amp;";
+      case "<": return "&lt;";
+      case ">": return "&gt;";
+      case '"': return "&quot;";
+      case "'": return "&#39;";
+      default: return ch;
+    }
+  });
+}
 
 function createPropertyIcon(
   colors: { fill: string; stroke: string },
@@ -15,7 +56,7 @@ function createPropertyIcon(
   isSelected: boolean
 ): L.DivIcon {
   const shadow = isSelected
-    ? `box-shadow: 0 0 0 3px ${colors.stroke}55, 0 0 10px ${colors.stroke}33;`
+    ? `box-shadow: 0 0 0 3px color-mix(in srgb, ${colors.stroke}, transparent 67%), 0 0 10px color-mix(in srgb, ${colors.stroke}, transparent 80%);`
     : "";
   return L.divIcon({
     className: "",
@@ -31,24 +72,170 @@ function createPropertyIcon(
   });
 }
 
+type ClusterStats = {
+  count: number;
+  officeCount: number;
+  investmentCount: number;
+  ownershipAverage: number | null;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function collectClusterStats(cluster: any): ClusterStats {
+  const markers: L.Marker[] = cluster.getAllChildMarkers();
+  let ownershipSum = 0;
+  let ownershipCount = 0;
+  let officeCount = 0;
+  let investmentCount = 0;
+
+  for (const marker of markers) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const meta = decodeClusterMeta((marker.options as any).alt);
+    if (!meta) continue;
+    if (meta.f) {
+      officeCount++;
+      continue;
+    }
+    investmentCount++;
+    if (typeof meta.o === "number") {
+      ownershipSum += meta.o;
+      ownershipCount++;
+    }
+  }
+
+  return {
+    count: markers.length,
+    officeCount,
+    investmentCount,
+    ownershipAverage: ownershipCount > 0 ? ownershipSum / ownershipCount : null,
+  };
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createClusterIcon(cluster: any): L.DivIcon {
-  const count: number = cluster.getChildCount();
-  const size = Math.min(44, Math.max(22, 18 + Math.sqrt(count) * 2.4));
-  const fontSize = count >= 100 ? 10 : 11;
+  const { count, officeCount, investmentCount, ownershipAverage } = collectClusterStats(cluster);
+
+  // Tiered sizing — small clusters stay readable, large ones scale up noticeably.
+  let size: number;
+  if (count < 10) size = 30;
+  else if (count < 50) size = 40;
+  else if (count < 200) size = 50;
+  else size = 60;
+
+  const mostlyOffices = officeCount > investmentCount && officeCount > 0;
+
+  let fill: string;
+  let stroke: string;
+  let textColor: string;
+
+  if (mostlyOffices) {
+    fill = "#fbbf24";
+    stroke = "#b45309";
+    textColor = "#7c2d12";
+  } else if (ownershipAverage != null) {
+    const ratio = Math.min(1, Math.max(0, ownershipAverage / 100));
+    const perceptualRatio = Math.pow(ratio, 1.35);
+    const hue = Math.round(perceptualRatio * 120);
+    fill = `hsl(${hue}, 84%, 64%)`;
+    stroke = `hsl(${hue}, 68%, 36%)`;
+    textColor = `hsl(${hue}, 70%, 16%)`;
+  } else {
+    fill = "rgba(148, 163, 184, 0.92)";
+    stroke = "#475569";
+    textColor = "#1e293b";
+  }
+
+  const fontSize = count >= 1000 ? 11 : count >= 100 ? 12 : 13;
+  const badge = officeCount > 0 && !mostlyOffices
+    ? `<span aria-hidden="true" style="
+        position:absolute;top:-2px;right:-2px;
+        min-width:12px;height:12px;padding:0 3px;
+        border-radius:999px;background:#fbbf24;color:#7c2d12;
+        border:1.5px solid #fff;box-sizing:border-box;
+        font-size:9px;line-height:9px;font-weight:700;
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 1px 2px rgba(15,23,42,0.25);
+      ">${officeCount}</span>`
+    : "";
+
   return L.divIcon({
-    className: "",
+    className: "nbim-cluster-icon",
     html: `<div style="
+      position:relative;
       width:${size}px;height:${size}px;border-radius:50%;
-      background:rgba(148,163,184,0.88);
-      border:1.5px solid #475569;
+      background:${fill};
+      border:2px solid ${stroke};
       display:flex;align-items:center;justify-content:center;
-      font-size:${fontSize}px;font-weight:700;color:#1e293b;
+      font-size:${fontSize}px;font-weight:700;color:${textColor};
       font-family:system-ui,sans-serif;box-sizing:border-box;
-    ">${count}</div>`,
+      box-shadow:0 2px 6px rgba(15,23,42,0.22);
+    ">${count}${badge}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildClusterTooltipHtml(cluster: any): string {
+  const { count, officeCount, investmentCount, ownershipAverage } = collectClusterStats(cluster);
+  const markers: L.Marker[] = cluster.getAllChildMarkers();
+
+  const cityCounts = new Map<string, number>();
+  for (const marker of markers) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const city = (marker.options as any).title as string | undefined;
+    if (!city) continue;
+    cityCounts.set(city, (cityCounts.get(city) ?? 0) + 1);
+  }
+
+  const topCities: [string, number][] = [];
+  for (const [city, count] of cityCounts) {
+    topCities.push([city, count]);
+    if (topCities.length > 3) {
+      topCities.sort((a, b) => b[1] - a[1]);
+      topCities.pop();
+    }
+  }
+  topCities.sort((a, b) => b[1] - a[1]);
+  const extraCityCount = Math.max(0, cityCounts.size - topCities.length);
+
+  const lines: string[] = [];
+  lines.push(
+    `<div class="cluster-tooltip__header">${count} marker${count === 1 ? "" : "s"}</div>`
+  );
+
+  const breakdown: string[] = [];
+  if (investmentCount > 0) {
+    breakdown.push(`${investmentCount} propert${investmentCount === 1 ? "y" : "ies"}`);
+  }
+  if (officeCount > 0) {
+    breakdown.push(`${officeCount} NBIM office${officeCount === 1 ? "" : "s"}`);
+  }
+  if (breakdown.length > 0) {
+    lines.push(`<div class="cluster-tooltip__row">${breakdown.join(" · ")}</div>`);
+  }
+
+  if (ownershipAverage != null) {
+    const rounded = Math.round(ownershipAverage);
+    const label = ownershipAverage >= 99.5 ? "100" : integerFormatter.format(rounded);
+    lines.push(
+      `<div class="cluster-tooltip__row cluster-tooltip__row--muted">~${label}% avg ownership</div>`
+    );
+  }
+
+  if (topCities.length > 0) {
+    const items = topCities
+      .map(
+        ([city, n]) =>
+          `<li><span class="cluster-tooltip__city">${escapeHtml(city)}</span><span class="cluster-tooltip__city-count">${n}</span></li>`
+      )
+      .join("");
+    const more = extraCityCount > 0
+      ? `<li class="cluster-tooltip__more">+${extraCityCount} more cit${extraCityCount === 1 ? "y" : "ies"}</li>`
+      : "";
+    lines.push(`<ul class="cluster-tooltip__cities">${items}${more}</ul>`);
+  }
+
+  return lines.join("");
 }
 
 type MapMarkersLayerProps = {
@@ -87,37 +274,39 @@ export default function MapMarkersLayer({
     return selection.mode !== "global" && selection.selectedCityId === property.cityId;
   };
 
+  const clusterEventHandlers = useMemo(
+    () => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      clustermouseover: (event: any) => {
+        const cluster = event.layer;
+        cluster
+          .bindTooltip(buildClusterTooltipHtml(cluster), {
+            direction: "top",
+            offset: [0, -8],
+            className: "cluster-tooltip",
+            sticky: false,
+          })
+          .openTooltip();
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      clustermouseout: (event: any) => {
+        event.layer.closeTooltip();
+        event.layer.unbindTooltip();
+      },
+    }),
+    []
+  );
+
   return (
     <MarkerClusterGroup
       chunkedLoading
       maxClusterRadius={60}
-      disableClusteringAtZoom={15}
+      disableClusteringAtZoom={ZOOM_PROPERTY_FOCUS}
+      spiderfyOnMaxZoom
+      showCoverageOnHover={false}
+      zoomToBoundsOnClick
       iconCreateFunction={createClusterIcon}
-      eventHandlers={{
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        clustermouseover: (e: any) => {
-          const cluster = e.layer;
-          const markers: L.Marker[] = cluster.getAllChildMarkers();
-          const cityCount = new Map<string, number>();
-          for (const m of markers) {
-            const city = (m.options as any).title as string;
-            if (city) cityCount.set(city, (cityCount.get(city) ?? 0) + 1);
-          }
-          const city = [...cityCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
-          cluster
-            .bindTooltip(`<b>${city}</b> · ${markers.length} properties`, {
-              direction: "top",
-              offset: [0, -8],
-              className: "cluster-tooltip",
-            })
-            .openTooltip();
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        clustermouseout: (e: any) => {
-          e.layer.closeTooltip();
-          e.layer.unbindTooltip();
-        },
-      }}
+      eventHandlers={clusterEventHandlers}
     >
       {flatProperties.map((property) => {
         const isSelected = selection.mode === "property" && selection.selectedPropertyId === property.id;
@@ -127,10 +316,17 @@ export default function MapMarkersLayer({
           Boolean(property.is_nbim_office)
         );
         const size = property.is_nbim_office
-          ? showPropertyDetail ? 18 : 12
-          : showPropertyDetail ? 16 : 10;
+          ? showPropertyDetail ? 26 : 18
+          : showPropertyDetail ? 24 : 16;
         const icon = createPropertyIcon(colors, size, isSelected);
         const showLabel = shouldShowPropertyLabel(property, isSelected);
+        const tooltipClassName = [
+          "map-marker-label",
+          isSelected ? "map-marker-label--selected" : null,
+          property.is_nbim_office ? "map-marker-label--office" : null,
+        ]
+          .filter(Boolean)
+          .join(" ");
 
         return (
           <Marker
@@ -138,10 +334,17 @@ export default function MapMarkersLayer({
             position={[property.lat, property.lng]}
             icon={icon}
             title={property.cityName}
+            alt={encodeClusterMeta(property)}
             eventHandlers={{ click: () => onSelectProperty(property) }}
           >
             {showLabel && (
-              <Tooltip direction="top" offset={[0, -size / 2]} opacity={1} permanent className="map-marker-label">
+              <Tooltip
+                direction="top"
+                offset={[0, -size / 2]}
+                opacity={1}
+                permanent
+                className={tooltipClassName}
+              >
                 {getPropertyLabel(property)}
               </Tooltip>
             )}
