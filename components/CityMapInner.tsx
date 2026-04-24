@@ -4,6 +4,7 @@ import type { Map as LeafletMap } from "leaflet";
 import { useCallback, useState } from "react";
 import { MapContainer, TileLayer, ZoomControl } from "react-leaflet";
 
+import MapBuildingFootprint from "@/components/map/MapBuildingFootprint";
 import MapEventBridge from "@/components/map/MapEventBridge";
 import MapIntroCard from "@/components/map/MapIntroCard";
 import MapMarkersLayer from "@/components/map/MapMarkersLayer";
@@ -326,16 +327,16 @@ export default function CityMapInner({ cities, googleMapsEmbedApiKey }: CityMapI
         <MapEventBridge onMapReady={setMapInstance} onZoomChange={setZoom} onCenterChange={setMapCenter} />
 
         {mapInstance && (
-          <MapMarkersLayer
-            showProperties={showProperties}
-            showPropertyDetail={showPropertyDetail}
-            mappableCities={investmentMappableCities}
-            flatProperties={flatProperties}
-            selection={selection}
-            maxPropertyCount={maxPropertyCount}
-            onSelectCity={handleSelectCity}
-            onSelectProperty={handleSelectProperty}
-          />
+          <>
+            <MapMarkersLayer
+              showPropertyDetail={showPropertyDetail}
+              zoom={zoom}
+              flatProperties={flatProperties}
+              selection={selection}
+              onSelectProperty={handleSelectProperty}
+            />
+            <MapBuildingFootprint selectedProperty={selectedFlatProperty} zoom={zoom} />
+          </>
         )}
       </MapContainer>
 
