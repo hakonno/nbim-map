@@ -1,6 +1,9 @@
 import { memo, useEffect, useRef } from "react";
 
 import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
+import type { Currency } from "@/utils/formatCurrency";
+import { formatNokValue } from "@/utils/formatCurrency";
+import { setRateInfoOpen, useUsdToNokRate } from "@/components/map/hooks/useExchangeRate";
 import type { CityNode } from "@/types/cities";
 
 type MapIntroCardProps = {
@@ -18,6 +21,7 @@ type MapIntroCardProps = {
   totalInvestments: number;
   totalNbimOffices: number;
   totalRealEstateValueNok: number;
+  currency: Currency;
 };
 
 const integerFormatter = new Intl.NumberFormat("en-US", {
@@ -29,10 +33,8 @@ const percentageFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 1,
 });
 
-const compactCurrencyFormatter = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
+const US_PRICES_BADGE_EXPIRY = Date.UTC(2026, 4, 19);
+const SHOW_US_BADGE = Date.now() < US_PRICES_BADGE_EXPIRY;
 
 function GitHubMark({ className }: { className?: string }) {
   return (
@@ -57,8 +59,13 @@ function MapIntroCard({
   totalInvestments,
   totalNbimOffices,
   totalRealEstateValueNok,
+  currency,
 }: MapIntroCardProps) {
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const rateState = useUsdToNokRate();
+  const nokToUsd = rateState.status === "success" ? rateState.nokToUsd : null;
+
+  const fmtValue = (nok: number) => formatNokValue(nok, currency, nokToUsd);
 
   useEffect(() => {
     const cardElement = cardRef.current;
@@ -125,20 +132,39 @@ function MapIntroCard({
           </p>
 
           <p className="mt-1 text-[11px] text-slate-700 sm:hidden">
-            NOK {integerFormatter.format(fundRealEstateValueNok)} · {percentageFormatter.format(fundSharePercent)}% of fund · {integerFormatter.format(countriesWithoutInternational)} countries
+            {fmtValue(fundRealEstateValueNok)} · {percentageFormatter.format(fundSharePercent)}% of fund · {integerFormatter.format(countriesWithoutInternational)} countries
             {hasInternationalFund ? " + 1 intl fund" : ""}
             {totalNbimOffices > 0 ? ` · ${integerFormatter.format(totalNbimOffices)} offices` : ""}
           </p>
 
           <div className="mt-3 hidden grid-cols-2 gap-2 text-sm sm:grid">
-            <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
-              <p className="font-semibold text-slate-900 tabular-nums">{integerFormatter.format(fundRealEstateValueNok)}</p>
-              <p className="text-slate-500">Value in NOK</p>
+            <div className="relative rounded-lg bg-slate-100 p-2 sm:rounded-xl">
+              <p className="font-semibold text-slate-900 tabular-nums">
+                {fmtValue(fundRealEstateValueNok)}
+                <button
+                  type="button"
+                  onClick={() => setRateInfoOpen(true)}
+                  aria-label="About the exchange rate"
+                  aria-haspopup="dialog"
+                  className="pointer-events-auto ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-semibold text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  ?
+                </button>
+              </p>
+              <p className="text-slate-500">Total value</p>
             </div>
-            <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
+            <a
+              href="https://www.nbim.no/en/investments/all-investments"
+              target="_blank"
+              rel="noreferrer"
+              className="pointer-events-auto group block rounded-lg bg-slate-100 p-2 transition-colors hover:bg-slate-200 sm:rounded-xl"
+            >
               <p className="font-semibold text-slate-900 tabular-nums">{percentageFormatter.format(fundSharePercent)}%</p>
               <p className="text-slate-500">of fund&apos;s total investments</p>
-            </div>
+              <p className="mt-0.5 text-[10px] font-medium text-slate-600 underline underline-offset-2 group-hover:text-slate-800">
+                View all on NBIM →
+              </p>
+            </a>
             <div className="rounded-lg bg-slate-100 p-2 sm:rounded-xl">
               <p className="font-semibold text-slate-900 tabular-nums">
                 {integerFormatter.format(countriesWithoutInternational)}
@@ -169,9 +195,7 @@ function MapIntroCard({
           )}
           <p className="mt-1 text-[11px] text-slate-700 sm:text-sm">
             {integerFormatter.format(selectedCountryPropertyCount)} properties across {integerFormatter.format(selectedCountryCityCount)} cities
-            {selectedCountryValueNok == null
-              ? ""
-              : ` · NOK ${compactCurrencyFormatter.format(selectedCountryValueNok)}`}
+            {selectedCountryValueNok == null ? "" : ` · ${fmtValue(selectedCountryValueNok)}`}
           </p>
         </>
       ) : selectedCity ? (
@@ -203,6 +227,13 @@ function MapIntroCard({
           <h1 className="mt-0.5 text-[13px] font-semibold leading-tight text-slate-900 sm:mt-1 sm:text-xl">Norway‑owned real estate worldwide.</h1>
           <p className="mt-1 text-[11px] text-slate-700 sm:mt-2 sm:text-sm">Tap a city to continue.</p>
         </>
+      )}
+
+      {SHOW_US_BADGE && (
+        <p className="mt-2 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-medium text-emerald-700 ring-1 ring-emerald-200 sm:text-[10px]">
+          <span className="font-semibold uppercase tracking-wide">New</span>
+          <span className="text-emerald-800">Added prices for many US properties <span className="text-emerald-600">(estimates)</span></span>
+        </p>
       )}
 
       <p className="mt-2 border-t border-slate-200 pt-1 text-[9px] leading-snug text-slate-500 sm:hidden">

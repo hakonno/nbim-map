@@ -6,6 +6,7 @@ import GlobalCountryListSection from "@/components/map/selection/GlobalCountryLi
 import type { CitySortOption } from "@/components/map/selection/cityListSorting";
 import type { CountrySortOption } from "@/components/map/selection/countryListSorting";
 import { OfficeBadge, SectorBadge } from "@/components/map/selection/propertyVisuals";
+import type { Currency } from "@/utils/formatCurrency";
 import type { CityNode } from "@/types/cities";
 
 type GlobalSearchSectionProps = {
@@ -19,6 +20,7 @@ type GlobalSearchSectionProps = {
   onSelectCountry: (country: string) => void;
   totalRealEstateValueNok: number;
   mapCenter: [number, number] | null;
+  currency: Currency;
 };
 
 export default function GlobalSearchSection({
@@ -32,6 +34,7 @@ export default function GlobalSearchSection({
   onSelectCountry,
   totalRealEstateValueNok,
   mapCenter,
+  currency,
 }: GlobalSearchSectionProps) {
   const [globalListMode, setGlobalListMode] = useState<"cities" | "countries">("cities");
   const [countrySortOption, setCountrySortOption] = useState<CountrySortOption>("country-value");
@@ -74,6 +77,7 @@ export default function GlobalSearchSection({
             onSelectCity={onSelectCity}
             mapCenter={mapCenter}
             totalRealEstateValueNok={totalRealEstateValueNok}
+            currency={currency}
           />
         ) : (
           <GlobalCountryListSection
@@ -82,6 +86,7 @@ export default function GlobalSearchSection({
             onSortOptionChange={setCountrySortOption}
             onSelectCountry={onSelectCountry}
             totalRealEstateValueNok={totalRealEstateValueNok}
+            currency={currency}
           />
         )}
       </>
