@@ -80,10 +80,10 @@ export function useAttomData(propertyId: string | null): FetchResult | null {
   useEffect(() => {
     if (!propertyId) return;
 
-    const cached = cache.get(propertyId);
-    if (cached && cached.status !== "loading") return;
+    if (cache.has(propertyId)) return;
 
     let cancelled = false;
+    cache.set(propertyId, { status: "loading" });
 
     fetch(`/api/attom?id=${encodeURIComponent(propertyId)}`)
       .then((r) => r.json())

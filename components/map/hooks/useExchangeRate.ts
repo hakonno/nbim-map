@@ -84,6 +84,7 @@ function fetchRate(mode: RateMode): Promise<void> {
     })
     .catch(() => {
       cached[mode] = { status: "error" };
+      inflight[mode] = null;
     })
     .finally(() => {
       notify();
