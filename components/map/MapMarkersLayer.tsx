@@ -1,7 +1,7 @@
 "use client";
 
 import L from "leaflet";
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { Marker, Tooltip } from "react-leaflet";
 
@@ -10,6 +10,8 @@ import {
   ZOOM_PROPERTY_FOCUS,
 } from "@/components/map/mapConstants";
 import type { FlatProperty, SelectionState } from "@/components/map/mapTypes";
+
+const LABEL_MIN_ZOOM = 17;
 
 const integerFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
@@ -238,6 +240,88 @@ function buildClusterTooltipHtml(cluster: any): string {
   return lines.join("");
 }
 
+function getPropertyLabel(property: FlatProperty): string {
+  const base = property.office_name?.trim() || property.name?.trim() || property.address?.trim() || "Property";
+  if (property.is_nbim_office) {
+    const type =
+      property.office_category === "head_office" ? "Head office"
+      : property.office_category === "real_estate_office" ? "Real estate office"
+      : "NBIM office";
+    return `${base} · ${type}`;
+  }
+  if (property.ownership_percent == null) return base;
+  if (Number.isInteger(property.ownership_percent))
+    return `${base} · ${integerFormatter.format(property.ownership_percent)}%`;
+  return `${base} · ~${integerFormatter.format(Math.round(property.ownership_percent))}%`;
+}
+
+type PropertyMarkerProps = {
+  property: FlatProperty;
+  isSelected: boolean;
+  showLabel: boolean;
+  showPropertyDetail: boolean;
+  onSelect: (property: FlatProperty) => void;
+};
+
+const PropertyMarker = memo(function PropertyMarker({
+  property,
+  isSelected,
+  showLabel,
+  showPropertyDetail,
+  onSelect,
+}: PropertyMarkerProps) {
+  const size = property.is_nbim_office
+    ? showPropertyDetail ? 26 : 18
+    : showPropertyDetail ? 24 : 16;
+
+  const icon = useMemo(() => {
+    const colors = getPropertyColors(
+      property.ownership_percent,
+      isSelected,
+      Boolean(property.is_nbim_office)
+    );
+    return createPropertyIcon(colors, size, isSelected);
+  }, [property.ownership_percent, property.is_nbim_office, isSelected, size]);
+
+  const eventHandlers = useMemo(
+    () => ({ click: () => onSelect(property) }),
+    [onSelect, property]
+  );
+
+  const alt = useMemo(() => encodeClusterMeta(property), [property]);
+  const label = useMemo(() => getPropertyLabel(property), [property]);
+
+  const tooltipClassName = [
+    "map-marker-label",
+    isSelected ? "map-marker-label--selected" : null,
+    property.is_nbim_office ? "map-marker-label--office" : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <Marker
+      position={[property.lat, property.lng]}
+      icon={icon}
+      title={property.cityName}
+      alt={alt}
+      eventHandlers={eventHandlers}
+    >
+      {showLabel && (
+        <Tooltip
+          direction="top"
+          offset={[0, -size / 2]}
+          opacity={1}
+          permanent
+          className={tooltipClassName}
+        >
+          {label}
+        </Tooltip>
+      )}
+    </Marker>
+  );
+});
+
 type MapMarkersLayerProps = {
   showPropertyDetail: boolean;
   zoom: number;
@@ -253,27 +337,6 @@ export default function MapMarkersLayer({
   selection,
   onSelectProperty,
 }: MapMarkersLayerProps) {
-  const getPropertyLabel = (property: FlatProperty) => {
-    const base = property.office_name?.trim() || property.name?.trim() || property.address?.trim() || "Property";
-    if (property.is_nbim_office) {
-      const type =
-        property.office_category === "head_office" ? "Head office"
-        : property.office_category === "real_estate_office" ? "Real estate office"
-        : "NBIM office";
-      return `${base} · ${type}`;
-    }
-    if (property.ownership_percent == null) return base;
-    if (Number.isInteger(property.ownership_percent))
-      return `${base} · ${integerFormatter.format(property.ownership_percent)}%`;
-    return `${base} · ~${integerFormatter.format(Math.round(property.ownership_percent))}%`;
-  };
-
-  const shouldShowPropertyLabel = (property: FlatProperty, isSelected: boolean) => {
-    if (zoom < 17) return false;
-    if (isSelected) return true;
-    return selection.mode !== "global" && selection.selectedCityId === property.cityId;
-  };
-
   const clusterEventHandlers = useMemo(
     () => ({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -297,6 +360,12 @@ export default function MapMarkersLayer({
     []
   );
 
+  const labelsEnabled = zoom >= LABEL_MIN_ZOOM;
+  const highlightCityId =
+    selection.mode !== "global" ? selection.selectedCityId : null;
+  const selectedPropertyId =
+    selection.mode === "property" ? selection.selectedPropertyId : null;
+
   return (
     <MarkerClusterGroup
       chunkedLoading
@@ -309,46 +378,19 @@ export default function MapMarkersLayer({
       eventHandlers={clusterEventHandlers}
     >
       {flatProperties.map((property) => {
-        const isSelected = selection.mode === "property" && selection.selectedPropertyId === property.id;
-        const colors = getPropertyColors(
-          property.ownership_percent,
-          isSelected,
-          Boolean(property.is_nbim_office)
-        );
-        const size = property.is_nbim_office
-          ? showPropertyDetail ? 26 : 18
-          : showPropertyDetail ? 24 : 16;
-        const icon = createPropertyIcon(colors, size, isSelected);
-        const showLabel = shouldShowPropertyLabel(property, isSelected);
-        const tooltipClassName = [
-          "map-marker-label",
-          isSelected ? "map-marker-label--selected" : null,
-          property.is_nbim_office ? "map-marker-label--office" : null,
-        ]
-          .filter(Boolean)
-          .join(" ");
+        const isSelected = property.id === selectedPropertyId;
+        const showLabel =
+          labelsEnabled && (isSelected || property.cityId === highlightCityId);
 
         return (
-          <Marker
+          <PropertyMarker
             key={property.id}
-            position={[property.lat, property.lng]}
-            icon={icon}
-            title={property.cityName}
-            alt={encodeClusterMeta(property)}
-            eventHandlers={{ click: () => onSelectProperty(property) }}
-          >
-            {showLabel && (
-              <Tooltip
-                direction="top"
-                offset={[0, -size / 2]}
-                opacity={1}
-                permanent
-                className={tooltipClassName}
-              >
-                {getPropertyLabel(property)}
-              </Tooltip>
-            )}
-          </Marker>
+            property={property}
+            isSelected={isSelected}
+            showLabel={showLabel}
+            showPropertyDetail={showPropertyDetail}
+            onSelect={onSelectProperty}
+          />
         );
       })}
     </MarkerClusterGroup>
