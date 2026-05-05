@@ -1,7 +1,7 @@
 "use client";
 
 import type { Map as LeafletMap } from "leaflet";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, ZoomControl } from "react-leaflet";
 
 import MapBuildingFootprint from "@/components/map/MapBuildingFootprint";
@@ -10,7 +10,9 @@ import MapIntroCard from "@/components/map/MapIntroCard";
 import MapMarkersLayer from "@/components/map/MapMarkersLayer";
 import MapSelectionPanel from "@/components/map/MapSelectionPanel";
 import { useCityMapDerivedData } from "@/components/map/hooks/useCityMapDerivedData";
+import { useTrackEvent } from "@/components/map/hooks/useTrackEvent";
 import { useMapMobileInteractions } from "@/components/map/hooks/useMapMobileInteractions";
+import type { Currency } from "@/utils/formatCurrency";
 import {
   FUND_REAL_ESTATE_VALUE_NOK,
   FUND_SHARE_PERCENT,
@@ -42,6 +44,7 @@ export default function CityMapInner({ cities, googleMapsEmbedApiKey }: CityMapI
     selectedPropertyId: null,
   });
   const [citySortOption, setCitySortOption] = useState<CitySortOption>("properties");
+  const [currency, setCurrency] = useState<Currency>("USD");
   const [mapCenter, setMapCenter] = useState<[number, number]>(MAP_CENTER);
 
   const {
@@ -68,6 +71,28 @@ export default function CityMapInner({ cities, googleMapsEmbedApiKey }: CityMapI
     selection,
     searchResultLimit: SEARCH_RESULT_LIMIT,
   });
+
+  const track = useTrackEvent();
+  const trackedPropertyId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (
+      selection.mode === "property" &&
+      selectedProperty &&
+      selectedFlatProperty &&
+      selection.selectedPropertyId !== trackedPropertyId.current
+    ) {
+      trackedPropertyId.current = selection.selectedPropertyId;
+      track({
+        event: "view_property",
+        propertyId: selectedProperty.id,
+        propertyName: selectedProperty.office_name ?? selectedProperty.name ?? undefined,
+        propertyAddress: selectedProperty.address ?? undefined,
+        cityName: selectedCity?.city ?? undefined,
+        country: selectedCity?.country ?? undefined,
+      });
+    }
+  }, [selection, selectedProperty, selectedFlatProperty, selectedCity, track]);
 
   const showProperties = zoom >= ZOOM_SHOW_PROPERTIES;
   const showPropertyDetail = zoom >= ZOOM_PROPERTY_DETAIL;
@@ -374,6 +399,7 @@ export default function CityMapInner({ cities, googleMapsEmbedApiKey }: CityMapI
         totalInvestments={totalInvestments}
         totalNbimOffices={totalNbimOffices}
         totalRealEstateValueNok={FUND_REAL_ESTATE_VALUE_NOK}
+        currency={currency}
       />
 
       <MapSelectionPanel
@@ -406,6 +432,8 @@ export default function CityMapInner({ cities, googleMapsEmbedApiKey }: CityMapI
         onSelectProperty={handleSelectPropertyById}
         onPanelHeightChange={handleMobilePanelHeightChange}
         googleMapsEmbedApiKey={googleMapsEmbedApiKey}
+        currency={currency}
+        onCurrencyChange={setCurrency}
       />
     </div>
   );

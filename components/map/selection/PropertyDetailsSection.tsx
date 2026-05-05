@@ -1,5 +1,7 @@
 import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
 import type { PropertyCoordinates } from "@/components/map/mapTypes";
+import AttomDataSection from "@/components/map/selection/AttomDataSection";
+import type { Currency } from "@/utils/formatCurrency";
 import {
   getOfficeCategoryLabel,
   OfficeBadge,
@@ -20,6 +22,9 @@ type PropertyDetailsSectionProps = {
   showCoordinatesDebug: boolean;
   onBackToCity: () => void;
   backLabel?: string;
+  isMarketDataExpanded: boolean;
+  onToggleMarketData: () => void;
+  currency: Currency;
 };
 
 export default function PropertyDetailsSection({
@@ -29,7 +34,10 @@ export default function PropertyDetailsSection({
   googleMapsEmbedApiKey,
   showCoordinatesDebug,
   onBackToCity,
-  backLabel = "\u2190 Back to city list",
+  backLabel = "← Back to city list",
+  isMarketDataExpanded,
+  onToggleMarketData,
+  currency,
 }: PropertyDetailsSectionProps) {
   const isOfficeLocation = Boolean(selectedProperty.is_nbim_office);
   const displayName = selectedProperty.office_name ?? selectedProperty.name ?? "Property";
@@ -42,6 +50,8 @@ export default function PropertyDetailsSection({
   const streetViewEmbedUrl = googleMapsEmbedApiKey && hasValidCoordinates && selectedPropertyCoordinates
     ? `https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(googleMapsEmbedApiKey)}&location=${selectedPropertyCoordinates.lat},${selectedPropertyCoordinates.lng}&source=outdoor&radius=120`
     : null;
+
+  const isUsProperty = selectedCity.country === "United States";
 
   return (
     <>
@@ -124,6 +134,44 @@ export default function PropertyDetailsSection({
           </div>
         )}
       </section>
+
+      {/* Market data — only for US properties */}
+      {isUsProperty && !selectedProperty.is_nbim_office && (
+        <>
+          {/* Summary: hidden everywhere when expanded (mobile shows full view below; desktop uses right panel) */}
+          <div className={isMarketDataExpanded ? "hidden" : ""}>
+            <AttomDataSection
+              propertyId={selectedProperty.id}
+              mode="summary"
+              currency={currency}
+              ownershipPercent={selectedProperty.ownership_percent}
+              onExpand={onToggleMarketData}
+            />
+          </div>
+
+          {/* Full view: shown inline on mobile when expanded; desktop uses right panel */}
+          {isMarketDataExpanded && (
+            <div className="md:hidden">
+              <div className="flex items-center justify-between px-1 py-2">
+                <p className="text-sm font-semibold text-slate-800">Market Data</p>
+                <button
+                  type="button"
+                  onClick={onToggleMarketData}
+                  className="text-xs font-medium text-slate-600 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                >
+                  Close ✕
+                </button>
+              </div>
+              <AttomDataSection
+                propertyId={selectedProperty.id}
+                mode="full"
+                currency={currency}
+                ownershipPercent={selectedProperty.ownership_percent}
+              />
+            </div>
+          )}
+        </>
+      )}
 
       <button
         className="pointer-events-auto mt-4 rounded-md px-1 py-0.5 text-xs text-blue-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"

@@ -1,20 +1,20 @@
+"use client";
+
 import { useMemo } from "react";
 
 import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
+import { useUsdToNokRate } from "@/components/map/hooks/useExchangeRate";
 import {
   buildCountryAggregates,
   sortCountryAggregates,
   type CountrySortOption,
 } from "@/components/map/selection/countryListSorting";
+import type { Currency } from "@/utils/formatCurrency";
+import { formatNokValue } from "@/utils/formatCurrency";
 import type { CityNode } from "@/types/cities";
 
 const integerFormatter = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
-});
-
-const compactCurrencyFormatter = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 1,
 });
 
 type GlobalCountryListSectionProps = {
@@ -23,6 +23,7 @@ type GlobalCountryListSectionProps = {
   onSortOptionChange: (option: CountrySortOption) => void;
   onSelectCountry: (country: string) => void;
   totalRealEstateValueNok: number;
+  currency: Currency;
 };
 
 export default function GlobalCountryListSection({
@@ -31,11 +32,15 @@ export default function GlobalCountryListSection({
   onSortOptionChange,
   onSelectCountry,
   totalRealEstateValueNok,
+  currency,
 }: GlobalCountryListSectionProps) {
   const sortedCountries = useMemo(() => {
     const countryAggregates = buildCountryAggregates(cities);
     return sortCountryAggregates(countryAggregates, sortOption);
   }, [cities, sortOption]);
+
+  const rateState = useUsdToNokRate();
+  const nokToUsd = rateState.status === "success" ? rateState.nokToUsd : null;
 
   return (
     <>
@@ -51,7 +56,7 @@ export default function GlobalCountryListSection({
           onChange={(event) => onSortOptionChange(event.target.value as CountrySortOption)}
           className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
         >
-          <option value="country-value">Country value (NOK)</option>
+          <option value="country-value">Country value ({currency})</option>
           <option value="properties">Properties</option>
           <option value="cities">Cities</option>
           <option value="alphabetical">Alphabetical</option>
@@ -79,7 +84,7 @@ export default function GlobalCountryListSection({
               </p>
               {country.countryValueNok != null && (
                 <p className="mt-1 text-xs text-slate-600">
-                  Value: NOK {compactCurrencyFormatter.format(country.countryValueNok)}
+                  Value: {formatNokValue(country.countryValueNok, currency, nokToUsd)}
                   {countrySharePercent == null ? "" : ` (${countrySharePercent.toFixed(1)}%)`}
                 </p>
               )}

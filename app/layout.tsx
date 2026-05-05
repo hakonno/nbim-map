@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "./siteMetadata";
+import DisclaimerModal from "@/components/DisclaimerModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -82,6 +83,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
+        <DisclaimerModal />
         <Analytics />
         <SpeedInsights />
       </body>

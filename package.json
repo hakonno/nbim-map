@@ -25,6 +25,7 @@
     "lint": "eslint",
     "test": "playwright test",
     "dataset:activate": "node scripts/activate-dataset.mjs",
+    "fetch:attom": "node --env-file=.env.local scripts/fetch-attom-data.mjs",
     "pipeline": "npm run pipeline:properties && npm run pipeline:cities",
     "pipeline:cities": "node scripts/build-cities.mjs",
     "pipeline:properties": "node scripts/pipeline.mjs",
