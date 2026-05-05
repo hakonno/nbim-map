@@ -10,7 +10,7 @@ export const MAP_DEFAULT_ZOOM = 3;
 export const MAP_CENTER: [number, number] = [25, 5];
 
 export const SEARCH_RESULT_LIMIT = 12;
-export const SHOW_PROPERTY_COORDINATES_DEBUG = false;
+export const SHOW_PROPERTY_COORDINATES_DEBUG = true;
 
 export const FUND_REAL_ESTATE_VALUE_NOK = 371_524_114_446;
 export const FUND_SHARE_PERCENT = 1.7;

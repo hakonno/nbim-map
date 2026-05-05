@@ -54,6 +54,7 @@ export function useCityMapDerivedData({
     () =>
       enrichedCities
         .filter((city) => typeof city.lat === "number" && typeof city.lng === "number")
+        .filter((city) => city.lat !== 0 || city.lng !== 0)
         .filter((city) => !isInternationalFundCity(city)),
     [enrichedCities]
   );
