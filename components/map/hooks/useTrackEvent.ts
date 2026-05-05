@@ -2,11 +2,25 @@
 
 import { useCallback, useRef } from "react";
 
+function generateId(): string {
+  if (typeof crypto !== "undefined") {
+    if (typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    if (typeof crypto.getRandomValues === "function") {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    }
+  }
+  return "unknown";
+}
+
 function getSessionId(): string {
   try {
     let id = sessionStorage.getItem("nbim_sid");
     if (!id) {
-      id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      id = generateId();
       sessionStorage.setItem("nbim_sid", id);
     }
     return id;
