@@ -16,6 +16,7 @@ import type { Currency } from "@/utils/formatCurrency";
 import {
   FUND_REAL_ESTATE_VALUE_NOK,
   FUND_SHARE_PERCENT,
+  getBaseTileLayer,
   MAP_CENTER,
   MAP_DEFAULT_ZOOM,
   SEARCH_RESULT_LIMIT,
@@ -31,9 +32,15 @@ import type { CityNode } from "@/types/cities";
 type CityMapInnerProps = {
   cities: CityNode[];
   googleMapsEmbedApiKey: string;
+  maptilerApiKey: string;
 };
 
-export default function CityMapInner({ cities, googleMapsEmbedApiKey }: CityMapInnerProps) {
+export default function CityMapInner({
+  cities,
+  googleMapsEmbedApiKey,
+  maptilerApiKey,
+}: CityMapInnerProps) {
+  const baseTileLayer = getBaseTileLayer(maptilerApiKey);
   const [zoom, setZoom] = useState(MAP_DEFAULT_ZOOM);
   const [mapInstance, setMapInstance] = useState<LeafletMap | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -344,10 +351,7 @@ export default function CityMapInner({ cities, googleMapsEmbedApiKey }: CityMapI
         className="h-full w-full"
         worldCopyJump
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <TileLayer attribution={baseTileLayer.attribution} url={baseTileLayer.url} />
         <ZoomControl position="bottomleft" />
         <MapEventBridge onMapReady={setMapInstance} onZoomChange={setZoom} onCenterChange={setMapCenter} />
 
