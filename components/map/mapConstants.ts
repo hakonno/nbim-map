@@ -9,8 +9,45 @@ export const ZOOM_PROPERTY_FOCUS = 15;
 export const MAP_DEFAULT_ZOOM = 3;
 export const MAP_CENTER: [number, number] = [25, 5];
 
+// MapTiler base map style (https://docs.maptiler.com/cloud/api/maps/).
+// `streets-v2` is the closest equivalent to the previous OpenStreetMap tiles.
+export const MAPTILER_STYLE = "streets-v2";
+
+const OSM_TILE_LAYER = {
+  url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  attribution:
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+};
+
+/**
+ * Resolves the base raster tile layer.
+ *
+ * When a MapTiler key is provided we serve MapTiler tiles (using the 256px
+ * endpoint so it is a drop-in replacement for the previous 256px OSM tiles —
+ * no tileSize/zoomOffset changes needed). When the key is missing we fall back
+ * to raw OpenStreetMap tiles so local dev without a key still shows a map.
+ *
+ * The key is intentionally embedded in the tile URL: any browser-rendered map
+ * exposes it in tile requests, so it is protected by MapTiler origin
+ * restrictions, not by secrecy.
+ */
+export function getBaseTileLayer(maptilerApiKey: string | undefined) {
+  const key = maptilerApiKey?.trim() ?? "";
+
+  if (!key) {
+    return OSM_TILE_LAYER;
+  }
+
+  return {
+    url: `https://api.maptiler.com/maps/${MAPTILER_STYLE}/256/{z}/{x}/{y}.png?key=${key}`,
+    attribution:
+      '&copy; <a href="https://www.maptiler.com/copyright/" target="_blank" rel="noopener noreferrer">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
+  };
+}
+
 export const SEARCH_RESULT_LIMIT = 12;
-export const SHOW_PROPERTY_COORDINATES_DEBUG = true;
+// Debug-only: shows raw lat/lng in the property panel. Hidden in production.
+export const SHOW_PROPERTY_COORDINATES_DEBUG = process.env.NODE_ENV !== "production";
 
 export const FUND_REAL_ESTATE_VALUE_NOK = 371_524_114_446;
 export const FUND_SHARE_PERCENT = 1.7;

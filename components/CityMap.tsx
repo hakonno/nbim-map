@@ -17,9 +17,14 @@ const CityMapInner = dynamic(() => import("./CityMapInner"), {
 type CityMapProps = {
   initialCities?: CityNode[];
   googleMapsEmbedApiKey?: string;
+  maptilerApiKey?: string;
 };
 
-export default function CityMap({ initialCities, googleMapsEmbedApiKey = "" }: CityMapProps) {
+export default function CityMap({
+  initialCities,
+  googleMapsEmbedApiKey = "",
+  maptilerApiKey = "",
+}: CityMapProps) {
   const [cities, setCities] = useState<CityNode[] | null>(initialCities ?? null);
   const [error, setError] = useState<string | null>(null);
   const [reloadCount, setReloadCount] = useState(0);
@@ -90,5 +95,11 @@ export default function CityMap({ initialCities, googleMapsEmbedApiKey = "" }: C
     );
   }
 
-  return <CityMapInner cities={cities} googleMapsEmbedApiKey={googleMapsEmbedApiKey} />;
+  return (
+    <CityMapInner
+      cities={cities}
+      googleMapsEmbedApiKey={googleMapsEmbedApiKey}
+      maptilerApiKey={maptilerApiKey}
+    />
+  );
 }
