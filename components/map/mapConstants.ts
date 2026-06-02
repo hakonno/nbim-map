@@ -46,7 +46,8 @@ export function getBaseTileLayer(maptilerApiKey: string | undefined) {
 }
 
 export const SEARCH_RESULT_LIMIT = 12;
-export const SHOW_PROPERTY_COORDINATES_DEBUG = true;
+// Debug-only: shows raw lat/lng in the property panel. Hidden in production.
+export const SHOW_PROPERTY_COORDINATES_DEBUG = process.env.NODE_ENV !== "production";
 
 export const FUND_REAL_ESTATE_VALUE_NOK = 371_524_114_446;
 export const FUND_SHARE_PERCENT = 1.7;
