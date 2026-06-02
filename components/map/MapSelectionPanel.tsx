@@ -177,8 +177,8 @@ function MapSelectionPanel({
         aria-controls="map-selection-panel-content"
         aria-expanded={isPanelExpanded}
       >
-        <span aria-hidden="true" className="text-base leading-none">
-          {isPanelExpanded ? "v" : "^"}
+        <span aria-hidden="true" className="text-xs font-medium leading-none">
+          {isPanelExpanded ? "Tap to collapse" : "Tap to expand"}
         </span>
       </button>
 
