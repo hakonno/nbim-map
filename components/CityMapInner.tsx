@@ -25,7 +25,13 @@ import {
   ZOOM_PROPERTY_FOCUS,
   ZOOM_SHOW_PROPERTIES,
 } from "@/components/map/mapConstants";
-import type { FlatProperty, SearchResult, SelectionState } from "@/components/map/mapTypes";
+import {
+  initialSelectionState,
+  type FlatProperty,
+  type InitialFocus,
+  type SearchResult,
+  type SelectionState,
+} from "@/components/map/mapTypes";
 import type { CitySortOption } from "@/components/map/selection/cityListSorting";
 import type { CityNode } from "@/types/cities";
 
@@ -33,30 +39,28 @@ type CityMapInnerProps = {
   cities: CityNode[];
   googleMapsEmbedApiKey: string;
   maptilerApiKey: string;
+  initialFocus?: InitialFocus;
 };
 
 export default function CityMapInner({
   cities,
   googleMapsEmbedApiKey,
   maptilerApiKey,
+  initialFocus,
 }: CityMapInnerProps) {
   const baseTileLayer = getBaseTileLayer(maptilerApiKey);
   const [zoom, setZoom] = useState(MAP_DEFAULT_ZOOM);
   const [mapInstance, setMapInstance] = useState<LeafletMap | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selection, setSelection] = useState<SelectionState>({
-    mode: "global",
-    selectedCountry: null,
-    selectedCityId: null,
-    selectedPropertyId: null,
-  });
+  const [selection, setSelection] = useState<SelectionState>(() =>
+    initialSelectionState(initialFocus)
+  );
   const [citySortOption, setCitySortOption] = useState<CitySortOption>("properties");
   const [currency, setCurrency] = useState<Currency>("USD");
   const [mapCenter, setMapCenter] = useState<[number, number]>(MAP_CENTER);
 
   const {
     investmentMappableCities,
-    maxPropertyCount,
     flatProperties,
     flatPropertyById,
     selectedCity,
@@ -135,23 +139,6 @@ export default function CityMapInner({
     [getFocusCenter, mapInstance]
   );
 
-  const flyToProperty = useCallback(
-    (property: FlatProperty) => {
-      if (!mapInstance) {
-        return;
-      }
-
-      const targetZoom = Math.max(mapInstance.getZoom(), ZOOM_PROPERTY_FOCUS);
-      const targetCenter = getFocusCenter([property.lat, property.lng], targetZoom);
-
-      mapInstance.flyTo(targetCenter, targetZoom, {
-        animate: true,
-        duration: 0.75,
-      });
-    },
-    [getFocusCenter, mapInstance]
-  );
-
   const handleSelectCity = useCallback(
     (city: CityNode) => {
       setSelection({
@@ -214,18 +201,16 @@ export default function CityMapInner({
     [flyToCountry]
   );
 
-  const handleSelectProperty = useCallback(
-    (property: FlatProperty) => {
-      setSelection((current) => ({
-        mode: "property",
-        selectedCountry: current.mode === "country" ? current.selectedCountry : null,
-        selectedCityId: property.cityId,
-        selectedPropertyId: property.id,
-      }));
-      flyToProperty(property);
-    },
-    [flyToProperty]
-  );
+  // Selecting a property highlights it and opens the panel, but does NOT move
+  // the camera — the user clicked something already in view.
+  const handleSelectProperty = useCallback((property: FlatProperty) => {
+    setSelection((current) => ({
+      mode: "property",
+      selectedCountry: current.mode === "country" ? current.selectedCountry : null,
+      selectedCityId: property.cityId,
+      selectedPropertyId: property.id,
+    }));
+  }, []);
 
   const handleSelectPropertyById = useCallback(
     (propertyId: string) => {
@@ -340,6 +325,22 @@ export default function CityMapInner({
   const handleClearSearch = useCallback(() => {
     setSearchQuery("");
   }, []);
+
+  // The deep-link focus selection is already set via the useState initializer;
+  // here we only move the camera once the map is ready (no setState).
+  const appliedInitialFocus = useRef(false);
+  useEffect(() => {
+    if (appliedInitialFocus.current || !mapInstance || !initialFocus) {
+      return;
+    }
+    appliedInitialFocus.current = true;
+    if (initialFocus.kind === "city") {
+      const city = investmentMappableCities.find((c) => c.id === initialFocus.cityId);
+      if (city) flyToCity(city);
+    } else {
+      flyToCountry(initialFocus.country);
+    }
+  }, [mapInstance, initialFocus, investmentMappableCities, flyToCity, flyToCountry]);
 
   return (
     <div className="map-shell relative h-[100dvh] min-h-[100svh] w-full overflow-hidden touch-manipulation">

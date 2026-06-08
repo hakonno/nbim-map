@@ -1,33 +1,80 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 
+import { isWebglSupported } from "@/components/map/gl/mapGlConstants";
+import type { InitialFocus } from "@/components/map/mapTypes";
 import type { CityNode } from "@/types/cities";
+
+const LoadingScreen = (
+  <div className="flex h-[100svh] w-full items-center justify-center bg-slate-100 text-slate-700">
+    Loading city investment map...
+  </div>
+);
 
 const CityMapInner = dynamic(() => import("./CityMapInner"), {
   ssr: false,
-  loading: () => (
-    <div className="flex h-[100svh] w-full items-center justify-center bg-slate-100 text-slate-700">
-      Loading city investment map...
-    </div>
-  ),
+  loading: () => LoadingScreen,
 });
+
+const CityMapGL = dynamic(() => import("./CityMapGL"), {
+  ssr: false,
+  loading: () => LoadingScreen,
+});
+
+type MapEngine = "gl" | "leaflet";
+
+// WebGL support never changes for a session, so detect it at most once.
+let webglEngineCache: MapEngine | null = null;
+const noopSubscribe = () => () => {};
 
 type CityMapProps = {
   initialCities?: CityNode[];
   googleMapsEmbedApiKey?: string;
   maptilerApiKey?: string;
+  initialFocus?: InitialFocus;
 };
 
 export default function CityMap({
   initialCities,
   googleMapsEmbedApiKey = "",
   maptilerApiKey = "",
+  initialFocus,
 }: CityMapProps) {
   const [cities, setCities] = useState<CityNode[] | null>(initialCities ?? null);
   const [error, setError] = useState<string | null>(null);
   const [reloadCount, setReloadCount] = useState(0);
+
+  // Runtime fallback flag: flipped on if MapTiler rejects the key or the monthly
+  // quota is exhausted ("tokens run out").
+  const [forcedLeaflet, setForcedLeaflet] = useState(false);
+
+  // Decide the render engine without a setState-in-effect or hydration mismatch:
+  // the server snapshot is always "leaflet"; the client adds the MapTiler 3D
+  // engine when both a key and WebGL are available.
+  const detectedEngine = useSyncExternalStore<MapEngine>(
+    noopSubscribe,
+    () => {
+      if (!maptilerApiKey) {
+        return "leaflet";
+      }
+      if (webglEngineCache === null) {
+        webglEngineCache = isWebglSupported() ? "gl" : "leaflet";
+      }
+      return webglEngineCache;
+    },
+    () => "leaflet"
+  );
+
+  const engine: MapEngine = forcedLeaflet ? "leaflet" : detectedEngine;
+
+  const handleEngineFallback = useCallback((reason: string) => {
+    console.warn(
+      `[maps] MapTiler 3D map unavailable (${reason}); falling back to OpenStreetMap/Leaflet.`
+    );
+    setForcedLeaflet(true);
+  }, []);
 
   useEffect(() => {
     if (cities) {
@@ -88,10 +135,18 @@ export default function CityMap({
   }
 
   if (!cities) {
+    return LoadingScreen;
+  }
+
+  if (engine === "gl") {
     return (
-      <div className="flex h-[100svh] w-full items-center justify-center bg-slate-100 text-slate-700">
-        Loading city investment map...
-      </div>
+      <CityMapGL
+        cities={cities}
+        googleMapsEmbedApiKey={googleMapsEmbedApiKey}
+        maptilerApiKey={maptilerApiKey}
+        initialFocus={initialFocus}
+        onEngineFallback={handleEngineFallback}
+      />
     );
   }
 
@@ -100,6 +155,7 @@ export default function CityMap({
       cities={cities}
       googleMapsEmbedApiKey={googleMapsEmbedApiKey}
       maptilerApiKey={maptilerApiKey}
+      initialFocus={initialFocus}
     />
   );
 }
