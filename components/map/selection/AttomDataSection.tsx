@@ -281,38 +281,34 @@ export default function AttomDataSection({
         )}
       </div>
 
-      <div className="border-b border-slate-100 px-4 py-3.5">
-        <SectionLabel>Last recorded sale</SectionLabel>
-        {hasSale ? (
-          <>
-            <p className="mt-1.5 text-lg font-bold tabular-nums text-slate-900">
-              {fmt(saleAmt!)}
-            </p>
-            <p className="mt-0.5 text-xs text-slate-600">
-              {saleDate && formatDateShort(saleDate)}
-              {data.sale?.amount?.saleTransType && (
-                <span className="ml-2 text-slate-500">· {data.sale.amount.saleTransType}</span>
-              )}
-            </p>
-            {data.sale?.sellerName && (
-              <p className="mt-1 truncate text-xs text-slate-600">
-                Seller: {data.sale.sellerName.replace(/,$/, "")}
-              </p>
+      {hasSale && (
+        <div className="border-b border-slate-100 px-4 py-3.5">
+          <SectionLabel>Last recorded sale</SectionLabel>
+          <p className="mt-1.5 text-lg font-bold tabular-nums text-slate-900">
+            {fmt(saleAmt!)}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-600">
+            {saleDate && formatDateShort(saleDate)}
+            {data.sale?.amount?.saleTransType && (
+              <span className="ml-2 text-slate-500">· {data.sale.amount.saleTransType}</span>
             )}
-            {hasOwnership && (
-              <NbimShareRow
-                fullUsd={saleAmt!}
-                ownershipPercent={ownershipPercent!}
-                label="acquisition cost"
-                currency={currency}
-                usdToNok={usdToNok}
-              />
-            )}
-          </>
-        ) : (
-          <p className="mt-1.5 text-sm italic text-slate-500">Not available</p>
-        )}
-      </div>
+          </p>
+          {data.sale?.sellerName && (
+            <p className="mt-1 truncate text-xs text-slate-600">
+              Seller: {data.sale.sellerName.replace(/,$/, "")}
+            </p>
+          )}
+          {hasOwnership && (
+            <NbimShareRow
+              fullUsd={saleAmt!}
+              ownershipPercent={ownershipPercent!}
+              label="acquisition cost"
+              currency={currency}
+              usdToNok={usdToNok}
+            />
+          )}
+        </div>
+      )}
 
       {taxAmt != null && taxAmt > 0 && (
         <div className="border-b border-slate-100 px-4 py-3.5">
