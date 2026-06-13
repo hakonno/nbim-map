@@ -24,12 +24,47 @@ body {
   font-family: var(--font-geist-sans), "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.map-shell {
+.map-shell,
+.map-skeleton {
   background:
     radial-gradient(circle at 18% 20%, rgba(15, 118, 110, 0.18), transparent 35%),
     radial-gradient(circle at 80% 18%, rgba(245, 158, 11, 0.2), transparent 30%),
     radial-gradient(circle at 25% 90%, rgba(59, 130, 246, 0.18), transparent 28%),
     linear-gradient(145deg, #edf2f7, #dbe7f2);
+}
+
+/* Map loading skeleton — mimics the live map (backdrop, side panel, centered
+   pin) while the map chunk loads. Classes are referenced by MapSkeleton.tsx;
+   the backdrop above is shared with .map-shell so the real map swaps in
+   without a flash. */
+.map-skeleton__pattern {
+  background-image:
+    linear-gradient(rgba(100, 116, 139, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 116, 139, 0.12) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(circle at 50% 42%, #000 30%, transparent 72%);
+  mask-image: radial-gradient(circle at 50% 42%, #000 30%, transparent 72%);
+}
+
+.map-skeleton__pulse {
+  animation: map-skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes map-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-skeleton__pulse {
+    animation: none;
+  }
 }
 
 .leaflet-container {

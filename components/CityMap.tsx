@@ -3,15 +3,12 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 
+import MapSkeleton from "@/components/MapSkeleton";
 import { isWebglSupported } from "@/components/map/gl/mapGlConstants";
 import type { InitialFocus } from "@/components/map/mapTypes";
 import type { CityNode } from "@/types/cities";
 
-const LoadingScreen = (
-  <div className="flex h-[100svh] w-full items-center justify-center bg-slate-100 text-slate-700">
-    Loading city investment map...
-  </div>
-);
+const LoadingScreen = <MapSkeleton />;
 
 const CityMapInner = dynamic(() => import("./CityMapInner"), {
   ssr: false,
