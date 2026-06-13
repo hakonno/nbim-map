@@ -13,6 +13,7 @@ import { FOCUS_PITCH, MAX_PITCH } from "@/components/map/gl/mapGlConstants";
 import { useGlBuildingFootprint } from "@/components/map/gl/useGlBuildingFootprint";
 import { useMaplibreMap } from "@/components/map/gl/useMaplibreMap";
 import { usePropertyClusterLayer } from "@/components/map/gl/usePropertyClusterLayer";
+import { useUserLocation } from "@/components/map/gl/useUserLocation";
 import { useCityMapDerivedData } from "@/components/map/hooks/useCityMapDerivedData";
 import { useTrackEvent } from "@/components/map/hooks/useTrackEvent";
 import {
@@ -420,6 +421,24 @@ export default function CityMapGL({
     zoom: view.zoom,
   });
 
+  // Opt-in geolocation: only ever fires on the user clicking the locate button.
+  const {
+    status: locationStatus,
+    message: locationMessage,
+    locate,
+    clearMessage: clearLocationMessage,
+  } = useUserLocation({
+    map,
+    onLocated: (lng, lat) => flyToPoint(lat, lng, ZOOM_SHOW_PROPERTIES),
+  });
+
+  // Auto-dismiss the transient location message so it doesn't linger.
+  useEffect(() => {
+    if (!locationMessage) return;
+    const timer = window.setTimeout(clearLocationMessage, 6000);
+    return () => window.clearTimeout(timer);
+  }, [locationMessage, clearLocationMessage]);
+
   // The deep-link focus selection is already set via the useState initializer;
   // here we only move the camera once the map has loaded (no setState).
   const appliedInitialFocus = useRef(false);
@@ -443,7 +462,15 @@ export default function CityMapGL({
     <div className="map-shell relative h-[100dvh] min-h-[100svh] w-full overflow-hidden touch-manipulation">
       <div ref={containerRef} className="h-full w-full" aria-label="3D investment map" />
 
-      <div className="map-gl-controls pointer-events-auto absolute left-2 z-[645] flex flex-col">
+      <div className="map-gl-controls pointer-events-auto absolute left-2 z-[645] flex flex-col items-start">
+        {locationMessage && (
+          <div
+            role="status"
+            className="mb-2 max-w-[15rem] rounded-md border border-slate-300 bg-white/95 px-3 py-2 text-xs leading-snug text-slate-700 shadow-md backdrop-blur"
+          >
+            {locationMessage}
+          </div>
+        )}
         <button
           type="button"
           onClick={handleZoomIn}
@@ -474,10 +501,14 @@ export default function CityMapGL({
             type="button"
             onClick={handleResetNorth}
             aria-label="Reset bearing to north and flatten"
-            className={`${controlButtonClass} -mt-px rounded-b-md`}
-            style={{ transform: `rotate(${-view.bearing}deg)` }}
+            className={`${controlButtonClass} -mt-px`}
           >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              aria-hidden="true"
+              style={{ transform: `rotate(${-view.bearing}deg)` }}
+            >
               <path
                 fill="currentColor"
                 d="M12 2l3.5 8.5L12 9l-3.5 1.5L12 2zm0 20l-3.5-8.5L12 15l3.5-1.5L12 22z"
@@ -485,6 +516,30 @@ export default function CityMapGL({
             </svg>
           </button>
         )}
+        <button
+          type="button"
+          onClick={locate}
+          aria-label="Show my location"
+          aria-pressed={locationStatus === "active"}
+          aria-busy={locationStatus === "locating"}
+          className={`${controlButtonClass} -mt-px rounded-b-md ${
+            locationStatus === "active" ? "!bg-blue-600 !text-white" : ""
+          }`}
+        >
+          {locationStatus === "locating" ? (
+            <span
+              className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+              aria-hidden="true"
+            />
+          ) : (
+            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M12 8a4 4 0 1 0 4 4 4 4 0 0 0-4-4Zm8.94 3A9 9 0 0 0 13 3.06V1h-2v2.06A9 9 0 0 0 3.06 11H1v2h2.06A9 9 0 0 0 11 20.94V23h2v-2.06A9 9 0 0 0 20.94 13H23v-2ZM12 19a7 7 0 1 1 7-7 7 7 0 0 1-7 7Z"
+              />
+            </svg>
+          )}
+        </button>
       </div>
 
       <MapIntroCard

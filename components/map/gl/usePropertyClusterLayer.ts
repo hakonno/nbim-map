@@ -64,19 +64,26 @@ function clusterTooltipHtml(props: Record<string, unknown>): string {
   const ownershipSum = Number(props.ownershipSum ?? 0);
   const ownershipCount = Number(props.ownershipCount ?? 0);
 
+  // The header names the cluster directly: pure properties or pure offices say
+  // exactly what they are; only genuinely mixed clusters fall back to the
+  // neutral "locations" and get a breakdown row. This avoids the awkward
+  // "13 properties / 13 properties" repetition.
+  const mixed = investmentCount > 0 && officeCount > 0;
+  const header = mixed
+    ? `${count} locations`
+    : officeCount > 0
+      ? `${count} NBIM office${count === 1 ? "" : "s"}`
+      : `${count} propert${count === 1 ? "y" : "ies"}`;
   const lines: string[] = [
-    `<div class="cluster-tooltip__header">${count} marker${count === 1 ? "" : "s"}</div>`,
+    `<div class="cluster-tooltip__header">${header}</div>`,
   ];
 
-  const breakdown: string[] = [];
-  if (investmentCount > 0) {
-    breakdown.push(`${investmentCount} propert${investmentCount === 1 ? "y" : "ies"}`);
-  }
-  if (officeCount > 0) {
-    breakdown.push(`${officeCount} NBIM office${officeCount === 1 ? "" : "s"}`);
-  }
-  if (breakdown.length > 0) {
-    lines.push(`<div class="cluster-tooltip__row">${breakdown.join(" · ")}</div>`);
+  if (mixed) {
+    lines.push(
+      `<div class="cluster-tooltip__row">${investmentCount} propert${
+        investmentCount === 1 ? "y" : "ies"
+      } · ${officeCount} NBIM office${officeCount === 1 ? "" : "s"}</div>`
+    );
   }
 
   if (ownershipCount > 0) {

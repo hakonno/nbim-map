@@ -2,13 +2,14 @@
 
 import type { Map as LeafletMap } from "leaflet";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MapContainer, TileLayer, ZoomControl } from "react-leaflet";
+import { MapContainer, TileLayer } from "react-leaflet";
 
 import MapBuildingFootprint from "@/components/map/MapBuildingFootprint";
 import MapEventBridge from "@/components/map/MapEventBridge";
 import MapIntroCard from "@/components/map/MapIntroCard";
 import MapMarkersLayer from "@/components/map/MapMarkersLayer";
 import MapSelectionPanel from "@/components/map/MapSelectionPanel";
+import { useLeafletUserLocation } from "@/components/map/useLeafletUserLocation";
 import { useCityMapDerivedData } from "@/components/map/hooks/useCityMapDerivedData";
 import { useTrackEvent } from "@/components/map/hooks/useTrackEvent";
 import { useMapMobileInteractions } from "@/components/map/hooks/useMapMobileInteractions";
@@ -342,6 +343,37 @@ export default function CityMapInner({
     }
   }, [mapInstance, initialFocus, investmentMappableCities, flyToCity, flyToCountry]);
 
+  // Opt-in geolocation, mirroring the MapLibre engine: it fires only on an
+  // explicit click, draws a client-side marker, and recenters with the same
+  // mobile-aware focus math used elsewhere.
+  const {
+    status: locationStatus,
+    message: locationMessage,
+    locate,
+    clearMessage: clearLocationMessage,
+  } = useLeafletUserLocation({
+    map: mapInstance,
+    onLocated: (lat, lng) => {
+      if (!mapInstance) return;
+      const targetZoom = Math.max(mapInstance.getZoom(), ZOOM_SHOW_PROPERTIES);
+      mapInstance.flyTo(getFocusCenter([lat, lng], targetZoom), targetZoom, {
+        animate: true,
+        duration: 0.9,
+        easeLinearity: 0.25,
+      });
+    },
+  });
+
+  // Auto-dismiss the transient location message so it doesn't linger.
+  useEffect(() => {
+    if (!locationMessage) return;
+    const timer = window.setTimeout(clearLocationMessage, 6000);
+    return () => window.clearTimeout(timer);
+  }, [locationMessage, clearLocationMessage]);
+
+  const controlButtonClass =
+    "flex h-9 w-9 items-center justify-center border border-slate-300 bg-white/95 text-slate-700 shadow-md backdrop-blur transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
+
   return (
     <div className="map-shell relative h-[100dvh] min-h-[100svh] w-full overflow-hidden touch-manipulation">
       <MapContainer
@@ -353,7 +385,6 @@ export default function CityMapInner({
         worldCopyJump
       >
         <TileLayer attribution={baseTileLayer.attribution} url={baseTileLayer.url} />
-        <ZoomControl position="bottomleft" />
         <MapEventBridge onMapReady={setMapInstance} onZoomChange={setZoom} onCenterChange={setMapCenter} />
 
         {mapInstance && (
@@ -370,12 +401,23 @@ export default function CityMapInner({
         )}
       </MapContainer>
 
-      <div className="map-mobile-zoom-controls pointer-events-auto absolute left-2 z-[645]">
+      {/* Unified control stack for both breakpoints (replaces Leaflet's native
+          ZoomControl). The zoom handlers fall back to plain zoomIn/zoomOut when
+          not on mobile, so desktop behaviour is unchanged. */}
+      <div className="map-leaflet-controls pointer-events-auto absolute left-2 z-[645] flex flex-col items-start">
+        {locationMessage && (
+          <div
+            role="status"
+            className="mb-2 max-w-[15rem] rounded-md border border-slate-300 bg-white/95 px-3 py-2 text-xs leading-snug text-slate-700 shadow-md backdrop-blur"
+          >
+            {locationMessage}
+          </div>
+        )}
         <button
           type="button"
           onClick={handleMobileZoomIn}
           aria-label="Zoom in"
-          className="flex h-9 w-9 items-center justify-center rounded-t-md border border-slate-300 bg-white/95 text-xl leading-none text-slate-700 shadow-md backdrop-blur transition-colors hover:bg-white"
+          className={`${controlButtonClass} rounded-t-md text-xl leading-none`}
         >
           +
         </button>
@@ -383,9 +425,33 @@ export default function CityMapInner({
           type="button"
           onClick={handleMobileZoomOut}
           aria-label="Zoom out"
-          className="-mt-px flex h-9 w-9 items-center justify-center rounded-b-md border border-slate-300 bg-white/95 text-xl leading-none text-slate-700 shadow-md backdrop-blur transition-colors hover:bg-white"
+          className={`${controlButtonClass} -mt-px text-xl leading-none`}
         >
-          -
+          −
+        </button>
+        <button
+          type="button"
+          onClick={locate}
+          aria-label="Show my location"
+          aria-pressed={locationStatus === "active"}
+          aria-busy={locationStatus === "locating"}
+          className={`${controlButtonClass} -mt-px rounded-b-md ${
+            locationStatus === "active" ? "!bg-blue-600 !text-white" : ""
+          }`}
+        >
+          {locationStatus === "locating" ? (
+            <span
+              className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+              aria-hidden="true"
+            />
+          ) : (
+            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M12 8a4 4 0 1 0 4 4 4 4 0 0 0-4-4Zm8.94 3A9 9 0 0 0 13 3.06V1h-2v2.06A9 9 0 0 0 3.06 11H1v2h2.06A9 9 0 0 0 11 20.94V23h2v-2.06A9 9 0 0 0 20.94 13H23v-2ZM12 19a7 7 0 1 1 7-7 7 7 0 0 1-7 7Z"
+              />
+            </svg>
+          )}
         </button>
       </div>
 

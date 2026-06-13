@@ -247,6 +247,11 @@ body {
   padding: 0;
   box-shadow: none;
   border-radius: 0;
+  /* Hover labels are decorative only. MapLibre makes popup content interactive
+     by default, which lets it swallow wheel events when it appears under the
+     cursor (zooming/flickering on an accidental hover). Make it click-through so
+     the pointer stays on the map beneath. */
+  pointer-events: none;
 }
 
 .nbim-gl-popup .maplibregl-popup-tip {
@@ -279,8 +284,60 @@ body {
   white-space: nowrap;
 }
 
-.map-mobile-zoom-controls {
-  display: none;
+/* Opt-in "little man" marker for the user's own location. Drawn client-side
+   only; the coordinate is never transmitted anywhere. */
+.nbim-user-location {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+}
+
+.nbim-user-location__badge {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.35);
+}
+
+.nbim-user-location__pulse {
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.25);
+  animation: nbim-user-location-pulse 2s ease-out infinite;
+}
+
+@keyframes nbim-user-location-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nbim-user-location__pulse {
+    animation: none;
+    opacity: 0.35;
+  }
+}
+
+/* Leaflet control stack — shared by desktop and mobile, mirroring the GL
+   engine's `.map-gl-controls`. */
+.map-leaflet-controls {
+  bottom: 1.25rem;
 }
 
 @media (max-width: 767px) {
@@ -288,13 +345,8 @@ body {
     -webkit-tap-highlight-color: transparent;
   }
 
-  .leaflet-bottom.leaflet-left {
-    display: none;
-  }
-
-  .map-mobile-zoom-controls {
-    display: flex;
-    flex-direction: column;
+  .map-leaflet-controls {
+    bottom: auto;
     top: calc(100dvh - var(--map-mobile-panel-height) - 0.5rem);
     transform: translateY(-100%);
   }
