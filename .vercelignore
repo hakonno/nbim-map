@@ -1,7 +1,8 @@
 # Build-only raw source data and pipeline artifacts
 data/raw/
 data/releases/
-data/active-dataset.json
+# NOTE: active-dataset.json is imported at build time (app/siteMetadata.ts for
+# DATASET_YEAR), so it must ship to Vercel — do not add it here.
 data/cities.test.json
 data/properties.json
 data/properties.test.json
