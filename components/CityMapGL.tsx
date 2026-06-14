@@ -34,7 +34,10 @@ import {
   type SelectionState,
 } from "@/components/map/mapTypes";
 import type { CitySortOption } from "@/components/map/selection/cityListSorting";
-import type { Currency } from "@/utils/formatCurrency";
+import {
+  setCurrency,
+  useCurrency,
+} from "@/components/map/hooks/useCurrencyPreference";
 import type { CityNode } from "@/types/cities";
 
 const MOBILE_MEDIA_QUERY = "(max-width: 767px)";
@@ -60,7 +63,7 @@ export default function CityMapGL({
     initialSelectionState(initialFocus)
   );
   const [citySortOption, setCitySortOption] = useState<CitySortOption>("properties");
-  const [currency, setCurrency] = useState<Currency>("USD");
+  const currency = useCurrency();
 
   const { containerRef, map, ready, view } = useMaplibreMap({
     maptilerApiKey,

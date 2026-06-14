@@ -139,5 +139,12 @@ export function useAttomData(propertyId: string | null): FetchResult | null {
     [propertyId]
   );
 
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  // The server (and the first hydration render) must always see the LOADING
+  // default, never the client cache, or the markup would mismatch.
+  const getServerSnapshot = useCallback(
+    (): FetchResult | null => (propertyId ? LOADING : null),
+    [propertyId]
+  );
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

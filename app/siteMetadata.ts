@@ -1,4 +1,12 @@
+import activeDataset from "@/data/active-dataset.json";
+
 const DEFAULT_SITE_URL = "http://localhost:3000";
+
+/**
+ * Year of the underlying NBIM disclosure currently active. Drives the year shown
+ * in SEO titles/descriptions so it tracks the data, not the wall clock.
+ */
+export const DATASET_YEAR = (activeDataset as { active_year?: string }).active_year ?? "2025";
 
 function normalizeSiteUrl(rawValue: string): string {
   const withProtocol =

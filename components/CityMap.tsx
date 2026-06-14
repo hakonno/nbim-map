@@ -25,6 +25,7 @@ type MapEngine = "gl" | "leaflet";
 // WebGL support never changes for a session, so detect it at most once.
 let webglEngineCache: MapEngine | null = null;
 const noopSubscribe = () => () => {};
+const getServerEngineSnapshot = (): MapEngine => "leaflet";
 
 type CityMapProps = {
   initialCities?: CityNode[];
@@ -50,18 +51,20 @@ export default function CityMap({
   // Decide the render engine without a setState-in-effect or hydration mismatch:
   // the server snapshot is always "leaflet"; the client adds the MapTiler 3D
   // engine when both a key and WebGL are available.
+  const getEngineSnapshot = useCallback<() => MapEngine>(() => {
+    if (!maptilerApiKey) {
+      return "leaflet";
+    }
+    if (webglEngineCache === null) {
+      webglEngineCache = isWebglSupported() ? "gl" : "leaflet";
+    }
+    return webglEngineCache;
+  }, [maptilerApiKey]);
+
   const detectedEngine = useSyncExternalStore<MapEngine>(
     noopSubscribe,
-    () => {
-      if (!maptilerApiKey) {
-        return "leaflet";
-      }
-      if (webglEngineCache === null) {
-        webglEngineCache = isWebglSupported() ? "gl" : "leaflet";
-      }
-      return webglEngineCache;
-    },
-    () => "leaflet"
+    getEngineSnapshot,
+    getServerEngineSnapshot
   );
 
   const engine: MapEngine = forcedLeaflet ? "leaflet" : detectedEngine;
