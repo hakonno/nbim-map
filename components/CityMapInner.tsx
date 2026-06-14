@@ -383,11 +383,22 @@ export default function CityMapInner({
         center={MAP_CENTER}
         zoom={MAP_DEFAULT_ZOOM}
         minZoom={2}
+        maxZoom={18}
         zoomControl={false}
         className="h-full w-full"
         worldCopyJump
       >
-        <TileLayer attribution={baseTileLayer.attribution} url={baseTileLayer.url} />
+        {/* Cost guards for the raster fallback (each tile is a MapTiler
+            "rendered map" request): noWrap avoids re-fetching wrapped-world
+            copies, updateWhenIdle skips loads mid-drag, and the zoom cap avoids
+            very deep levels (street level is plenty for a property). */}
+        <TileLayer
+          attribution={baseTileLayer.attribution}
+          url={baseTileLayer.url}
+          noWrap
+          updateWhenIdle
+          maxZoom={18}
+        />
         <MapEventBridge onMapReady={setMapInstance} onZoomChange={setZoom} onCenterChange={setMapCenter} />
 
         {mapInstance && (
