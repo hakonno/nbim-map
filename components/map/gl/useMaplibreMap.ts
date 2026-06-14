@@ -84,6 +84,9 @@ export function useMaplibreMap({
       zoom: MAP_DEFAULT_ZOOM,
       minZoom,
       maxPitch: MAX_PITCH,
+      // Don't repeat the world horizontally at low zoom — each copy re-requests
+      // the same tiles, inflating MapTiler usage for no real benefit here.
+      renderWorldCopies: false,
       attributionControl: { compact: true },
       // Smooth scroll-zoom feels better with a tilted 3D camera.
       cooperativeGestures: false,
