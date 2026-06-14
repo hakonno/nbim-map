@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import CityMap from "@/components/CityMap";
 
 export default function Home() {
@@ -32,8 +34,17 @@ export default function Home() {
   }
 
   return (
-    <main className="flex flex-1 min-h-[100svh]">
+    <main className="relative flex flex-1 min-h-[100svh]">
       <CityMap googleMapsEmbedApiKey={googleMapsEmbedApiKey} maptilerApiKey={maptilerApiKey} />
+      {/* Crawlable, server-rendered link into the non-map content graph (the
+          map itself is client-only, so this anchor is the homepage's path to
+          /properties for search engines and AI crawlers). */}
+      <Link
+        href="/properties"
+        className="pointer-events-auto absolute bottom-3 left-1/2 z-[640] -translate-x-1/2 rounded-full border border-slate-300 bg-white/95 px-4 py-2 text-sm font-medium text-slate-700 shadow-md backdrop-blur transition-colors hover:bg-white hover:text-slate-900"
+      >
+        Browse all properties (list view) →
+      </Link>
     </main>
   );
 }
