@@ -328,6 +328,13 @@ export function usePropertyClusterLayer({
       map.off("mouseleave", POINT_LAYER, clearPointer);
       popup.remove();
 
+      // On unmount the map instance is removed first (its hook runs earlier),
+      // which clears its style. getLayer/removeLayer would then throw on the
+      // missing style — and remove() already disposed these layers — so bail.
+      if (!map.getStyle()) {
+        return;
+      }
+
       for (const layer of [
         SELECTED_HALO_LAYER,
         LABEL_LAYER,

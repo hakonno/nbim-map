@@ -68,6 +68,12 @@ export function useGlBuildingFootprint({
     });
 
     return () => {
+      // The map instance is removed before this cleanup on unmount, clearing
+      // its style; getLayer/removeLayer would throw, and remove() already
+      // disposed these layers, so bail when the style is gone.
+      if (!map.getStyle()) {
+        return;
+      }
       for (const layer of [LINE_LAYER, FILL_LAYER]) {
         if (map.getLayer(layer)) {
           map.removeLayer(layer);
