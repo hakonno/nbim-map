@@ -13,7 +13,10 @@ import { useLeafletUserLocation } from "@/components/map/useLeafletUserLocation"
 import { useCityMapDerivedData } from "@/components/map/hooks/useCityMapDerivedData";
 import { useTrackEvent } from "@/components/map/hooks/useTrackEvent";
 import { useMapMobileInteractions } from "@/components/map/hooks/useMapMobileInteractions";
-import type { Currency } from "@/utils/formatCurrency";
+import {
+  setCurrency,
+  useCurrency,
+} from "@/components/map/hooks/useCurrencyPreference";
 import {
   FUND_REAL_ESTATE_VALUE_NOK,
   FUND_SHARE_PERCENT,
@@ -57,7 +60,7 @@ export default function CityMapInner({
     initialSelectionState(initialFocus)
   );
   const [citySortOption, setCitySortOption] = useState<CitySortOption>("properties");
-  const [currency, setCurrency] = useState<Currency>("USD");
+  const currency = useCurrency();
   const [mapCenter, setMapCenter] = useState<[number, number]>(MAP_CENTER);
 
   const {
