@@ -329,9 +329,10 @@ export function usePropertyClusterLayer({
       popup.remove();
 
       // On unmount the map instance is removed first (its hook runs earlier),
-      // which clears its style. getLayer/removeLayer would then throw on the
-      // missing style — and remove() already disposed these layers — so bail.
-      if (!map.getStyle()) {
+      // which clears its `style`. removeLayer/removeSource would then throw, and
+      // remove() already disposed these layers — so bail. Read `style` directly
+      // (O(1)); getStyle() would serialise the whole stylesheet just to check.
+      if (!(map as { style?: unknown }).style) {
         return;
       }
 

@@ -69,9 +69,10 @@ export function useGlBuildingFootprint({
 
     return () => {
       // The map instance is removed before this cleanup on unmount, clearing
-      // its style; getLayer/removeLayer would throw, and remove() already
-      // disposed these layers, so bail when the style is gone.
-      if (!map.getStyle()) {
+      // its `style`; removeLayer/removeSource would throw, and remove() already
+      // disposed these layers, so bail. Read `style` directly (O(1)); getStyle()
+      // would serialise the whole stylesheet just to check it exists.
+      if (!(map as { style?: unknown }).style) {
         return;
       }
       for (const layer of [LINE_LAYER, FILL_LAYER]) {
