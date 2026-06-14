@@ -1,28 +1,28 @@
 "use client";
 
-import type { Map as LeafletMap } from "leaflet";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { MapContainer, TileLayer } from "react-leaflet";
+import maplibregl, { type LngLatBoundsLike, type PaddingOptions } from "maplibre-gl";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import MapBuildingFootprint from "@/components/map/MapBuildingFootprint";
-import MapEventBridge from "@/components/map/MapEventBridge";
 import MapIntroCard from "@/components/map/MapIntroCard";
-import MapMarkersLayer from "@/components/map/MapMarkersLayer";
 import MapSelectionPanel from "@/components/map/MapSelectionPanel";
-import { useLeafletUserLocation } from "@/components/map/useLeafletUserLocation";
+import {
+  buildPropertyFeatureCollection,
+  buildSelectedFeatureCollection,
+} from "@/components/map/gl/glPropertyFeatures";
+import { FOCUS_PITCH, MAX_PITCH } from "@/components/map/gl/mapGlConstants";
+import { useGlBuildingFootprint } from "@/components/map/gl/useGlBuildingFootprint";
+import { useMaplibreMap } from "@/components/map/gl/useMaplibreMap";
+import { usePropertyClusterLayer } from "@/components/map/gl/usePropertyClusterLayer";
+import { useUserLocation } from "@/components/map/gl/useUserLocation";
 import { useCityMapDerivedData } from "@/components/map/hooks/useCityMapDerivedData";
 import { useTrackEvent } from "@/components/map/hooks/useTrackEvent";
-import { useMapMobileInteractions } from "@/components/map/hooks/useMapMobileInteractions";
-import type { Currency } from "@/utils/formatCurrency";
 import {
   FUND_REAL_ESTATE_VALUE_NOK,
   FUND_SHARE_PERCENT,
-  getBaseTileLayer,
   MAP_CENTER,
   MAP_DEFAULT_ZOOM,
   SEARCH_RESULT_LIMIT,
   SHOW_PROPERTY_COORDINATES_DEBUG,
-  ZOOM_PROPERTY_DETAIL,
   ZOOM_PROPERTY_FOCUS,
   ZOOM_SHOW_PROPERTIES,
 } from "@/components/map/mapConstants";
@@ -34,31 +34,39 @@ import {
   type SelectionState,
 } from "@/components/map/mapTypes";
 import type { CitySortOption } from "@/components/map/selection/cityListSorting";
+import type { Currency } from "@/utils/formatCurrency";
 import type { CityNode } from "@/types/cities";
 
-type CityMapInnerProps = {
+const MOBILE_MEDIA_QUERY = "(max-width: 767px)";
+
+type CityMapGLProps = {
   cities: CityNode[];
   googleMapsEmbedApiKey: string;
   maptilerApiKey: string;
   initialFocus?: InitialFocus;
+  /** Switch to the Leaflet engine (no WebGL, bad key, or MapTiler quota exhausted). */
+  onEngineFallback: (reason: string) => void;
 };
 
-export default function CityMapInner({
+export default function CityMapGL({
   cities,
   googleMapsEmbedApiKey,
   maptilerApiKey,
   initialFocus,
-}: CityMapInnerProps) {
-  const baseTileLayer = getBaseTileLayer(maptilerApiKey);
-  const [zoom, setZoom] = useState(MAP_DEFAULT_ZOOM);
-  const [mapInstance, setMapInstance] = useState<LeafletMap | null>(null);
+  onEngineFallback,
+}: CityMapGLProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selection, setSelection] = useState<SelectionState>(() =>
     initialSelectionState(initialFocus)
   );
   const [citySortOption, setCitySortOption] = useState<CitySortOption>("properties");
   const [currency, setCurrency] = useState<Currency>("USD");
-  const [mapCenter, setMapCenter] = useState<[number, number]>(MAP_CENTER);
+
+  const { containerRef, map, ready, view } = useMaplibreMap({
+    maptilerApiKey,
+    minZoom: 2,
+    onUnavailable: onEngineFallback,
+  });
 
   const {
     investmentMappableCities,
@@ -106,40 +114,82 @@ export default function CityMapInner({
     }
   }, [selection, selectedProperty, selectedFlatProperty, selectedCity, track]);
 
-  const showProperties = zoom >= ZOOM_SHOW_PROPERTIES;
-  const showPropertyDetail = zoom >= ZOOM_PROPERTY_DETAIL;
+  const showProperties = view.zoom >= ZOOM_SHOW_PROPERTIES;
+  const isTilted = view.pitch > 8;
+  const isRotated = Math.abs(view.bearing) > 1 || isTilted;
 
-  const {
-    getFocusCenter,
-    handleMobilePanelHeightChange,
-    handleMobileZoomIn,
-    handleMobileZoomOut,
-  } = useMapMobileInteractions({
-    mapInstance,
-    selectionMode: selection.mode,
-    selectedCity,
-    selectedCountry,
-    selectedFlatProperty,
-    countryCitiesMap,
-  });
+  // --- Camera helpers.
+  const getPadding = useCallback((): Required<PaddingOptions> => {
+    if (typeof window === "undefined" || !window.matchMedia(MOBILE_MEDIA_QUERY).matches) {
+      return { top: 0, bottom: 0, left: 0, right: 0 };
+    }
+    const root = getComputedStyle(document.documentElement);
+    const intro = Number.parseFloat(root.getPropertyValue("--map-mobile-intro-height"));
+    const panel = Number.parseFloat(root.getPropertyValue("--map-mobile-panel-height"));
+    return {
+      top: Number.isFinite(intro) && intro > 0 ? intro : 0,
+      bottom: Number.isFinite(panel) && panel > 0 ? panel : 0,
+      left: 0,
+      right: 0,
+    };
+  }, []);
 
+  const flyToPoint = useCallback(
+    (lat: number, lng: number, minZoom: number, pitch?: number) => {
+      if (!map) return;
+      map.flyTo({
+        center: [lng, lat],
+        zoom: Math.max(map.getZoom(), minZoom),
+        pitch: pitch ?? map.getPitch(),
+        padding: getPadding(),
+        duration: 900,
+        essential: true,
+      });
+    },
+    [getPadding, map]
+  );
+
+  // Navigation keeps the current tilt rather than forcing 3D — the user opts
+  // into 3D via the tilt button or by dragging. Buildings extrude when tilted.
   const flyToCity = useCallback(
     (city: CityNode) => {
-      if (!mapInstance || typeof city.lat !== "number" || typeof city.lng !== "number") {
+      if (typeof city.lat !== "number" || typeof city.lng !== "number") return;
+      flyToPoint(city.lat, city.lng, ZOOM_SHOW_PROPERTIES + 1);
+    },
+    [flyToPoint]
+  );
+
+  const flyToCountry = useCallback(
+    (country: string) => {
+      if (!map) return;
+      const coordinates = (countryCitiesMap.get(country) ?? [])
+        .filter((city) => typeof city.lat === "number" && typeof city.lng === "number")
+        .map((city) => [city.lng as number, city.lat as number] as [number, number]);
+
+      if (coordinates.length === 0) return;
+      if (coordinates.length === 1) {
+        const [lng, lat] = coordinates[0];
+        flyToPoint(lat, lng, ZOOM_SHOW_PROPERTIES + 1);
         return;
       }
 
-      const targetZoom = Math.max(mapInstance.getZoom(), ZOOM_SHOW_PROPERTIES + 1);
-      const targetCenter = getFocusCenter([city.lat, city.lng], targetZoom);
-
-      mapInstance.flyTo(targetCenter, targetZoom, {
-        animate: true,
-        duration: 0.75,
+      const bounds = coordinates.reduce(
+        (acc, coord) => acc.extend(coord),
+        new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
+      );
+      const base = getPadding();
+      map.fitBounds(bounds as LngLatBoundsLike, {
+        padding: { ...base, top: base.top + 24, bottom: base.bottom + 24 },
+        pitch: 0,
+        bearing: 0,
+        duration: 900,
+        maxZoom: ZOOM_PROPERTY_FOCUS,
       });
     },
-    [getFocusCenter, mapInstance]
+    [countryCitiesMap, flyToPoint, getPadding, map]
   );
 
+  // --- Selection handlers.
   const handleSelectCity = useCallback(
     (city: CityNode) => {
       setSelection({
@@ -151,42 +201,6 @@ export default function CityMapInner({
       flyToCity(city);
     },
     [flyToCity]
-  );
-
-  const flyToCountry = useCallback(
-    (country: string) => {
-      if (!mapInstance) {
-        return;
-      }
-
-      const countryCities = countryCitiesMap.get(country) ?? [];
-      const countryCoordinates = countryCities
-        .filter((city) => typeof city.lat === "number" && typeof city.lng === "number")
-        .map((city) => [city.lat as number, city.lng as number] as [number, number]);
-
-      if (countryCoordinates.length === 0) {
-        return;
-      }
-
-      if (countryCoordinates.length === 1) {
-        const [lat, lng] = countryCoordinates[0];
-        const targetZoom = Math.max(mapInstance.getZoom(), ZOOM_SHOW_PROPERTIES + 1);
-        const targetCenter = getFocusCenter([lat, lng], targetZoom);
-
-        mapInstance.flyTo(targetCenter, targetZoom, {
-          animate: true,
-          duration: 0.75,
-        });
-        return;
-      }
-
-      mapInstance.fitBounds(countryCoordinates, {
-        paddingTopLeft: [24, 96],
-        paddingBottomRight: [24, 120],
-        animate: true,
-      });
-    },
-    [countryCitiesMap, getFocusCenter, mapInstance]
   );
 
   const handleSelectCountry = useCallback(
@@ -216,11 +230,7 @@ export default function CityMapInner({
   const handleSelectPropertyById = useCallback(
     (propertyId: string) => {
       const property = flatPropertyById.get(propertyId);
-      if (!property) {
-        return;
-      }
-
-      handleSelectProperty(property);
+      if (property) handleSelectProperty(property);
     },
     [flatPropertyById, handleSelectProperty]
   );
@@ -228,11 +238,7 @@ export default function CityMapInner({
   const handleSelectCityById = useCallback(
     (cityId: string) => {
       const city = investmentMappableCities.find((candidate) => candidate.id === cityId);
-      if (!city) {
-        return;
-      }
-
-      handleSelectCity(city);
+      if (city) handleSelectCity(city);
     },
     [handleSelectCity, investmentMappableCities]
   );
@@ -248,10 +254,7 @@ export default function CityMapInner({
 
   const handleBackToCity = useCallback(() => {
     setSelection((current) => {
-      if (current.mode !== "property") {
-        return current;
-      }
-
+      if (current.mode !== "property") return current;
       return {
         mode: current.selectedCountry ? "country" : "city",
         selectedCountry: current.selectedCountry,
@@ -268,26 +271,24 @@ export default function CityMapInner({
       selectedCityId: null,
       selectedPropertyId: null,
     });
-
-    if (!mapInstance) {
-      return;
-    }
-
-    mapInstance.closePopup();
-    mapInstance.flyTo(getFocusCenter(MAP_CENTER, MAP_DEFAULT_ZOOM), MAP_DEFAULT_ZOOM, {
-      animate: true,
-      duration: 0.9,
+    if (!map) return;
+    map.flyTo({
+      center: [MAP_CENTER[1], MAP_CENTER[0]],
+      zoom: MAP_DEFAULT_ZOOM,
+      pitch: 0,
+      bearing: 0,
+      padding: getPadding(),
+      duration: 1000,
+      essential: true,
     });
-  }, [getFocusCenter, mapInstance]);
+  }, [getPadding, map]);
 
   const handleSelectSearchResult = useCallback(
     (result: SearchResult) => {
       setSearchQuery("");
 
       if (result.type === "city") {
-        const city = investmentMappableCities.find(
-          (candidate) => candidate.id === result.cityId
-        );
+        const city = investmentMappableCities.find((c) => c.id === result.cityId);
         if (city) {
           setSelection({
             mode: "city",
@@ -307,61 +308,128 @@ export default function CityMapInner({
         });
       }
 
-      if (!mapInstance) {
-        return;
-      }
-
-      const minimumTargetZoom = result.type === "property" ? ZOOM_PROPERTY_FOCUS : ZOOM_SHOW_PROPERTIES + 1;
-      const targetZoom = Math.max(mapInstance.getZoom(), minimumTargetZoom);
-      const targetCenter = getFocusCenter([result.lat, result.lng], targetZoom);
-
-      mapInstance.flyTo(targetCenter, targetZoom, {
-        animate: true,
-        duration: 0.8,
-      });
+      const minZoom = result.type === "property" ? ZOOM_PROPERTY_FOCUS : ZOOM_SHOW_PROPERTIES + 1;
+      flyToPoint(result.lat, result.lng, minZoom);
     },
-    [getFocusCenter, investmentMappableCities, mapInstance]
+    [flyToPoint, investmentMappableCities]
   );
 
-  const handleClearSearch = useCallback(() => {
-    setSearchQuery("");
-  }, []);
+  const handleClearSearch = useCallback(() => setSearchQuery(""), []);
 
-  // The deep-link focus selection is already set via the useState initializer;
-  // here we only move the camera once the map is ready (no setState).
-  const appliedInitialFocus = useRef(false);
+  // --- Mobile: keep the focused property visible when the bottom sheet resizes.
+  const handleMobilePanelHeightChange = useCallback(() => {
+    if (!map || selection.mode !== "property" || !selectedFlatProperty) return;
+    if (typeof window === "undefined" || !window.matchMedia(MOBILE_MEDIA_QUERY).matches) return;
+    map.easeTo({
+      center: [selectedFlatProperty.lng, selectedFlatProperty.lat],
+      padding: getPadding(),
+      duration: 250,
+    });
+  }, [getPadding, map, selectedFlatProperty, selection.mode]);
+
+  // --- Camera control buttons.
+  const visualCenterLngLat = useCallback(() => {
+    if (!map) return null;
+    const canvas = map.getCanvas();
+    const padding = getPadding();
+    const x = canvas.clientWidth / 2;
+    const y = (padding.top + (canvas.clientHeight - padding.bottom)) / 2;
+    return map.unproject([x, y]);
+  }, [getPadding, map]);
+
+  const handleZoomIn = useCallback(() => {
+    if (!map) return;
+    const center = visualCenterLngLat();
+    map.easeTo({
+      zoom: Math.min(map.getZoom() + 1, map.getMaxZoom()),
+      center: center ?? undefined,
+      padding: getPadding(),
+      duration: 300,
+    });
+  }, [getPadding, map, visualCenterLngLat]);
+
+  const handleZoomOut = useCallback(() => {
+    if (!map) return;
+    const center = visualCenterLngLat();
+    map.easeTo({
+      zoom: Math.max(map.getZoom() - 1, map.getMinZoom()),
+      center: center ?? undefined,
+      padding: getPadding(),
+      duration: 300,
+    });
+  }, [getPadding, map, visualCenterLngLat]);
+
+  const handleToggleTilt = useCallback(() => {
+    if (!map) return;
+    map.easeTo({ pitch: isTilted ? 0 : FOCUS_PITCH, duration: 500 });
+  }, [isTilted, map]);
+
+  const handleResetNorth = useCallback(() => {
+    if (!map) return;
+    map.easeTo({ bearing: 0, pitch: 0, duration: 500 });
+  }, [map]);
+
+  // Desktop 3D control: Cmd+scroll (macOS) / Ctrl+scroll (others) tilts the
+  // camera, a familiar gesture. We use Cmd on macOS specifically because
+  // trackpad pinch-zoom there fires as ctrl+wheel — hijacking ctrl would break
+  // it. Plain scroll still zooms; Ctrl/right-drag still rotates (MapLibre default).
   useEffect(() => {
-    if (appliedInitialFocus.current || !mapInstance || !initialFocus) {
-      return;
-    }
-    appliedInitialFocus.current = true;
-    if (initialFocus.kind === "city") {
-      const city = investmentMappableCities.find((c) => c.id === initialFocus.cityId);
-      if (city) flyToCity(city);
-    } else {
-      flyToCountry(initialFocus.country);
-    }
-  }, [mapInstance, initialFocus, investmentMappableCities, flyToCity, flyToCountry]);
+    if (!map) return;
+    const container = map.getContainer();
+    const isMac =
+      typeof navigator !== "undefined" &&
+      /mac|iphone|ipad|ipod/i.test(navigator.userAgent);
 
-  // Opt-in geolocation, mirroring the MapLibre engine: it fires only on an
-  // explicit click, draws a client-side marker, and recenters with the same
-  // mobile-aware focus math used elsewhere.
+    const onWheel = (event: WheelEvent) => {
+      const tiltModifier = isMac ? event.metaKey : event.ctrlKey;
+      if (!tiltModifier) return;
+      // Stop MapLibre's scroll-zoom from also firing for this gesture.
+      event.preventDefault();
+      event.stopPropagation();
+      const delta = event.deltaY < 0 ? 4 : -4;
+      map.setPitch(Math.min(MAX_PITCH, Math.max(0, map.getPitch() + delta)));
+    };
+
+    container.addEventListener("wheel", onWheel, { capture: true, passive: false });
+    return () => {
+      container.removeEventListener("wheel", onWheel, { capture: true });
+    };
+  }, [map]);
+
+  // --- Map data layers (declared after handlers so the click callback exists).
+  const propertyFeatures = useMemo(
+    () => buildPropertyFeatureCollection(flatProperties),
+    [flatProperties]
+  );
+  const selectedFeatures = useMemo(
+    () => buildSelectedFeatureCollection(selectedFlatProperty),
+    [selectedFlatProperty]
+  );
+
+  usePropertyClusterLayer({
+    map,
+    ready,
+    features: propertyFeatures,
+    selectedFeatures,
+    onSelectProperty: handleSelectPropertyById,
+  });
+
+  useGlBuildingFootprint({
+    map,
+    ready,
+    selectedProperty: selectedFlatProperty,
+    zoom: view.zoom,
+  });
+
+  // Opt-in geolocation: only ever fires on the user clicking the locate button.
   const {
     status: locationStatus,
     message: locationMessage,
     locate,
     clearMessage: clearLocationMessage,
-  } = useLeafletUserLocation({
-    map: mapInstance,
-    onLocated: (lat, lng) => {
-      if (!mapInstance) return;
-      const targetZoom = Math.max(mapInstance.getZoom(), ZOOM_SHOW_PROPERTIES);
-      mapInstance.flyTo(getFocusCenter([lat, lng], targetZoom), targetZoom, {
-        animate: true,
-        duration: 0.9,
-        easeLinearity: 0.25,
-      });
-    },
+  } = useUserLocation({
+    map,
+    onLocated: (lng, lat) => flyToPoint(lat, lng, ZOOM_SHOW_PROPERTIES),
   });
 
   // Auto-dismiss the transient location message so it doesn't linger.
@@ -371,40 +439,30 @@ export default function CityMapInner({
     return () => window.clearTimeout(timer);
   }, [locationMessage, clearLocationMessage]);
 
+  // The deep-link focus selection is already set via the useState initializer;
+  // here we only move the camera once the map has loaded (no setState).
+  const appliedInitialFocus = useRef(false);
+  useEffect(() => {
+    if (appliedInitialFocus.current || !ready || !initialFocus) {
+      return;
+    }
+    appliedInitialFocus.current = true;
+    if (initialFocus.kind === "city") {
+      const city = investmentMappableCities.find((c) => c.id === initialFocus.cityId);
+      if (city) flyToCity(city);
+    } else {
+      flyToCountry(initialFocus.country);
+    }
+  }, [ready, initialFocus, investmentMappableCities, flyToCity, flyToCountry]);
+
   const controlButtonClass =
     "flex h-9 w-9 items-center justify-center border border-slate-300 bg-white/95 text-slate-700 shadow-md backdrop-blur transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
 
   return (
     <div className="map-shell relative h-[100dvh] min-h-[100svh] w-full overflow-hidden touch-manipulation">
-      <MapContainer
-        center={MAP_CENTER}
-        zoom={MAP_DEFAULT_ZOOM}
-        minZoom={2}
-        zoomControl={false}
-        className="h-full w-full"
-        worldCopyJump
-      >
-        <TileLayer attribution={baseTileLayer.attribution} url={baseTileLayer.url} />
-        <MapEventBridge onMapReady={setMapInstance} onZoomChange={setZoom} onCenterChange={setMapCenter} />
+      <div ref={containerRef} className="h-full w-full" aria-label="3D investment map" />
 
-        {mapInstance && (
-          <>
-            <MapMarkersLayer
-              showPropertyDetail={showPropertyDetail}
-              zoom={zoom}
-              flatProperties={flatProperties}
-              selection={selection}
-              onSelectProperty={handleSelectProperty}
-            />
-            <MapBuildingFootprint selectedProperty={selectedFlatProperty} zoom={zoom} />
-          </>
-        )}
-      </MapContainer>
-
-      {/* Unified control stack for both breakpoints (replaces Leaflet's native
-          ZoomControl). The zoom handlers fall back to plain zoomIn/zoomOut when
-          not on mobile, so desktop behaviour is unchanged. */}
-      <div className="map-leaflet-controls pointer-events-auto absolute left-2 z-[645] flex flex-col items-start">
+      <div className="map-gl-controls pointer-events-auto absolute left-2 z-[645] flex flex-col items-start">
         {locationMessage && (
           <div
             role="status"
@@ -415,7 +473,7 @@ export default function CityMapInner({
         )}
         <button
           type="button"
-          onClick={handleMobileZoomIn}
+          onClick={handleZoomIn}
           aria-label="Zoom in"
           className={`${controlButtonClass} rounded-t-md text-xl leading-none`}
         >
@@ -423,12 +481,41 @@ export default function CityMapInner({
         </button>
         <button
           type="button"
-          onClick={handleMobileZoomOut}
+          onClick={handleZoomOut}
           aria-label="Zoom out"
           className={`${controlButtonClass} -mt-px text-xl leading-none`}
         >
           −
         </button>
+        <button
+          type="button"
+          onClick={handleToggleTilt}
+          aria-label={isTilted ? "Switch to flat 2D view" : "Tilt to 3D view"}
+          aria-pressed={isTilted}
+          className={`${controlButtonClass} -mt-px text-[11px] font-semibold leading-none ${isTilted ? "!bg-blue-600 !text-white" : ""}`}
+        >
+          3D
+        </button>
+        {isRotated && (
+          <button
+            type="button"
+            onClick={handleResetNorth}
+            aria-label="Reset bearing to north and flatten"
+            className={`${controlButtonClass} -mt-px`}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              aria-hidden="true"
+              style={{ transform: `rotate(${-view.bearing}deg)` }}
+            >
+              <path
+                fill="currentColor"
+                d="M12 2l3.5 8.5L12 9l-3.5 1.5L12 2zm0 20l-3.5-8.5L12 15l3.5-1.5L12 22z"
+              />
+            </svg>
+          </button>
+        )}
         <button
           type="button"
           onClick={locate}
@@ -492,7 +579,7 @@ export default function CityMapInner({
         citySortOption={citySortOption}
         onCitySortOptionChange={setCitySortOption}
         onSelectCountry={handleSelectCountry}
-        mapCenter={mapCenter}
+        mapCenter={view.center}
         onSelectSearchResult={handleSelectSearchResult}
         onSelectCity={handleSelectCityById}
         onClearSearch={handleClearSearch}

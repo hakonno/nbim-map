@@ -100,9 +100,9 @@ function MapIntroCard({
   return (
     <div
       ref={cardRef}
-      className="pointer-events-none absolute left-0 right-0 top-0 z-[650] w-auto border-b border-white/80 bg-white/92 px-2.5 py-2 shadow-md backdrop-blur sm:left-4 sm:right-auto sm:top-4 sm:w-[calc(100%-2rem)] sm:max-w-sm sm:rounded-2xl sm:border sm:p-4 sm:shadow-xl"
+      className="pointer-events-auto absolute left-0 right-0 top-0 z-[650] w-auto border-b border-white/80 bg-white/92 px-2.5 py-2 shadow-md backdrop-blur sm:left-4 sm:right-auto sm:top-4 sm:w-[calc(100%-2rem)] sm:max-w-sm sm:rounded-2xl sm:border sm:p-4 sm:shadow-xl"
     >
-      <div className="pointer-events-auto absolute right-2 top-2 flex items-center gap-1.5 sm:hidden">
+      <div className="absolute right-2 top-2 flex items-center gap-1.5 sm:hidden">
         <a
           href="https://www.nbim.no/en/investments/all-investments/#/2025-12-31/2-real_estate"
           target="_blank"
@@ -146,7 +146,7 @@ function MapIntroCard({
                   onClick={() => setRateInfoOpen(true)}
                   aria-label="About the exchange rate"
                   aria-haspopup="dialog"
-                  className="pointer-events-auto ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-semibold text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                  className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-semibold text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                   ?
                 </button>
@@ -157,7 +157,7 @@ function MapIntroCard({
               href="https://www.nbim.no/en/investments/all-investments"
               target="_blank"
               rel="noreferrer"
-              className="pointer-events-auto group block rounded-lg bg-slate-100 p-2 transition-colors hover:bg-slate-200 sm:rounded-xl"
+              className="group block rounded-lg bg-slate-100 p-2 transition-colors hover:bg-slate-200 sm:rounded-xl"
             >
               <p className="font-semibold text-slate-900 tabular-nums">{percentageFormatter.format(fundSharePercent)}%</p>
               <p className="text-slate-500">of fund&apos;s total investments</p>
@@ -243,7 +243,7 @@ function MapIntroCard({
       <p className="mt-2 hidden border-t border-slate-200 pt-2 text-[9px] leading-snug text-slate-500 sm:mt-3 sm:block sm:text-[11px]">
         <span className="hidden sm:inline">This is an independent project using publicly available data. Not affiliated with Norges Bank Investment Management. Data may be inaccurate.</span>
       </p>
-      <p className="pointer-events-auto mt-1 hidden items-center gap-2 text-[10px] leading-snug text-slate-500 sm:flex sm:text-[11px]">
+      <p className="mt-1 hidden items-center gap-2 text-[10px] leading-snug text-slate-500 sm:flex sm:text-[11px]">
         <a
           href="https://www.nbim.no/en/investments/all-investments/#/2025-12-31/2-real_estate"
           target="_blank"

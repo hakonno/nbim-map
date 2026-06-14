@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
 @import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css";
+@import "maplibre-gl/dist/maplibre-gl.css";
 
 :root {
   --background: #e7edf3;
@@ -23,12 +24,47 @@ body {
   font-family: var(--font-geist-sans), "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.map-shell {
+.map-shell,
+.map-skeleton {
   background:
     radial-gradient(circle at 18% 20%, rgba(15, 118, 110, 0.18), transparent 35%),
     radial-gradient(circle at 80% 18%, rgba(245, 158, 11, 0.2), transparent 30%),
     radial-gradient(circle at 25% 90%, rgba(59, 130, 246, 0.18), transparent 28%),
     linear-gradient(145deg, #edf2f7, #dbe7f2);
+}
+
+/* Map loading skeleton — mimics the live map (backdrop, side panel, centered
+   pin) while the map chunk loads. Classes are referenced by MapSkeleton.tsx;
+   the backdrop above is shared with .map-shell so the real map swaps in
+   without a flash. */
+.map-skeleton__pattern {
+  background-image:
+    linear-gradient(rgba(100, 116, 139, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 116, 139, 0.12) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(circle at 50% 42%, #000 30%, transparent 72%);
+  mask-image: radial-gradient(circle at 50% 42%, #000 30%, transparent 72%);
+}
+
+.map-skeleton__pulse {
+  animation: map-skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes map-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-skeleton__pulse {
+    animation: none;
+  }
 }
 
 .leaflet-container {
@@ -220,8 +256,123 @@ body {
   padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
-.map-mobile-zoom-controls {
+/* --- MapLibre GL (3D) engine --- */
+.maplibregl-canvas {
+  outline: none;
+}
+
+/* Control stack sits on the left to clear the top-left intro card and the
+   right/bottom selection panel — same logic as the Leaflet zoom controls. */
+.map-gl-controls {
+  bottom: 1.25rem;
+}
+
+@media (max-width: 767px) {
+  .map-gl-controls {
+    bottom: auto;
+    top: calc(100dvh - var(--map-mobile-panel-height) - 0.5rem);
+    transform: translateY(-100%);
+  }
+}
+
+/* Shared popup shell; the inner wrappers carry the actual styling so the same
+   popup can render both dark cluster summaries and light marker labels. */
+.nbim-gl-popup .maplibregl-popup-content {
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+  border-radius: 0;
+  /* Hover labels are decorative only. MapLibre makes popup content interactive
+     by default, which lets it swallow wheel events when it appears under the
+     cursor (zooming/flickering on an accidental hover). Make it click-through so
+     the pointer stays on the map beneath. */
+  pointer-events: none;
+}
+
+.nbim-gl-popup .maplibregl-popup-tip {
   display: none;
+}
+
+.nbim-gl-cluster {
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.28);
+  color: #f8fafc;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  padding: 0.5rem 0.65rem;
+  min-width: 10.5rem;
+  max-width: 15rem;
+}
+
+.nbim-gl-popup__label {
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  border-radius: 999px;
+  background: rgba(248, 250, 252, 0.96);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+  color: #0f172a;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.1;
+  padding: 0.2rem 0.5rem;
+  white-space: nowrap;
+}
+
+/* Opt-in "little man" marker for the user's own location. Drawn client-side
+   only; the coordinate is never transmitted anywhere. */
+.nbim-user-location {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+}
+
+.nbim-user-location__badge {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #2563eb;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.35);
+}
+
+.nbim-user-location__pulse {
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.25);
+  animation: nbim-user-location-pulse 2s ease-out infinite;
+}
+
+@keyframes nbim-user-location-pulse {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nbim-user-location__pulse {
+    animation: none;
+    opacity: 0.35;
+  }
+}
+
+/* Leaflet control stack — shared by desktop and mobile, mirroring the GL
+   engine's `.map-gl-controls`. */
+.map-leaflet-controls {
+  bottom: 1.25rem;
 }
 
 @media (max-width: 767px) {
@@ -229,13 +380,8 @@ body {
     -webkit-tap-highlight-color: transparent;
   }
 
-  .leaflet-bottom.leaflet-left {
-    display: none;
-  }
-
-  .map-mobile-zoom-controls {
-    display: flex;
-    flex-direction: column;
+  .map-leaflet-controls {
+    bottom: auto;
     top: calc(100dvh - var(--map-mobile-panel-height) - 0.5rem);
     transform: translateY(-100%);
   }
