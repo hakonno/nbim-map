@@ -190,7 +190,14 @@ export default async function CountryPage({ params }: { params: Params }) {
       </header>
 
       <section aria-labelledby="cities-heading" className="flex flex-col gap-2">
-        <CountryCitiesSection cities={sortedCities} />
+        <CountryCitiesSection
+          cities={sortedCities.map((city) => ({
+            id: city.id,
+            city: city.city,
+            slug: cityToSlug(city.city, city.country),
+            propertyCount: city.properties.length,
+          }))}
+        />
       </section>
 
       <section aria-labelledby="properties-heading" className="flex flex-col gap-4">

@@ -5,7 +5,7 @@ import CurrencyValue from "@/components/CurrencyValue";
 import PropertiesTable, { type PropertyRow } from "@/components/PropertiesTable";
 import JsonLd from "@/components/seo/JsonLd";
 import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
-import { cityToSlug, countryToSlug } from "@/lib/citySlug";
+import { cityToSlug } from "@/lib/citySlug";
 import { getAttomMarketUsd } from "@/lib/attomValue";
 import {
   PORTFOLIO_TOTAL_VALUE_NOK,
@@ -140,7 +140,7 @@ export default function PropertiesPage() {
           {countryChips.map((c) => (
             <li key={c.slug}>
               <Link
-                href={`/country/${countryToSlug(c.country)}`}
+                href={`/country/${c.slug}`}
                 className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1 text-sm text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50"
               >
                 {formatCountryWithFlag(c.country)}{" "}

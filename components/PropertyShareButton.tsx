@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 type PropertyShareButtonProps = {
-  /** Absolute URL to share (city page anchored to the property). */
+  /** Absolute URL to share (the property's page). */
   url: string;
   /** Human label used as the share-sheet title, e.g. the property name. */
   title: string;
@@ -36,8 +36,13 @@ export default function PropertyShareButton({
       try {
         await navigator.share({ title, url });
         return;
-      } catch {
-        // User dismissed the sheet, or share failed — fall through to copy.
+      } catch (error) {
+        // Cancelling the share sheet rejects with AbortError — respect the
+        // cancel rather than silently copying the link instead.
+        if ((error as { name?: string })?.name === "AbortError") {
+          return;
+        }
+        // A genuine share failure falls through to the clipboard copy below.
       }
     }
 

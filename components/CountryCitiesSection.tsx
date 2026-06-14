@@ -2,11 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { cityToSlug } from "@/lib/citySlug";
-import type { CityNode } from "@/types/cities";
+
+// Pre-computed on the server so this client component never imports
+// lib/citySlug (which would pull the whole cities.json into the bundle).
+export type CountryCityItem = {
+  id: string;
+  city: string;
+  slug: string;
+  propertyCount: number;
+};
 
 interface CountryCitiesSectionProps {
-  cities: CityNode[];
+  cities: CountryCityItem[];
 }
 
 export default function CountryCitiesSection({
@@ -14,8 +21,7 @@ export default function CountryCitiesSection({
 }: CountryCitiesSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Calculate visible cities (approximately 3 rows)
-  // Assuming ~4-5 cities per row depending on name length
+  // Roughly three rows before collapsing (~4-5 chips per row).
   const visibleCount = isExpanded ? cities.length : 30;
   const displayedCities = cities.slice(0, visibleCount);
   const hasMore = cities.length > visibleCount;
@@ -30,13 +36,11 @@ export default function CountryCitiesSection({
         {displayedCities.map((city) => (
           <li key={city.id}>
             <Link
-              href={`/city/${cityToSlug(city.city, city.country)}`}
+              href={`/city/${city.slug}`}
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1 text-sm text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50"
             >
               {city.city}{" "}
-              <span className="ml-1 text-slate-400">
-                ({city.properties.length})
-              </span>
+              <span className="ml-1 text-slate-400">({city.propertyCount})</span>
             </Link>
           </li>
         ))}
