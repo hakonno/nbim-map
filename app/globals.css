@@ -6,6 +6,7 @@
 :root {
   --background: #e7edf3;
   --foreground: #111827;
+  --explore-canvas: #eef1f4;
   --map-mobile-intro-height: 6rem;
   --map-mobile-panel-height: 6rem;
   --map-mobile-panel-expanded: 1;
@@ -16,6 +17,26 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+}
+
+/* Hide scrollbars on horizontal chip/scroller rows (kept keyboard/scroll-able). */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* On phones the explore homepage floats a Map/List pill over the bottom of the
+   map; lift MapLibre's attribution above it so the MapTiler/OSM credit (a
+   license requirement) is never covered. Scoped to the explore map only —
+   embedded maps on content pages keep the default corner. */
+@media (max-width: 767px) {
+  .explore-map .maplibregl-ctrl-bottom-right {
+    bottom: 4rem;
+  }
 }
 
 body {

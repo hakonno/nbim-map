@@ -23,6 +23,13 @@ type UseMaplibreMapParams = {
   minZoom: number;
   /** Called when the style/tiles fail in a way that should drop us to Leaflet. */
   onUnavailable: (reason: string) => void;
+  /**
+   * Frame these [[west, south], [east, north]] bounds at creation instead of
+   * the MAP_CENTER default. Passed to the constructor (not fitBounds after
+   * load) so the first tile requests are already for the framed view.
+   */
+  initialBounds?: [[number, number], [number, number]];
+  initialBoundsPadding?: { top: number; right: number; bottom: number; left: number };
 };
 
 type UseMaplibreMapResult = {
@@ -44,6 +51,8 @@ export function useMaplibreMap({
   maptilerApiKey,
   minZoom,
   onUnavailable,
+  initialBounds,
+  initialBoundsPadding,
 }: UseMaplibreMapParams): UseMaplibreMapResult {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MaplibreMap | null>(null);
@@ -82,6 +91,10 @@ export function useMaplibreMap({
       style: getMaptilerStyleUrl(maptilerApiKey),
       center: MAP_CENTER_LNGLAT,
       zoom: MAP_DEFAULT_ZOOM,
+      // `bounds` wins over center/zoom when provided, and clamps to minZoom.
+      ...(initialBounds
+        ? { bounds: initialBounds, fitBoundsOptions: { padding: initialBoundsPadding } }
+        : {}),
       minZoom,
       maxPitch: MAX_PITCH,
       // Don't repeat the world horizontally at low zoom — each copy re-requests

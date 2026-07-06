@@ -21,7 +21,11 @@ test.describe('disclaimer modal', () => {
 
     // Same content => same stored hash => modal does not reappear.
     await page.reload();
-    await expect(page.locator('.leaflet-container')).toBeVisible({ timeout: 30_000 });
+    // Header link is server-rendered — once visible, the app shell (and any
+    // pending modal) has had its chance to mount.
+    await expect(page.getByRole('link', { name: 'All properties' })).toBeVisible({
+      timeout: 30_000,
+    });
     await page.waitForTimeout(1000);
     await expect(gotIt).toBeHidden();
   });
