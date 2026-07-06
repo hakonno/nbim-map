@@ -37,8 +37,6 @@ type ExploreMapProps = {
   /** The filtered set currently shown in the list. */
   properties: ExploreProperty[];
   selected: ExploreProperty | null;
-  /** Bump to re-frame the camera on `selected` (used when selecting from the list). */
-  focusNonce: number;
   maptilerApiKey: string;
   onSelect: (id: string) => void;
   onUnavailable: (reason: string) => void;
@@ -115,7 +113,6 @@ function coreBounds(
 export default function ExploreMap({
   properties,
   selected,
-  focusNonce,
   maptilerApiKey,
   onSelect,
   onUnavailable,
@@ -180,9 +177,10 @@ export default function ExploreMap({
     paddingRef.current = padding;
   }, [padding]);
 
-  // Focus the selected property when chosen from the list (focusNonce bumps).
-  // If it's already on screen and we're zoomed in, just pan — don't zoom. Only
-  // fly (with a zoom change) when the target is off-screen or we're zoomed out.
+  // Focus the selected property (selection is URL-driven — cards, markers and
+  // compare chips all navigate to /property/[id]). If it's already on screen
+  // and we're zoomed in, just pan — don't zoom. Only fly (with a zoom change)
+  // when the target is off-screen or we're zoomed out.
   useEffect(() => {
     if (!map || !ready || !selected) return;
     const center: [number, number] = [selected.lng, selected.lat];
@@ -202,9 +200,7 @@ export default function ExploreMap({
         essential: true,
       });
     }
-    // focusNonce is the trigger; selected is read but should not re-fly on its own.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusNonce, map, ready]);
+  }, [selected, map, ready]);
 
   // Frame all currently-filtered results.
   const frameResults = useCallback(() => {

@@ -33,8 +33,8 @@ async function dismissDisclaimer(page: Page) {
 
 async function gotoExplore(page: Page) {
   await page.goto('/');
-  // The header link renders server-side — proof the app shell is up.
-  await expect(page.getByRole('link', { name: 'All properties' })).toBeVisible({
+  // The brand link renders server-side — proof the app shell is up.
+  await expect(page.getByRole('link', { name: /NBIM Real Estate Map/ })).toBeVisible({
     timeout: 30_000,
   });
   await dismissDisclaimer(page);
@@ -134,7 +134,7 @@ test.describe('explore homepage', () => {
     const narrowed = parseCount((await summary.textContent()) ?? '');
     expect(narrowed).toBeGreaterThan(0);
     await expect(
-      page.getByRole('button', { name: /^View / }).first(),
+      page.getByRole('link', { name: /^View / }).first(),
     ).toHaveAccessibleName(/Paris/);
 
     await page.getByRole('button', { name: 'Clear search' }).click();
@@ -143,14 +143,16 @@ test.describe('explore homepage', () => {
       .toBe(total);
   });
 
-  test('card opens the detail panel; Escape / Back to results closes it', async ({ page }) => {
+  test('card opens the detail panel at its real URL; closing goes back to /', async ({ page }) => {
     await gotoExplore(page);
     await ensureListVisible(page);
 
-    const firstCard = page.getByRole('button', { name: /^View / }).first();
+    // Cards are real anchors (crawlable); soft navigation intercepts into the panel.
+    const firstCard = page.getByRole('link', { name: /^View / }).first();
     await expect(firstCard).toBeVisible({ timeout: 10_000 });
     await firstCard.click();
 
+    await expect(page).toHaveURL(/\/property\/[^/]+$/);
     const detail = page.getByRole('dialog', { name: / details$/ });
     await expect(detail).toBeVisible();
     await expect(detail.getByRole('button', { name: 'Back to results' })).toBeVisible();
@@ -161,6 +163,36 @@ test.describe('explore homepage', () => {
       await page.keyboard.press('Escape');
     }
     await expect(detail).toBeHidden();
+    await expect(page).toHaveURL(/\/(\?.*)?$/);
+  });
+
+  test('filters mirror into the URL and shared links apply', async ({ page }) => {
+    await gotoExplore(page);
+    await ensureListVisible(page);
+
+    await page.getByLabel('Search properties').fill('Paris');
+    await expect(page).toHaveURL(/\?q=Paris/);
+
+    // A shared filter link narrows the result set after hydration.
+    await page.goto('/?country=France');
+    await ensureListVisible(page);
+    const summary = resultSummary(page);
+    await expect(summary).toContainText(/of/, { timeout: 10_000 });
+  });
+
+  test('hard-loading a property URL renders the full page, not the panel', async ({ page }) => {
+    // /properties renders all 1,388 links — the first dev-mode compile of the
+    // page can exceed the default budget, so allow extra time.
+    test.slow();
+    await page.goto('/properties');
+    // First property link in the directory index.
+    const propertyLink = page.locator('a[href^="/property/"]').first();
+    await expect(propertyLink).toBeVisible({ timeout: 60_000 });
+    const href = await propertyLink.getAttribute('href');
+    await page.goto(href!);
+    await dismissDisclaimer(page);
+    await expect(page.getByRole('button', { name: 'Back to results' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'All properties' }).first()).toBeVisible();
   });
 
   test('desktop view toggle switches list / split / map', async ({ page }) => {

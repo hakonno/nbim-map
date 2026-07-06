@@ -21,9 +21,9 @@ test.describe('disclaimer modal', () => {
 
     // Same content => same stored hash => modal does not reappear.
     await page.reload();
-    // Header link is server-rendered — once visible, the app shell (and any
+    // Brand link is server-rendered — once visible, the app shell (and any
     // pending modal) has had its chance to mount.
-    await expect(page.getByRole('link', { name: 'All properties' })).toBeVisible({
+    await expect(page.getByRole('link', { name: /NBIM Real Estate Map/ })).toBeVisible({
       timeout: 30_000,
     });
     await page.waitForTimeout(1000);

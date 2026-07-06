@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { memo } from "react";
 
 import { formatCountryWithFlag } from "@/components/map/formatCountryWithFlag";
@@ -15,9 +16,7 @@ type PropertyCardProps = {
   isSelected: boolean;
   isCompared: boolean;
   compareDisabled: boolean;
-  onSelect: (id: string) => void;
   onToggleCompare: (id: string) => void;
-  onHover: (id: string | null) => void;
 };
 
 function ownershipText(value: number | null): string {
@@ -33,28 +32,25 @@ function PropertyCard({
   isSelected,
   isCompared,
   compareDisabled,
-  onSelect,
   onToggleCompare,
-  onHover,
 }: PropertyCardProps) {
   const sector = sectorStyle(property.sector);
 
   return (
     <div
       id={`explore-card-${property.id}`}
-      onMouseEnter={() => onHover(property.id)}
-      onMouseLeave={() => onHover(null)}
       className={`group relative scroll-mt-3 overflow-hidden rounded-xl border bg-white transition-all duration-150 active:scale-[0.99] motion-reduce:active:scale-100 ${
         isSelected
           ? "border-emerald-500 ring-2 ring-emerald-500/60 shadow-sm"
           : "border-slate-200 hover:border-slate-300 hover:shadow-md"
       }`}
     >
-      {/* Stretched select target (overlay-link pattern; compare lives above it). */}
-      <button
-        type="button"
-        onClick={() => onSelect(property.id)}
-        aria-pressed={isSelected}
+      {/* Stretched link (overlay-link pattern; compare lives above it). A real
+          anchor: crawlable, and soft-navigation opens the intercepted panel. */}
+      <Link
+        href={`/property/${property.id}`}
+        scroll={false}
+        aria-current={isSelected ? "page" : undefined}
         aria-label={`View ${property.name}, ${property.city}`}
         className="absolute inset-0 z-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500"
       />

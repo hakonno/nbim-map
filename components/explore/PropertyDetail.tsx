@@ -196,7 +196,10 @@ export default function PropertyDetail({
           ) : null}
 
           <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-200 pt-4">
-            <Link
+            {/* Plain <a>, not <Link>: when this panel is the intercepted route
+                the URL already is /property/[id], so only a hard navigation
+                reaches the full standalone page. */}
+            <a
               href={`/property/${property.id}`}
               className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
             >
@@ -204,7 +207,7 @@ export default function PropertyDetail({
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
               </svg>
-            </Link>
+            </a>
             <Link
               href={`/city/${property.citySlug}`}
               className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"

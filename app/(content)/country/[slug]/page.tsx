@@ -2,21 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import CityMap from "@/components/CityMap";
 import CountryCitiesSection from "@/components/CountryCitiesSection";
 import CurrencyValue from "@/components/CurrencyValue";
-import PropertiesTable, { type PropertyRow } from "@/components/PropertiesTable";
 import JsonLd from "@/components/seo/JsonLd";
 import { cityToSlug } from "@/lib/citySlug";
 import {
   findInvestmentCountryBySlug,
   getInvestmentCountrySlugs,
 } from "@/lib/portfolio";
-import { getAttomMarketUsd } from "@/lib/attomValue";
 import { getCountryValueNok } from "@/lib/portfolioValue";
-import { getGoogleMapsEmbedApiKey } from "@/lib/googleMapsKey";
 import { DATASET_YEAR, SITE_NAME, SITE_URL } from "@/app/siteMetadata";
-import type { CityNode } from "@/types/cities";
 
 export const dynamicParams = false;
 
@@ -24,28 +19,6 @@ type Params = Promise<{ slug: string }>;
 
 export function generateStaticParams() {
   return getInvestmentCountrySlugs().map((slug) => ({ slug }));
-}
-
-function buildRows(cities: CityNode[]): PropertyRow[] {
-  const rows: PropertyRow[] = [];
-  for (const city of cities) {
-    const citySlug = cityToSlug(city.city, city.country);
-    for (const prop of city.properties) {
-      rows.push({
-        propId: prop.id,
-        name: prop.name ?? "",
-        address: prop.address ?? "",
-        sector: prop.sector ?? "",
-        partnership: prop.partnership ?? "",
-        ownershipPercent: prop.ownership_percent,
-        attomMarketUsd: getAttomMarketUsd(prop.id),
-        city: city.city,
-        country: city.country,
-        citySlug,
-      });
-    }
-  }
-  return rows;
 }
 
 export async function generateMetadata({
@@ -68,7 +41,7 @@ export async function generateMetadata({
   const title = `${country.country} – NBIM-owned real estate`;
   const description = `${propertyCount} properties across ${cityCount} ${
     cityCount === 1 ? "city" : "cities"
-  } in ${country.country} owned by Norway's sovereign wealth fund (NBIM). Searchable list with sectors, partnerships and ownership stakes.`;
+  } in ${country.country} owned by Norway's sovereign wealth fund (NBIM), with sectors, partnerships and ownership stakes.`;
 
   return {
     title,
@@ -99,10 +72,30 @@ export default async function CountryPage({ params }: { params: Params }) {
   const sortedCities = [...country.cities].sort(
     (a, b) => b.properties.length - a.properties.length
   );
-  const rows = buildRows(country.cities);
-  const totalProperties = rows.length;
+  const totalProperties = country.cities.reduce(
+    (sum, city) => sum + city.properties.length,
+    0
+  );
   const countryValueNok = getCountryValueNok(country.cities);
   const cityCount = country.cities.length;
+
+  // Alphabetical by city, then name — a readable, fully crawlable index of
+  // every property in the country (the old table only server-rendered the
+  // first page and scrolled horizontally on phones).
+  const cityIndex = [...country.cities]
+    .sort((a, b) => a.city.localeCompare(b.city))
+    .map((city) => ({
+      city: city.city,
+      slug: cityToSlug(city.city, city.country),
+      entries: [...city.properties]
+        .map((prop) => ({
+          id: prop.id,
+          name: prop.name?.trim() || prop.address?.trim() || "Property",
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+
+  const mapHref = `/?country=${encodeURIComponent(country.country)}`;
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
@@ -187,6 +180,17 @@ export default async function CountryPage({ params }: { params: Params }) {
             "."
           )}
         </p>
+        <p>
+          <Link
+            href={mapHref}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700"
+          >
+            View {country.country} on the interactive map
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
+            </svg>
+          </Link>
+        </p>
       </header>
 
       <section aria-labelledby="cities-heading" className="flex flex-col gap-2">
@@ -200,28 +204,34 @@ export default async function CountryPage({ params }: { params: Params }) {
         />
       </section>
 
-      <section aria-labelledby="properties-heading" className="flex flex-col gap-4">
+      <section aria-labelledby="properties-heading" className="flex flex-col gap-6">
         <h2 id="properties-heading" className="text-xl font-semibold text-slate-900">
           Properties
         </h2>
-        <PropertiesTable
-          rows={rows}
-          siteUrl={SITE_URL}
-          showCountryColumn={false}
-          showCountryFilter={false}
-        />
-      </section>
-
-      <section aria-labelledby="map-heading" className="flex flex-col gap-3">
-        <h2 id="map-heading" className="text-xl font-semibold text-slate-900">
-          On the map
-        </h2>
-        <div className="relative h-[65svh] w-full overflow-hidden rounded-xl border border-slate-200">
-          <CityMap
-            googleMapsEmbedApiKey={getGoogleMapsEmbedApiKey()}
-            initialFocus={{ kind: "country", country: country.country }}
-          />
-        </div>
+        {cityIndex.map((city) => (
+          <div key={city.slug}>
+            <h3 className="mb-2 border-b border-slate-200 pb-1.5 text-base font-semibold text-slate-800">
+              <Link href={`/city/${city.slug}`} className="hover:underline">
+                {city.city}
+              </Link>{" "}
+              <span className="text-sm font-normal text-slate-400">
+                ({city.entries.length})
+              </span>
+            </h3>
+            <ul className="sm:columns-2 lg:columns-3 [&>li]:break-inside-avoid">
+              {city.entries.map((entry) => (
+                <li key={entry.id} className="py-1 text-sm leading-snug">
+                  <Link
+                    href={`/property/${entry.id}`}
+                    className="text-slate-800 hover:text-slate-950 hover:underline"
+                  >
+                    {entry.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </section>
 
       <p className="text-sm text-slate-600">

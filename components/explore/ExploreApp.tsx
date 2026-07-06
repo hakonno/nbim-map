@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import CurrencyToggle from "@/components/CurrencyToggle";
 import MapSkeleton from "@/components/MapSkeleton";
@@ -14,12 +15,13 @@ import { useIsDesktop, useWebglSupported } from "@/components/explore/useClientE
 import CompareTray, { MAX_COMPARE } from "@/components/explore/CompareTray";
 import FilterBar from "@/components/explore/FilterBar";
 import FilterSheet from "@/components/explore/FilterSheet";
-import PropertyDetail from "@/components/explore/PropertyDetail";
 import PropertyList from "@/components/explore/PropertyList";
 import {
   DEFAULT_FILTERS,
   applyFilters,
   countActiveFilters,
+  filtersFromSearchParams,
+  filtersToSearchParams,
   summarize,
 } from "@/components/explore/filtering";
 import type { ExploreData, Filters } from "@/components/explore/types";
@@ -34,23 +36,29 @@ type View = "split" | "map" | "list";
 type ExploreAppProps = {
   data: ExploreData;
   maptilerApiKey: string;
-  googleMapsEmbedApiKey: string;
-  siteUrl: string;
 };
 
-const noop = () => {};
+// A crafted URL with malformed percent-encoding must not crash the app.
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
 
-export default function ExploreApp({
-  data,
-  maptilerApiKey,
-  googleMapsEmbedApiKey,
-  siteUrl,
-}: ExploreAppProps) {
+export default function ExploreApp({ data, maptilerApiKey }: ExploreAppProps) {
   const { properties, facets, totals } = data;
 
+  const router = useRouter();
+  const pathname = usePathname();
+  // Selection is URL-driven: while the intercepted /property/[id] panel is
+  // open the pathname carries the id; the explore page stays mounted beneath.
+  const selectedId = pathname?.startsWith("/property/")
+    ? safeDecode(pathname.slice("/property/".length))
+    : null;
+
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [focusNonce, setFocusNonce] = useState(0);
   const [comparedIds, setComparedIds] = useState<string[]>([]);
   const [view, setView] = useState<View>("split");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -94,14 +102,57 @@ export default function ExploreApp({
     setFilters((prev) => ({ ...DEFAULT_FILTERS, sort: prev.sort }));
   }, []);
 
-  const handleSelectFromList = useCallback((id: string) => {
-    setSelectedId(id);
-    setFocusNonce((n) => n + 1);
+  // Selecting a property (card, marker, compare chip) navigates to its real
+  // URL; the intercepted route renders the panel while this page stays live.
+  const handleSelect = useCallback(
+    (id: string) => {
+      router.push(`/property/${encodeURIComponent(id)}`, { scroll: false });
+    },
+    [router]
+  );
+
+  // --- URL state ------------------------------------------------------------
+  // The server always renders the default view; shared filter links
+  // (/?country=France) apply here after hydration.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const focus = params.get("focus");
+    if (focus) {
+      // ?focus=<id> deep link ("View on map" from a property page): strip the
+      // param so Back never re-triggers it, then open the panel in-app.
+      params.delete("focus");
+      const rest = params.toString();
+      window.history.replaceState(null, "", rest ? `/?${rest}` : "/");
+    }
+    if ([...params.keys()].length > 0) {
+      // One-time adoption of URL params after hydration: the server always
+      // renders the default view, so this is the earliest the shared-link
+      // state can apply. A single, guarded setState — not a render loop.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFilters(filtersFromSearchParams(params, facets));
+    }
+    if (focus) {
+      router.push(`/property/${encodeURIComponent(focus)}`, { scroll: false });
+    }
+    // Runs once, on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSelectFromMap = useCallback((id: string) => {
-    setSelectedId(id);
-  }, []);
+  // Mirror filters to the URL (replace, not push — tweaking filters shouldn't
+  // pollute history; this Next version integrates native replaceState with the
+  // router). Written onto the current pathname so an open property panel keeps
+  // its canonical /property/[id] URL. The reference check makes this a no-op
+  // until filters actually change (setFilters always creates a new object), so
+  // it can never strip URL params before the mount effect above adopts them —
+  // even under Strict Mode double-invocation.
+  useEffect(() => {
+    if (filters === DEFAULT_FILTERS) return;
+    const qs = filtersToSearchParams(filters).toString();
+    const target = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+    if (`${window.location.pathname}${window.location.search}` !== target) {
+      window.history.replaceState(null, "", target);
+    }
+  }, [filters]);
 
   const handleToggleCompare = useCallback((id: string) => {
     setComparedIds((prev) =>
@@ -141,9 +192,7 @@ export default function ExploreApp({
       comparedIds={comparedIds}
       compareFull={compareFull}
       layout={layout}
-      onSelect={handleSelectFromList}
       onToggleCompare={handleToggleCompare}
-      onHover={noop}
     />
   );
 
@@ -224,16 +273,10 @@ export default function ExploreApp({
             </div>
           ) : null}
 
-          <div className="hidden sm:block">
-            <CurrencyToggle />
-          </div>
-
-          <Link
-            href="/properties"
-            className="shrink-0 rounded-lg px-2.5 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-          >
-            All properties
-          </Link>
+          {/* The /properties index is a crawl/SEO surface, not primary nav —
+              in-app users have the list view; card links reach the content
+              graph. Deliberately no nav item for it here. */}
+          <CurrencyToggle />
         </div>
       </header>
 
@@ -269,9 +312,8 @@ export default function ExploreApp({
               <ExploreMap
                 properties={filtered}
                 selected={selected}
-                focusNonce={focusNonce}
                 maptilerApiKey={maptilerApiKey}
-                onSelect={handleSelectFromMap}
+                onSelect={handleSelect}
                 onUnavailable={handleUnavailable}
                 padding={mapPadding}
               />
@@ -301,15 +343,8 @@ export default function ExploreApp({
           </div>
         ) : null}
 
-        {/* Detail (desktop: covers left column; mobile: bottom sheet) */}
-        {selected ? (
-          <PropertyDetail
-            property={selected}
-            googleMapsEmbedApiKey={googleMapsEmbedApiKey}
-            siteUrl={siteUrl}
-            onClose={() => setSelectedId(null)}
-          />
-        ) : null}
+        {/* The detail panel renders via the intercepted /property/[id] route
+            (the @modal slot in app/(explore)), not here. */}
       </div>
 
       {/* Mobile Map/List toggle */}
@@ -351,7 +386,7 @@ export default function ExploreApp({
         properties={compared}
         onRemove={handleToggleCompare}
         onClear={() => setComparedIds([])}
-        onSelect={handleSelectFromList}
+        onSelect={handleSelect}
       />
 
       {filtersOpen ? (

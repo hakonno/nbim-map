@@ -1,7 +1,9 @@
 import type {
+  ExploreFacets,
   ExploreProperty,
   Filters,
   OwnershipBucket,
+  Sector,
   SortKey,
 } from "@/components/explore/types";
 
@@ -136,6 +138,61 @@ export function sortProperties(
       break;
   }
   return sorted;
+}
+
+// --- URL round-trip -------------------------------------------------------
+// Filters mirror into query params so filtered views are shareable links
+// (e.g. /?country=France&sector=Retail). Defaults are omitted, so the bare
+// homepage URL stays clean.
+
+export function filtersToSearchParams(filters: Filters): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filters.query.trim()) params.set("q", filters.query.trim());
+  if (filters.sectors.length) params.set("sector", filters.sectors.join(","));
+  if (filters.countries.length) params.set("country", filters.countries.join(","));
+  if (filters.partner) params.set("partner", filters.partner);
+  if (filters.ownership !== "any") params.set("stake", filters.ownership);
+  if (filters.marketDataOnly) params.set("market", "1");
+  if (filters.sort !== DEFAULT_FILTERS.sort) params.set("sort", filters.sort);
+  return params;
+}
+
+/**
+ * Parse query params back into Filters, validating every value against the
+ * facets / known keys so a mangled link degrades to defaults, never to a
+ * broken state.
+ */
+export function filtersFromSearchParams(
+  params: URLSearchParams,
+  facets: ExploreFacets
+): Filters {
+  const knownSectors = new Set(facets.sectors.map((s) => s.value));
+  const knownCountries = new Set(facets.countries.map((c) => c.value));
+  const knownPartners = new Set(facets.partners.map((p) => p.value));
+  const knownBuckets = new Set(OWNERSHIP_BUCKETS.map((b) => b.value));
+  const knownSorts = new Set(SORT_OPTIONS.map((s) => s.value));
+
+  const csv = (value: string | null) =>
+    value ? value.split(",").map((part) => part.trim()).filter(Boolean) : [];
+
+  const partner = params.get("partner");
+  const stake = params.get("stake");
+  const sort = params.get("sort");
+
+  return {
+    query: params.get("q")?.trim() ?? "",
+    sectors: csv(params.get("sector")).filter((s): s is Sector =>
+      knownSectors.has(s as Sector)
+    ),
+    countries: csv(params.get("country")).filter((c) => knownCountries.has(c)),
+    partner: partner && knownPartners.has(partner) ? partner : null,
+    ownership:
+      stake && knownBuckets.has(stake as OwnershipBucket)
+        ? (stake as OwnershipBucket)
+        : "any",
+    marketDataOnly: params.get("market") === "1",
+    sort: sort && knownSorts.has(sort as SortKey) ? (sort as SortKey) : DEFAULT_FILTERS.sort,
+  };
 }
 
 /** Number of non-default filter facets active (drives the "clear all" badge). */

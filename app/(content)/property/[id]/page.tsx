@@ -254,6 +254,22 @@ export default async function PropertyPage({ params }: { params: Params }) {
           ) : null}
           .
         </p>
+
+        {hasCoordinates ? (
+          <p>
+            {/* ?focus= deep link: the explore app strips the param and opens
+                this property's panel over the live map. */}
+            <Link
+              href={`/?focus=${encodeURIComponent(property.id)}`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700"
+            >
+              View on the interactive map
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
+              </svg>
+            </Link>
+          </p>
+        ) : null}
       </header>
 
       <section aria-labelledby="facts-heading" className="flex flex-col gap-3">
