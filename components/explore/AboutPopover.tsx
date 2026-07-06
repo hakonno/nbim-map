@@ -6,6 +6,7 @@ import Popover from "@/components/explore/Popover";
 
 const GITHUB_URL = "https://github.com/hakonno/nbim-map";
 const NBIM_URL = "https://www.nbim.no/";
+const ATTOM_URL = "https://www.attomdata.com/";
 
 type AboutPopoverProps = {
   datasetYear: string;
@@ -49,11 +50,6 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
           shown here because they are not published.
         </li>
         <li className="flex gap-2">
-          <span aria-hidden="true" className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-slate-300" />
-          US properties may show an ATTOM tax-assessor market estimate for the
-          whole building — a modelled figure, not NBIM&apos;s valuation.
-        </li>
-        <li className="flex gap-2">
           <span
             aria-hidden="true"
             className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
@@ -82,6 +78,14 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
           className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
         >
           Data: nbim.no ↗
+        </a>
+        <a
+          href={ATTOM_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
+        >
+          ATTOM US market data ↗
         </a>
         <Link
           href="/properties"
