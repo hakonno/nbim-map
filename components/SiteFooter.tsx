@@ -46,6 +46,26 @@ export default function SiteFooter() {
                 All properties
               </Link>
             </li>
+            <li>
+              <a
+                href="https://github.com/hakonno/nbim-map"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-600 hover:text-slate-900 hover:underline"
+              >
+                Source code (GitHub)
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://www.nbim.no/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-600 hover:text-slate-900 hover:underline"
+              >
+                Data: nbim.no
+              </a>
+            </li>
           </ul>
         </nav>
 

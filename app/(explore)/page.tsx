@@ -1,5 +1,6 @@
 import ExploreApp from "@/components/explore/ExploreApp";
 import { buildExploreData } from "@/lib/exploreData";
+import { DATASET_YEAR } from "@/app/siteMetadata";
 
 export default function Home() {
   // MapTiler key for the base map tiles. Read server-side and passed as a prop
@@ -22,7 +23,7 @@ export default function Home() {
 
   return (
     <main className="flex flex-1">
-      <ExploreApp data={data} maptilerApiKey={maptilerApiKey} />
+      <ExploreApp data={data} maptilerApiKey={maptilerApiKey} datasetYear={DATASET_YEAR} />
     </main>
   );
 }

@@ -13,15 +13,10 @@ export default function SiteHeader() {
       <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-2.5 sm:px-6">
         <Link
           href="/"
-          className="flex min-w-0 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          className="min-w-0 truncate rounded-lg font-display text-[15px] font-semibold tracking-tight text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           aria-label="NBIM Real Estate Map — home"
         >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 font-display text-base font-semibold text-white">
-            N
-          </span>
-          <span className="truncate font-display text-[15px] font-semibold tracking-tight text-slate-900">
-            NBIM Real Estate
-          </span>
+          NBIM Real Estate
         </Link>
         <nav aria-label="Primary">
           <ul className="flex items-center gap-1 text-sm">

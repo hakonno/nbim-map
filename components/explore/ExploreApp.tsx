@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import CurrencyToggle from "@/components/CurrencyToggle";
 import MapSkeleton from "@/components/MapSkeleton";
+import AboutPopover from "@/components/explore/AboutPopover";
 import RateInfoModal from "@/components/map/RateInfoModal";
 import { useCurrency } from "@/components/map/hooks/useCurrencyPreference";
 import { useUsdToNokRate } from "@/components/map/hooks/useExchangeRate";
@@ -36,6 +37,7 @@ type View = "split" | "map" | "list";
 type ExploreAppProps = {
   data: ExploreData;
   maptilerApiKey: string;
+  datasetYear: string;
 };
 
 // A crafted URL with malformed percent-encoding must not crash the app.
@@ -47,7 +49,7 @@ function safeDecode(value: string): string {
   }
 }
 
-export default function ExploreApp({ data, maptilerApiKey }: ExploreAppProps) {
+export default function ExploreApp({ data, maptilerApiKey, datasetYear }: ExploreAppProps) {
   const { properties, facets, totals } = data;
 
   const router = useRouter();
@@ -204,23 +206,19 @@ export default function ExploreApp({ data, maptilerApiKey }: ExploreAppProps) {
       <header className="z-30 flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-3 sm:px-4">
         <Link
           href="/"
-          className="flex min-w-0 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          className="flex min-w-0 flex-col rounded-lg leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           aria-label="NBIM Real Estate Map — home"
         >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 font-display text-base font-semibold text-white">
-            N
+          <span className="truncate font-display text-[15px] font-semibold tracking-tight text-slate-900">
+            NBIM Real Estate
           </span>
-          <span className="flex min-w-0 flex-col leading-tight">
-            <span className="truncate font-display text-[15px] font-semibold tracking-tight text-slate-900">
-              NBIM Real Estate
-            </span>
-            <span
-              className="truncate text-[11px] text-slate-400"
-              title="NBIM's disclosed real-estate total — the fund does not publish per-property values."
-            >
-              <span className="font-medium tabular-nums text-slate-500">{headlineValue}</span> of
-              property across {totals.countryCount} countries
-            </span>
+          {/* The one-liner that tells a first-time visitor what this is. */}
+          <span
+            className="truncate text-[11px] text-slate-400"
+            title="NBIM's disclosed real-estate total — the fund does not publish per-property values."
+          >
+            <span className="font-medium tabular-nums text-slate-500">{headlineValue}</span>
+            {" of Norway’s oil-fund property, mapped"}
           </span>
         </Link>
 
@@ -273,10 +271,11 @@ export default function ExploreApp({ data, maptilerApiKey }: ExploreAppProps) {
             </div>
           ) : null}
 
-          {/* The /properties index is a crawl/SEO surface, not primary nav —
-              in-app users have the list view; card links reach the content
-              graph. Deliberately no nav item for it here. */}
           <CurrencyToggle />
+          {/* Last in the row so the popover's right edge anchors near the
+              viewport edge on phones. The /properties index is a crawl/SEO
+              surface, not primary nav — About links it for the curious. */}
+          <AboutPopover datasetYear={datasetYear} />
         </div>
       </header>
 
