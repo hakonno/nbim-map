@@ -123,12 +123,23 @@ export default function ExploreMap({
   // constructor means no tiles are ever requested for the wrong view.
   // Wide screens can fit everything; narrow ones get the dense 10–90% core,
   // with slim horizontal padding so the US→Europe span fits above MIN_ZOOM.
+  // With a selection already present at mount (e.g. dismissing the panel
+  // after arriving from a content page remounts the app), open on the
+  // property's neighbourhood instead of zooming out to the world.
   const [initial] = useState(() => {
     const wide =
       typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
     const base = fullPadding(padding, 24);
+    const bounds = selected
+      ? ([
+          [selected.lng - 0.02, selected.lat - 0.015],
+          [selected.lng + 0.02, selected.lat + 0.015],
+        ] as [[number, number], [number, number]])
+      : wide
+        ? boundsOf(properties)
+        : coreBounds(properties);
     return {
-      bounds: wide ? boundsOf(properties) : coreBounds(properties),
+      bounds,
       boundsPadding: {
         top: base.top + INITIAL_FIT_EXTRA_PX,
         right: wide ? base.right + INITIAL_FIT_EXTRA_PX : 16,

@@ -16,6 +16,9 @@ type PropertyCardProps = {
   isSelected: boolean;
   isCompared: boolean;
   compareDisabled: boolean;
+  /** True while a detail panel is open: selecting then REPLACES the history
+   * entry so Back never walks through previously viewed properties. */
+  replaceOnSelect: boolean;
   onToggleCompare: (id: string) => void;
 };
 
@@ -32,6 +35,7 @@ function PropertyCard({
   isSelected,
   isCompared,
   compareDisabled,
+  replaceOnSelect,
   onToggleCompare,
 }: PropertyCardProps) {
   const sector = sectorStyle(property.sector);
@@ -50,6 +54,7 @@ function PropertyCard({
       <Link
         href={`/property/${property.id}`}
         scroll={false}
+        replace={replaceOnSelect}
         aria-current={isSelected ? "page" : undefined}
         aria-label={`View ${property.name}, ${property.city}`}
         className="absolute inset-0 z-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-500"

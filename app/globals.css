@@ -47,17 +47,8 @@ body {
     linear-gradient(145deg, #edf2f7, #dbe7f2);
 }
 
-/* Map loading skeleton — mimics the live map (backdrop, side panel, centered
-   pin) while the map chunk loads. Classes are referenced by MapSkeleton.tsx. */
-.map-skeleton__pattern {
-  background-image:
-    linear-gradient(rgba(100, 116, 139, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(100, 116, 139, 0.12) 1px, transparent 1px);
-  background-size: 46px 46px;
-  -webkit-mask-image: radial-gradient(circle at 50% 42%, #000 30%, transparent 72%);
-  mask-image: radial-gradient(circle at 50% 42%, #000 30%, transparent 72%);
-}
-
+/* Map loading skeleton — soft basemap-toned backdrop and a pulsing pin while
+   the map chunk loads. Classes are referenced by MapSkeleton.tsx. */
 .map-skeleton__pulse {
   animation: map-skeleton-pulse 1.6s ease-in-out infinite;
 }

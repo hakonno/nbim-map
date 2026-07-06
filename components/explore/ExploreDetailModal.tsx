@@ -24,9 +24,13 @@ export default function ExploreDetailModal({
 }: ExploreDetailModalProps) {
   const router = useRouter();
   const close = useCallback(() => router.back(), [router]);
-  // "Explore the map": close the panel but stay in the app — replace (not
-  // push) so history stays where the visitor came from (e.g. the index page).
-  const showMap = useCallback(() => router.replace("/", { scroll: false }), [router]);
+  // Dismiss-in-app: close the panel but stay in the explore app with the
+  // property still highlighted — ?sel= carries the selection across, and
+  // replace (not push) keeps history pointing where the visitor came from.
+  const dismissInApp = useCallback(
+    () => router.replace(`/?sel=${encodeURIComponent(property.id)}`, { scroll: false }),
+    [router, property.id]
+  );
 
   return (
     <PropertyDetail
@@ -34,7 +38,7 @@ export default function ExploreDetailModal({
       googleMapsEmbedApiKey={googleMapsEmbedApiKey}
       siteUrl={siteUrl}
       onClose={close}
-      onShowMap={showMap}
+      onDismissInApp={dismissInApp}
     />
   );
 }

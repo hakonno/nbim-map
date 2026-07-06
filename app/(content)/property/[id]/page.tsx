@@ -297,25 +297,28 @@ export default async function PropertyPage({ params }: { params: Params }) {
             </dt>
             <dd className="mt-1 text-sm text-slate-900">{partnership ?? "—"}</dd>
           </div>
-          <div className="bg-white px-4 py-3">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Market estimate{" "}
-              <abbr title={MARKET_DISCLAIMER} className="cursor-help text-slate-400">
-                (ATTOM&nbsp;?)
-              </abbr>
-            </dt>
-            <dd className="mt-1 text-sm text-slate-900 tabular-nums">
-              {attomMarketUsd != null ? <CurrencyValue usd={attomMarketUsd} /> : "—"}
-            </dd>
-          </div>
+          {/* Only when data exists — an empty "ATTOM ?" cell just raises questions. */}
+          {attomMarketUsd != null ? (
+            <div className="bg-white px-4 py-3">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Market estimate{" "}
+                <abbr title={MARKET_DISCLAIMER} className="cursor-help text-slate-400">
+                  (ATTOM&nbsp;?)
+                </abbr>
+              </dt>
+              <dd className="mt-1 text-sm text-slate-900 tabular-nums">
+                <CurrencyValue usd={attomMarketUsd} />
+              </dd>
+            </div>
+          ) : null}
         </dl>
 
         {attomMarketUsd != null ? (
           <p className="text-xs text-slate-500">{MARKET_DISCLAIMER}</p>
         ) : (
           <p className="text-xs text-slate-500">
-            NBIM does not publish a value for individual properties. &ldquo;—&rdquo; means
-            no per-property estimate is available.
+            NBIM does not publish per-property values, and no independent
+            estimate is available for this property.
           </p>
         )}
       </section>

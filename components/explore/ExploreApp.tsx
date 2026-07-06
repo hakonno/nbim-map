@@ -13,6 +13,7 @@ import { useCurrency } from "@/components/map/hooks/useCurrencyPreference";
 import { useUsdToNokRate } from "@/components/map/hooks/useExchangeRate";
 import { formatNokValue } from "@/utils/formatCurrency";
 import { useIsDesktop, useWebglSupported } from "@/components/explore/useClientEnv";
+import { setExploreView } from "@/components/explore/useExploreView";
 import CompareTray, { MAX_COMPARE } from "@/components/explore/CompareTray";
 import FilterBar from "@/components/explore/FilterBar";
 import FilterSheet from "@/components/explore/FilterSheet";
@@ -56,9 +57,16 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
   const pathname = usePathname();
   // Selection is URL-driven: while the intercepted /property/[id] panel is
   // open the pathname carries the id; the explore page stays mounted beneath.
-  const selectedId = pathname?.startsWith("/property/")
+  const routeSelectedId = pathname?.startsWith("/property/")
     ? safeDecode(pathname.slice("/property/".length))
     : null;
+
+  // "Soft" selection: the property stays highlighted (list ring, map marker,
+  // camera) after the panel is dismissed via "Explore the map"/close — carried
+  // through the ?sel= param so it also survives the remount that happens when
+  // the panel was reached from a content page (children slot default → page).
+  const [softSelectedId, setSoftSelectedId] = useState<string | null>(null);
+  const selectedId = routeSelectedId ?? softSelectedId;
 
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [comparedIds, setComparedIds] = useState<string[]>([]);
@@ -96,6 +104,11 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
   // Without a usable map, the list is the only sensible surface.
   const effectiveView: View = mapEnabled ? view : "list";
 
+  // Let the detail panel (a separate route-slot tree) adapt to the view.
+  useEffect(() => {
+    setExploreView(effectiveView);
+  }, [effectiveView]);
+
   const handleChange = useCallback((patch: Partial<Filters>) => {
     setFilters((prev) => ({ ...prev, ...patch }));
   }, []);
@@ -106,12 +119,35 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
 
   // Selecting a property (card, marker, compare chip) navigates to its real
   // URL; the intercepted route renders the panel while this page stays live.
+  // While the panel is already open, selections REPLACE the history entry —
+  // otherwise Back would walk through every previously viewed property.
   const handleSelect = useCallback(
     (id: string) => {
-      router.push(`/property/${encodeURIComponent(id)}`, { scroll: false });
+      const href = `/property/${encodeURIComponent(id)}`;
+      if (routeSelectedId) {
+        router.replace(href, { scroll: false });
+      } else {
+        router.push(href, { scroll: false });
+      }
+      setSoftSelectedId(null);
     },
-    [router]
+    [router, routeSelectedId]
   );
+
+  // Adopt ?sel= (set by the panel's close/"Explore the map" actions) whenever
+  // we're back on the homepage — keyed on pathname so it works both without a
+  // remount (in-app) and after one (content-page arrivals).
+  useEffect(() => {
+    if (pathname !== "/") return;
+    const params = new URLSearchParams(window.location.search);
+    const sel = params.get("sel");
+    if (!sel) return;
+    params.delete("sel");
+    const rest = params.toString();
+    window.history.replaceState(null, "", rest ? `/?${rest}` : "/");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot URL adoption, same as the filters init above
+    setSoftSelectedId(sel);
+  }, [pathname]);
 
   // --- URL state ------------------------------------------------------------
   // The server always renders the default view; shared filter links
@@ -171,18 +207,11 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
     setMapFailed(true);
   }, []);
 
-  // The view buttons operate on the browse surface; the detail panel is a
-  // route on top of it. Switching views with the panel open first closes it
-  // (otherwise the fixed panel visually collides with the list grid).
-  const handleViewChange = useCallback(
-    (next: View) => {
-      if (selectedId) {
-        router.push("/", { scroll: false });
-      }
-      setView(next);
-    },
-    [router, selectedId]
-  );
+  // View switches rearrange the surfaces around the current selection — they
+  // never navigate, so the map instance, filters and open panel all survive.
+  const handleViewChange = useCallback((next: View) => {
+    setView(next);
+  }, []);
 
   const activeFilterCount = countActiveFilters(filters);
   const summary = useMemo(() => summarize(filtered), [filtered]);
@@ -207,6 +236,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
       comparedIds={comparedIds}
       compareFull={compareFull}
       layout={layout}
+      replaceOnSelect={Boolean(routeSelectedId)}
       onToggleCompare={handleToggleCompare}
     />
   );
@@ -299,7 +329,9 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
           <section
             className={`relative z-10 min-h-0 flex-col bg-white ${
               effectiveView === "list"
-                ? "flex w-full"
+                ? // With the panel open, the grid shifts right so panel + list
+                  // sit side by side instead of the panel covering the grid.
+                  `flex w-full ${routeSelectedId ? "md:pl-[408px] lg:pl-[452px]" : ""}`
                 : "hidden md:flex md:w-[408px] md:border-r md:border-slate-200 lg:w-[452px]"
             }`}
           >

@@ -14,6 +14,8 @@ import {
   ownershipLabel,
   sectorStyle,
 } from "@/components/explore/sectorStyles";
+import { useIsDesktop } from "@/components/explore/useClientEnv";
+import { useExploreView } from "@/components/explore/useExploreView";
 import { useSheetDrag } from "@/components/explore/useSheetDrag";
 import type { ExploreProperty } from "@/components/explore/types";
 import { formatUsdValue } from "@/utils/formatCurrency";
@@ -23,8 +25,9 @@ type PropertyDetailProps = {
   googleMapsEmbedApiKey: string;
   siteUrl: string;
   onClose: () => void;
-  /** Close the panel and stay in the explore app (vs. onClose = go back). */
-  onShowMap?: () => void;
+  /** Close the panel but stay in the app with the property still highlighted
+   * (vs. onClose = history back, which may leave the app entirely). */
+  onDismissInApp?: () => void;
 };
 
 function Stat({ label, children }: { label: string; children: React.ReactNode }) {
@@ -41,7 +44,7 @@ export default function PropertyDetail({
   googleMapsEmbedApiKey,
   siteUrl,
   onClose,
-  onShowMap,
+  onDismissInApp,
 }: PropertyDetailProps) {
   const currency = useCurrency();
   const rate = useUsdToNokRate();
@@ -50,6 +53,13 @@ export default function PropertyDetail({
   const sector = sectorStyle(property.sector);
   const isUs = property.country === "United States";
   const { sheetStyle, handleProps } = useSheetDrag(onClose);
+
+  // In the desktop list view the panel sits BESIDE the results, so "Back to
+  // results" is wrong (results are right there — and history-back could leave
+  // the app). Show a plain close instead, which keeps the highlight.
+  const view = useExploreView();
+  const isDesktop = useIsDesktop();
+  const sideBySide = isDesktop && view === "list" && Boolean(onDismissInApp);
 
   const streetViewUrl = googleMapsEmbedApiKey
     ? `https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(
@@ -89,17 +99,32 @@ export default function PropertyDetail({
         </div>
 
         <header className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
-          <button
-            ref={closeRef}
-            type="button"
-            onClick={onClose}
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" />
-            </svg>
-            Back to results
-          </button>
+          {sideBySide ? (
+            <button
+              ref={closeRef}
+              type="button"
+              onClick={onDismissInApp}
+              aria-label="Close details"
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
+                <path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" />
+              </svg>
+              Close
+            </button>
+          ) : (
+            <button
+              ref={closeRef}
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" />
+              </svg>
+              Back to results
+            </button>
+          )}
           <div className="flex items-center gap-1.5">
             <CurrencyToggle />
             <PropertyShareButton
@@ -211,10 +236,10 @@ export default function PropertyDetail({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
               </svg>
             </a>
-            {onShowMap ? (
+            {onDismissInApp && !sideBySide ? (
               <button
                 type="button"
-                onClick={onShowMap}
+                onClick={onDismissInApp}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">

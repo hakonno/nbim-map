@@ -16,6 +16,8 @@ type PropertyListProps = {
   compareFull: boolean;
   /** "column" for the split pane, "grid" for the full-width list view. */
   layout?: "column" | "grid";
+  /** True while a detail panel is open (selections replace history). */
+  replaceOnSelect: boolean;
   onToggleCompare: (id: string) => void;
 };
 
@@ -25,6 +27,7 @@ export default function PropertyList({
   comparedIds,
   compareFull,
   layout = "column",
+  replaceOnSelect,
   onToggleCompare,
 }: PropertyListProps) {
   const currency = useCurrency();
@@ -109,6 +112,7 @@ export default function PropertyList({
               isSelected={property.id === selectedId}
               isCompared={comparedSet.has(property.id)}
               compareDisabled={compareFull}
+              replaceOnSelect={replaceOnSelect}
               onToggleCompare={onToggleCompare}
             />
           </li>
