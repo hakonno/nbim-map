@@ -24,6 +24,9 @@ export default function ExploreDetailModal({
 }: ExploreDetailModalProps) {
   const router = useRouter();
   const close = useCallback(() => router.back(), [router]);
+  // "Explore the map": close the panel but stay in the app — replace (not
+  // push) so history stays where the visitor came from (e.g. the index page).
+  const showMap = useCallback(() => router.replace("/", { scroll: false }), [router]);
 
   return (
     <PropertyDetail
@@ -31,6 +34,7 @@ export default function ExploreDetailModal({
       googleMapsEmbedApiKey={googleMapsEmbedApiKey}
       siteUrl={siteUrl}
       onClose={close}
+      onShowMap={showMap}
     />
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
-import { Fraunces, Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "./siteMetadata";
 import DisclaimerModal from "@/components/DisclaimerModal";
@@ -14,16 +14,6 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
-
-// Editorial display face for the wordmark and headline figures — a little
-// warmth against Geist's neutral UI type, self-hosted (no layout shift).
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  weight: ["500", "600"],
-  style: ["normal"],
-  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -88,7 +78,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         {children}

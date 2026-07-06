@@ -23,7 +23,7 @@ export default function SiteFooter() {
 
   return (
     <footer className="mt-auto border-t border-slate-200 bg-slate-50">
-      <div className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-10 sm:grid-cols-3 sm:px-6">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3 sm:px-6">
         <div className="flex flex-col gap-2">
           <p className="text-sm font-semibold text-slate-900">{SITE_NAME}</p>
           <p className="text-sm text-slate-600">

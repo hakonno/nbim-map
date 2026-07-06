@@ -180,6 +180,22 @@ test.describe('explore homepage', () => {
     await expect(summary).toContainText(/of/, { timeout: 10_000 });
   });
 
+  test('property links on content pages open the app with the panel over it', async ({ page }) => {
+    // Regression: reaching the intercepted route from OUTSIDE the explore page
+    // must render the app via app/(explore)/default.tsx — previously the panel
+    // floated over an empty page (no header, no map).
+    test.slow();
+    await page.goto('/properties');
+    await dismissDisclaimer(page);
+    const link = page.locator('a[href^="/property/"]').first();
+    await expect(link).toBeVisible({ timeout: 60_000 });
+    await link.click();
+
+    await expect(page).toHaveURL(/\/property\/[^/]+$/);
+    await expect(page.getByRole('dialog', { name: / details$/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /NBIM Real Estate Map/ })).toBeVisible();
+  });
+
   test('hard-loading a property URL renders the full page, not the panel', async ({ page }) => {
     // /properties renders all 1,388 links — the first dev-mode compile of the
     // page can exceed the default budget, so allow extra time.

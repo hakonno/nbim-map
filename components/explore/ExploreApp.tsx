@@ -171,6 +171,19 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
     setMapFailed(true);
   }, []);
 
+  // The view buttons operate on the browse surface; the detail panel is a
+  // route on top of it. Switching views with the panel open first closes it
+  // (otherwise the fixed panel visually collides with the list grid).
+  const handleViewChange = useCallback(
+    (next: View) => {
+      if (selectedId) {
+        router.push("/", { scroll: false });
+      }
+      setView(next);
+    },
+    [router, selectedId]
+  );
+
   const activeFilterCount = countActiveFilters(filters);
   const summary = useMemo(() => summarize(filtered), [filtered]);
   const compareFull = comparedIds.length >= MAX_COMPARE;
@@ -209,7 +222,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
           className="flex min-w-0 flex-col rounded-lg leading-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           aria-label="NBIM Real Estate Map — home"
         >
-          <span className="truncate font-display text-[15px] font-semibold tracking-tight text-slate-900">
+          <span className="truncate text-[12px] font-bold uppercase tracking-[0.14em] text-slate-900">
             NBIM Real Estate
           </span>
           {/* The one-liner that tells a first-time visitor what this is. */}
@@ -257,7 +270,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
                 <button
                   key={option}
                   type="button"
-                  onClick={() => setView(option)}
+                  onClick={() => handleViewChange(option)}
                   aria-pressed={view === option}
                   className={`rounded-md px-2.5 py-1 text-xs font-medium capitalize transition-colors ${
                     view === option
@@ -352,7 +365,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
           <div className="pointer-events-auto flex items-center rounded-full border border-slate-200 bg-white/95 p-1 shadow-lg backdrop-blur">
             <button
               type="button"
-              onClick={() => setView("map")}
+              onClick={() => handleViewChange("map")}
               aria-pressed={effectiveView !== "list"}
               className={`flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-medium transition-colors active:scale-95 motion-reduce:active:scale-100 ${
                 effectiveView !== "list" ? "bg-slate-900 text-white" : "text-slate-600"
@@ -365,7 +378,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
             </button>
             <button
               type="button"
-              onClick={() => setView("list")}
+              onClick={() => handleViewChange("list")}
               aria-pressed={effectiveView === "list"}
               className={`flex items-center gap-1.5 rounded-full px-5 py-2.5 text-sm font-medium transition-colors active:scale-95 motion-reduce:active:scale-100 ${
                 effectiveView === "list" ? "bg-slate-900 text-white" : "text-slate-600"

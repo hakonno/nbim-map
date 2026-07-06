@@ -23,6 +23,8 @@ type PropertyDetailProps = {
   googleMapsEmbedApiKey: string;
   siteUrl: string;
   onClose: () => void;
+  /** Close the panel and stay in the explore app (vs. onClose = go back). */
+  onShowMap?: () => void;
 };
 
 function Stat({ label, children }: { label: string; children: React.ReactNode }) {
@@ -39,6 +41,7 @@ export default function PropertyDetail({
   googleMapsEmbedApiKey,
   siteUrl,
   onClose,
+  onShowMap,
 }: PropertyDetailProps) {
   const currency = useCurrency();
   const rate = useUsdToNokRate();
@@ -208,6 +211,18 @@ export default function PropertyDetail({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
               </svg>
             </a>
+            {onShowMap ? (
+              <button
+                type="button"
+                onClick={onShowMap}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m9 4 6 2 5-2v14l-5 2-6-2-5 2V6l5-2Zm0 0v14m6-12v14" />
+                </svg>
+                Explore the map
+              </button>
+            ) : null}
             <Link
               href={`/city/${property.citySlug}`}
               className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"

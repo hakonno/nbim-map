@@ -23,6 +23,10 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
+  /* The dev server compiles routes on first hit while five browser projects
+     hammer it in parallel — the 5s default makes URL/visibility assertions
+     flaky for reasons unrelated to the app. */
+  expect: { timeout: 15_000 },
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
@@ -70,11 +74,13 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
+  /* Test against a production build: the dev server compiles routes on demand
+     and gets slow/flaky with five browser projects in parallel. A running
+     server on :3000 (dev or prod) is still reused locally. */
   webServer: {
-    command: 'npm run dev',
+    command: 'npm run build && npm run start',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 300_000,
   },
 });

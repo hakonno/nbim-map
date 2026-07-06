@@ -12,7 +12,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
 }
 
 /* Hide scrollbars on horizontal chip/scroller rows (kept keyboard/scroll-able). */
