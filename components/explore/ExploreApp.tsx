@@ -27,7 +27,6 @@ import {
   summarize,
 } from "@/components/explore/filtering";
 import type { ExploreData, Filters } from "@/components/explore/types";
-import SearchInput from "./SearchInput";
 
 const ExploreMap = dynamic(() => import("@/components/explore/ExploreMap"), {
   ssr: false,
@@ -463,6 +462,21 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
                   </span>
                 ) : null}
               </button>
+              {/* Quick-clear beside the pill (a button can't nest inside the
+                  pill button). Hidden while the sheet is open so its own
+                  SearchInput ✕ is the only "Clear search" in the tree. */}
+              {filters.query && !filtersOpen ? (
+                <button
+                  type="button"
+                  onClick={() => handleChange({ query: "" })}
+                  aria-label="Clear search"
+                  className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-500 shadow-md backdrop-blur"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
+                    <path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              ) : null}
             </div>
           </div>
         ) : null}

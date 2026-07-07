@@ -336,4 +336,29 @@ test.describe('explore homepage', () => {
     await apply.click();
     await expect(page.getByRole('heading', { name: 'Filters' })).toBeHidden();
   });
+
+  test('mobile map clear button removes the query without opening the sheet', async ({ page }) => {
+    test.skip(!isMobileViewport(page), 'mobile-only surface');
+
+    // Arrive with an active query (shared link) — the pill shows it.
+    await page.goto('/?q=Paris');
+    await expect(page.getByRole('link', { name: /NBIM Real Estate Map/ })).toBeVisible({
+      timeout: 30_000,
+    });
+    await dismissDisclaimer(page);
+    const mapAvailable = await waitForMapAvailability(page);
+    test.skip(!mapAvailable, 'the floating clear button only exists on the map surface');
+
+    await expect(page.getByRole('button', { name: 'Paris' })).toBeVisible();
+
+    // Exactly one ✕ (strict-mode locator throws on duplicates); tapping it
+    // clears the query in place — the filter sheet must never open.
+    await page.getByRole('button', { name: 'Clear search' }).click();
+    await expect(page.getByRole('heading', { name: 'Filters' })).toBeHidden();
+    await expect(
+      page.getByRole('button', { name: /Search & filter properties/ }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Clear search' })).toBeHidden();
+    await expect(page).not.toHaveURL(/q=/);
+  });
 });
