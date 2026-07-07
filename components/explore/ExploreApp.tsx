@@ -382,7 +382,11 @@ export default function ExploreApp({
           ) : null}
 
           {isDatasetStale ? (
-            <DataFreshnessIndicator datasetYear={datasetYear} currentYear={currentYear} />
+            <DataFreshnessIndicator
+              datasetYear={datasetYear}
+              currentYear={currentYear}
+              isStale={isDatasetStale}
+            />
           ) : null}
 
           <CurrencyToggle />

@@ -7,6 +7,7 @@ import DataFreshnessModal from "@/components/explore/DataFreshnessModal";
 type DataFreshnessIndicatorProps = {
   datasetYear: string;
   currentYear: number;
+  isStale: boolean;
 };
 
 // djb2 (xor variant) — small, deterministic, dependency-free.
@@ -77,15 +78,10 @@ function WarningGlyph({ className }: { className?: string }) {
 export default function DataFreshnessIndicator({
   datasetYear,
   currentYear,
+  isStale,
 }: DataFreshnessIndicatorProps) {
   const [forceOpen, setForceOpen] = useState(false);
   const dismissed = useFreshnessDismissed(datasetYear, currentYear);
-
-  // Data is expected to lag by roughly one year (e.g. 2025 data in 2026). Only
-  // flag it as potentially outdated once the calendar has moved two years past
-  // the latest disclosure without a newer release.
-  const datasetYearNum = parseInt(datasetYear, 10);
-  const isStale = currentYear > datasetYearNum + 1;
 
   if (!isStale) return null;
 
