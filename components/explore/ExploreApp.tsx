@@ -13,7 +13,7 @@ import { useCurrency } from "@/components/map/hooks/useCurrencyPreference";
 import { useUsdToNokRate } from "@/components/map/hooks/useExchangeRate";
 import { formatNokValue } from "@/utils/formatCurrency";
 import { useIsDesktop, useWebglSupported } from "@/components/explore/useClientEnv";
-import { setExploreView } from "@/components/explore/useExploreView";
+import { onExploreViewRequest, setExploreView } from "@/components/explore/useExploreView";
 import CompareTray, { MAX_COMPARE } from "@/components/explore/CompareTray";
 import FilterBar from "@/components/explore/FilterBar";
 import FilterSheet from "@/components/explore/FilterSheet";
@@ -213,6 +213,10 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
     setView(next);
   }, []);
 
+  // The detail panel (a separate route-slot tree) can request view changes
+  // ("Show on map").
+  useEffect(() => onExploreViewRequest(handleViewChange), [handleViewChange]);
+
   const activeFilterCount = countActiveFilters(filters);
   const summary = useMemo(() => summarize(filtered), [filtered]);
   const compareFull = comparedIds.length >= MAX_COMPARE;
@@ -221,12 +225,16 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
   // on desktop the list is a flex sibling (not an overlay), so padding is
   // uniform; on mobile the floating search pill (top) and Map/List pill
   // (bottom) float over the canvas.
+  // In map view with the panel open, the panel overlays the map's left edge —
+  // the camera must center in the remaining visible area and the controls
+  // must slide out from under it (ExploreMap handles the latter).
+  const mapPanelInset = isDesktop && effectiveView === "map" && Boolean(routeSelectedId);
   const mapPadding = useMemo(
     () =>
       isDesktop
-        ? { top: 24, right: 24, bottom: 24, left: 24 }
+        ? { top: 24, right: 24, bottom: 24, left: mapPanelInset ? 476 : 24 }
         : { top: 76, right: 24, bottom: 96, left: 24 },
-    [isDesktop]
+    [isDesktop, mapPanelInset]
   );
 
   const listColumn = (layout: "column" | "grid") => (
@@ -360,6 +368,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
                 onSelect={handleSelect}
                 onUnavailable={handleUnavailable}
                 padding={mapPadding}
+                panelInset={mapPanelInset}
               />
             ) : null}
 

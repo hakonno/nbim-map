@@ -32,3 +32,19 @@ export function useExploreView(): ExploreView {
     () => "split" as const
   );
 }
+
+// Reverse channel: the panel can ask the app to change view (e.g. "Show on
+// map" from the side-by-side list). ExploreApp registers the single handler.
+type ViewRequestHandler = (view: ExploreView) => void;
+let viewRequestHandler: ViewRequestHandler | null = null;
+
+export function onExploreViewRequest(handler: ViewRequestHandler): () => void {
+  viewRequestHandler = handler;
+  return () => {
+    if (viewRequestHandler === handler) viewRequestHandler = null;
+  };
+}
+
+export function requestExploreView(view: ExploreView) {
+  viewRequestHandler?.(view);
+}

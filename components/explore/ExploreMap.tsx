@@ -42,6 +42,9 @@ type ExploreMapProps = {
   onUnavailable: (reason: string) => void;
   /** Padding (px) the camera should keep clear on each side (panels/sheets). */
   padding?: { top?: number; right?: number; bottom?: number; left?: number };
+  /** True when the detail panel overlays the map's left edge (map view):
+   * the control stack slides right so it isn't buried under the panel. */
+  panelInset?: boolean;
 };
 
 // 1.0 (not 1.4) so a phone can frame the US-to-Europe core in one view; with
@@ -117,6 +120,7 @@ export default function ExploreMap({
   onSelect,
   onUnavailable,
   padding,
+  panelInset = false,
 }: ExploreMapProps) {
   // Frozen at mount: the map should open framing the (initially unfiltered)
   // portfolio, not the hardcoded world default — and framing via the
@@ -247,8 +251,13 @@ export default function ExploreMap({
     <div className="explore-map absolute inset-0">
       <div ref={containerRef} className="h-full w-full" />
 
-      {/* Map controls — bottom-left so they clear the list pane / bottom sheet. */}
-      <div className="pointer-events-none absolute bottom-4 left-3 z-[15] flex flex-col gap-2 md:left-4">
+      {/* Map controls — bottom-left so they clear the list pane / bottom sheet;
+          shifted right of the detail panel when it overlays the map edge. */}
+      <div
+        className={`pointer-events-none absolute bottom-4 z-[15] flex flex-col gap-2 ${
+          panelInset ? "left-[424px] lg:left-[468px]" : "left-3 md:left-4"
+        }`}
+      >
         {/* Zoom buttons are desktop-only — pinch covers it on touch, and the
             bottom edge on phones is already busy (pill, attribution, tray). */}
         <div className="pointer-events-auto hidden flex-col overflow-hidden rounded-xl border border-slate-200 bg-white/95 shadow-lg ring-1 ring-black/[0.03] backdrop-blur md:flex">

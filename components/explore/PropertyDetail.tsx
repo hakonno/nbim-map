@@ -15,7 +15,7 @@ import {
   sectorStyle,
 } from "@/components/explore/sectorStyles";
 import { useIsDesktop } from "@/components/explore/useClientEnv";
-import { useExploreView } from "@/components/explore/useExploreView";
+import { requestExploreView, useExploreView } from "@/components/explore/useExploreView";
 import { useSheetDrag } from "@/components/explore/useSheetDrag";
 import type { ExploreProperty } from "@/components/explore/types";
 import { formatUsdValue } from "@/utils/formatCurrency";
@@ -62,12 +62,27 @@ export default function PropertyDetail({
   const isUs = property.country === "United States";
   const { sheetStyle, handleProps } = useSheetDrag(onClose);
 
-  // In the desktop list view the panel sits BESIDE the results, so "Back to
-  // results" is wrong (results are right there — and history-back could leave
-  // the app). Show a plain close instead, which keeps the highlight.
+  // On desktop the results always stay visible around the panel (list beside
+  // it, map behind it, split's map next to it), so the one dismiss action is
+  // "Close" — which keeps the property highlighted and never leaves the app.
+  // On mobile the sheet covers everything, so "Back to results" (history) fits.
   const view = useExploreView();
   const isDesktop = useIsDesktop();
-  const sideBySide = isDesktop && view === "list" && Boolean(onDismissInApp);
+  const desktopClose = isDesktop && Boolean(onDismissInApp);
+  const dismiss = desktopClose && onDismissInApp ? onDismissInApp : onClose;
+
+  // "Show on map": desktop list switches to split (panel + map, selection
+  // kept); mobile closes the sheet into map view with the marker highlighted.
+  // Hidden on desktop split/map where the map is already visible.
+  const showOnMapVisible = Boolean(onDismissInApp) && (!isDesktop || view === "list");
+  const handleShowOnMap = () => {
+    if (isDesktop) {
+      requestExploreView("split");
+    } else {
+      requestExploreView("map");
+      onDismissInApp?.();
+    }
+  };
 
   const streetViewUrl = googleMapsEmbedApiKey
     ? `https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(
@@ -78,11 +93,11 @@ export default function PropertyDetail({
   useEffect(() => {
     closeRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") dismiss();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onClose, property.id]);
+  }, [dismiss, property.id]);
 
   return (
     <>
@@ -107,7 +122,7 @@ export default function PropertyDetail({
         </div>
 
         <header className="flex items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
-          {sideBySide ? (
+          {desktopClose ? (
             <button
               ref={closeRef}
               type="button"
@@ -159,6 +174,21 @@ export default function PropertyDetail({
           <p className="mt-0.5 text-sm text-slate-500">
             {property.city}, {formatCountryWithFlag(property.country)}
           </p>
+
+          {/* Above the fold on purpose — the obvious path from a card to the
+              map for people who never discover the view toggle. */}
+          {showOnMapVisible ? (
+            <button
+              type="button"
+              onClick={handleShowOnMap}
+              className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m9 4 6 2 5-2v14l-5 2-6-2-5 2V6l5-2Zm0 0v14m6-12v14" />
+              </svg>
+              Show on map
+            </button>
+          ) : null}
 
           <div className="mt-4 grid grid-cols-2 gap-2">
             <Stat label="Ownership">
@@ -253,18 +283,6 @@ export default function PropertyDetail({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
               </svg>
             </a>
-            {onDismissInApp && !sideBySide ? (
-              <button
-                type="button"
-                onClick={onDismissInApp}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m9 4 6 2 5-2v14l-5 2-6-2-5 2V6l5-2Zm0 0v14m6-12v14" />
-                </svg>
-                Explore the map
-              </button>
-            ) : null}
             <Link
               href={`/city/${property.citySlug}`}
               className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"

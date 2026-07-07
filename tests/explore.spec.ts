@@ -155,11 +155,14 @@ test.describe('explore homepage', () => {
     await expect(page).toHaveURL(/\/property\/[^/]+$/);
     const detail = page.getByRole('dialog', { name: / details$/ });
     await expect(detail).toBeVisible();
-    await expect(detail.getByRole('button', { name: 'Back to results' })).toBeVisible();
 
     if (isMobileViewport(page)) {
+      // Mobile sheet covers the results — dismiss goes back in history.
+      await expect(detail.getByRole('button', { name: 'Back to results' })).toBeVisible();
       await detail.getByRole('button', { name: 'Back to results' }).click();
     } else {
+      // Desktop always shows a plain Close; Escape matches it.
+      await expect(detail.getByRole('button', { name: 'Close details' })).toBeVisible();
       await page.keyboard.press('Escape');
     }
     await expect(detail).toBeHidden();
