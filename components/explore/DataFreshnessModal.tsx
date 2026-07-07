@@ -58,7 +58,7 @@ export default function DataFreshnessModal({
               Data may be outdated
             </h2>
             <span className="mt-1 inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-              {datasetYear} data · {currentYear}
+              Showing data from {datasetYear}
             </span>
           </div>
         </div>
@@ -66,7 +66,7 @@ export default function DataFreshnessModal({
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
           NBIM publishes its unlisted real-estate holdings once a year, typically
           after year-end. This map is still showing the {datasetYear} disclosure,
-          so a newer release may already be available. We are working on getting
+          so a newer ({currentYear}) release may already be available. We are working on getting
           the data updated.
         </p>
 
