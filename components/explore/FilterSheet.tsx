@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import FilterControls from "@/components/explore/FilterControls";
+import SearchInput from "@/components/explore/SearchInput";
 import { SORT_OPTIONS, countActiveFilters } from "@/components/explore/filtering";
 import { useSheetDrag } from "@/components/explore/useSheetDrag";
 import type { ExploreFacets, Filters, SortKey } from "@/components/explore/types";
@@ -67,6 +68,14 @@ export default function FilterSheet({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+          {/* The trigger pill says "Search & filter" — the sheet must
+              actually offer search (the map view has no other query input). */}
+          <div className="mb-5">
+            <SearchInput
+              value={filters.query}
+              onChange={(query) => onChange({ query })}
+            />
+          </div>
           <FilterControls filters={filters} facets={facets} onChange={onChange} />
 
           <div className="mt-5">

@@ -156,6 +156,15 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
     setSoftSelectedId(null);
   }, []);
 
+  // Desktop map view has no visible search — the shortcut pill drops the user
+  // into split with the query input focused.
+  const handleOpenSearch = useCallback(() => {
+    setView("split");
+    requestAnimationFrame(() => {
+      document.getElementById("explore-search")?.focus();
+    });
+  }, []);
+
   // Adopt ?sel= (set by the panel's close/"Explore the map" actions) whenever
   // we're back on the homepage — keyed on pathname so it works both without a
   // remount (in-app) and after one (content-page arrivals).
@@ -394,6 +403,24 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
                 padding={mapPadding}
                 panelInset={mapPanelInset}
               />
+            ) : null}
+
+            {/* Desktop map view: search shortcut into split (hidden while the
+                detail panel covers the map's left edge). */}
+            {effectiveView === "map" && !mapPanelInset ? (
+              <div className="pointer-events-none absolute left-4 top-4 z-20 hidden md:block">
+                <button
+                  type="button"
+                  onClick={handleOpenSearch}
+                  className="pointer-events-auto flex w-72 items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-4 py-2.5 text-sm text-slate-500 shadow-md backdrop-blur transition-colors hover:border-slate-300 hover:text-slate-700"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4 text-slate-400">
+                    <circle cx="11" cy="11" r="7" />
+                    <path strokeLinecap="round" d="m20 20-3-3" />
+                  </svg>
+                  <span className="truncate">{filters.query || "Search properties"}</span>
+                </button>
+              </div>
             ) : null}
 
             {/* Mobile floating filter bar over the map */}

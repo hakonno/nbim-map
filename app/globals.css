@@ -14,6 +14,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* The explore search renders its own clear button — WebKit's native cancel
+   control would show a second ✕ while typing. */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
 /* Hide scrollbars on horizontal chip/scroller rows (kept keyboard/scroll-able). */
 .no-scrollbar {
   -ms-overflow-style: none;

@@ -2,6 +2,7 @@
 
 import FilterControls from "@/components/explore/FilterControls";
 import Popover from "@/components/explore/Popover";
+import SearchInput from "@/components/explore/SearchInput";
 import { SORT_OPTIONS, countActiveFilters } from "@/components/explore/filtering";
 import { sectorStyle } from "@/components/explore/sectorStyles";
 import type { ExploreFacets, Filters, Sector, SortKey } from "@/components/explore/types";
@@ -34,35 +35,12 @@ export default function FilterBar({
 
   return (
     <div className="relative z-20 flex flex-col gap-2.5 border-b border-slate-200 bg-white/95 px-3 py-3 backdrop-blur">
-      {/* Search */}
-      <div className="relative">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400">
-          <circle cx="11" cy="11" r="7" />
-          <path strokeLinecap="round" d="m20 20-3-3" />
-        </svg>
-        <input
-          type="search"
-          value={filters.query}
-          onChange={(e) => onChange({ query: e.target.value })}
-          placeholder="Search property, city, country or partner"
-          aria-label="Search properties"
-          inputMode="search"
-          enterKeyHint="search"
-          className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-9 pr-9 text-base text-slate-900 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 sm:text-sm"
-        />
-        {filters.query ? (
-          <button
-            type="button"
-            onClick={() => onChange({ query: "" })}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-            aria-label="Clear search"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
-              <path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
-        ) : null}
-      </div>
+      {/* Search — the id lets the map view's search shortcut focus it. */}
+      <SearchInput
+        id="explore-search"
+        value={filters.query}
+        onChange={(query) => onChange({ query })}
+      />
 
       {/* Quick sector chips */}
       <div className="no-scrollbar -mx-3 flex gap-1.5 overflow-x-auto px-3 pb-0.5">

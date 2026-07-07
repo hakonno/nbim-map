@@ -236,6 +236,82 @@ test.describe('explore homepage', () => {
     await expect(page.locator('.maplibregl-canvas')).toBeVisible();
   });
 
+  test('typing shows exactly one clear button (native ✕ suppressed)', async ({ page }) => {
+    await gotoExplore(page);
+    await ensureListVisible(page);
+
+    const search = page.getByLabel('Search properties').first();
+    await search.fill('London');
+    // Exactly one custom clear control; the native WebKit cancel button is a
+    // pseudo-element suppressed in globals.css (not queryable cross-engine).
+    await expect(page.getByRole('button', { name: 'Clear search' })).toHaveCount(1);
+  });
+
+  test('mobile map pill opens a sheet where search actually works', async ({ page }) => {
+    test.skip(!isMobileViewport(page), 'mobile-only surface');
+
+    await gotoExplore(page);
+    const mapAvailable = await waitForMapAvailability(page);
+    test.skip(!mapAvailable, 'the floating filter pill only exists on the map surface');
+
+    await page.getByRole('button', { name: /Search & filter properties/ }).click();
+    // Scope to the sheet: the (hidden) list pane mounts its own search input.
+    const sheet = page.getByRole('dialog', { name: 'Filters' });
+    const sheetSearch = sheet.getByLabel('Search properties');
+    await expect(sheetSearch).toBeVisible();
+    await sheetSearch.fill('Paris');
+
+    // The apply button's live count narrows as the query applies.
+    const apply = page.getByRole('button', { name: /^Show [\d,]+ propert(y|ies)$/ });
+    await expect(apply).not.toContainText('1,388');
+    await apply.click();
+    await expect(page.getByRole('heading', { name: 'Filters' })).toBeHidden();
+  });
+
+  test('desktop map view: search pill drops into split with search focused', async ({ page }) => {
+    test.skip(isMobileViewport(page), 'desktop-only control');
+
+    await gotoExplore(page);
+    const mapAvailable = await waitForMapAvailability(page);
+    test.skip(!mapAvailable, 'map view requires the map');
+
+    await page.getByRole('button', { name: /^map$/i }).click();
+    await expect(page.getByLabel('Search properties')).toBeHidden();
+
+    await page.getByRole('button', { name: 'Search properties' }).click();
+    await expect(page.getByRole('button', { name: /^split$/i })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByLabel('Search properties')).toBeFocused();
+  });
+
+  test('marker click peeks (callout), callout click opens the panel', async ({ page }) => {
+    // Narrow to a single property so the framed marker sits at map center.
+    await page.goto('/?q=79%20Avenue%20des%20Champs');
+    await dismissDisclaimer(page);
+    const mapAvailable = await waitForMapAvailability(page);
+    test.skip(!mapAvailable, 'peek is a map interaction');
+
+    await page.getByRole('button', { name: 'Frame all results' }).click();
+    await page.waitForTimeout(2_000);
+
+    const canvas = await page.locator('.maplibregl-canvas').boundingBox();
+    const cx = canvas!.x + canvas!.width / 2;
+    const cy = canvas!.y + canvas!.height / 2;
+    if (isMobileViewport(page)) {
+      await page.touchscreen.tap(cx, cy);
+    } else {
+      await page.mouse.click(cx, cy);
+    }
+
+    const callout = page.getByText('View details ›');
+    await expect(callout).toBeVisible();
+    await expect(page.getByRole('dialog', { name: / details$/ })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/\?q=/);
+
+    await callout.click();
+    await expect(page.getByRole('dialog', { name: / details$/ })).toBeVisible();
+    await expect(page).toHaveURL(/\/property\/[^/]+$/);
+  });
+
   test('mobile filter sheet opens from the map and applies', async ({ page }) => {
     test.skip(!isMobileViewport(page), 'mobile-only surface');
 
