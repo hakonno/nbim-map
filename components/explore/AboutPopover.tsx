@@ -58,7 +58,7 @@ export default function AboutPopover({
 
       <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
         <span className="font-medium text-slate-900">Data source.</span> NBIM
-        reports its unlisted real-estate holdings as of 31 December each year.
+        reports its real-estate holdings annually on December 31st.
         The latest release used in this project is from{" "}
         <a
           href={NBIM_DATASOURCE}
@@ -68,13 +68,13 @@ export default function AboutPopover({
         >
           {datasetYear}
         </a>
-        . As of today, the latest release NBIM may have published is from{" "}
+        . As of today, the latest release NBIM have published should be from{" "}
         {expectedLatestYear}.
       </p>
 
       <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
         <span className="font-medium text-slate-900">
-          Open source and unofficial.
+          Unofficial.
         </span>{" "}
         Built independently from public and third-party sources. Not affiliated
         with or endorsed by NBIM. Information may be inaccurate, incomplete, or
@@ -111,7 +111,7 @@ export default function AboutPopover({
           rel="noopener noreferrer"
           className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
         >
-          Source code (GitHub) ↗
+          Open source (GitHub) ↗
         </a>
         <a
           href={NBIM_DATASOURCE}
@@ -119,7 +119,7 @@ export default function AboutPopover({
           rel="noopener noreferrer"
           className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
         >
-          Data: nbim.no ↗
+          Data from nbim.no ↗
         </a>
         <a
           href={ATTOM_URL}
@@ -127,7 +127,7 @@ export default function AboutPopover({
           rel="noopener noreferrer"
           className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
         >
-          ATTOM US market data ↗
+          US market data (ATTOM) ↗
         </a>
         <Link
           href="/properties"
