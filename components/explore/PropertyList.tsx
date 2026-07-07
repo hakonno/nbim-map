@@ -58,7 +58,8 @@ export default function PropertyList({
     ? properties.findIndex((p) => p.id === selectedId)
     : -1;
   if (selectedIndex >= currentVisibleCount) {
-    setVisibleCount(Math.ceil((selectedIndex + 1) / PAGE_SIZE) * PAGE_SIZE);
+    currentVisibleCount = Math.ceil((selectedIndex + 1) / PAGE_SIZE) * PAGE_SIZE;
+    setVisibleCount(currentVisibleCount);
   }
 
   // Reveal the selected card (DOM-only side effect — no setState here).
@@ -85,7 +86,7 @@ export default function PropertyList({
     );
   }
 
-  const shown = properties.slice(0, visibleCount);
+  const shown = properties.slice(0, currentVisibleCount);
   const remaining = properties.length - shown.length;
 
   const isGrid = layout === "grid";
