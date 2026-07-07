@@ -138,7 +138,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
     [router, routeSelectedId]
   );
 
-  // Airbnb-style two-step everywhere: a marker click/tap peeks (callout card
+  // a marker click/tap peeks (callout card
   // + highlight, no navigation); clicking the callout commits to the panel.
   // Tap IS mobile's hover, so peek-first matters even more there — a blind
   // tap shouldn't cover the whole map with the sheet. With a panel already
