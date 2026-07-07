@@ -27,6 +27,7 @@ import {
   summarize,
 } from "@/components/explore/filtering";
 import type { ExploreData, Filters } from "@/components/explore/types";
+import SearchInput from "./SearchInput";
 
 const ExploreMap = dynamic(() => import("@/components/explore/ExploreMap"), {
   ssr: false,
@@ -458,7 +459,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
                 {activeFilterCount > 0 ? (
                   // Spelled out — a bare number reads as a result count.
                   <span className="ml-auto inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white">
-                    {activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"}
+                    {filters.query ? " + " : ""}{activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"}
                   </span>
                 ) : null}
               </button>
