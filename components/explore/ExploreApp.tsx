@@ -75,6 +75,8 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
   const [mapFailed, setMapFailed] = useState(false);
   const [frameNonce, setFrameNonce] = useState(0);
 
+  const filterPillRef = useRef<HTMLButtonElement | null>(null);
+
   const isDesktop = useIsDesktop();
   const webglOk = useWebglSupported();
 
@@ -445,6 +447,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
             <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center gap-2 p-3 md:hidden">
               <button
                 type="button"
+                ref={filterPillRef}
                 onClick={handleOpenFilterSheet}
                 className="pointer-events-auto flex flex-1 items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-4 py-2.5 text-sm text-slate-500 shadow-md backdrop-blur"
               >
@@ -468,9 +471,14 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
               {filters.query && !filtersOpen ? (
                 <button
                   type="button"
-                  onClick={() => handleChange({ query: "" })}
+                  onClick={() => {
+                    handleChange({ query: "" });
+                    // Clearing unmounts this button — hand focus to the pill
+                    // so it doesn't drop to <body> (WCAG 2.4.3 focus order).
+                    filterPillRef.current?.focus();
+                  }}
                   aria-label="Clear search"
-                  className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-500 shadow-md backdrop-blur"
+                  className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white/95 text-slate-500 shadow-md backdrop-blur transition-colors hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
                     <path strokeLinecap="round" d="M18 6 6 18M6 6l12 12" />
