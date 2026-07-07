@@ -41,7 +41,8 @@ input[type="search"]::-webkit-search-decoration {
   background: linear-gradient(to right, #bfdbfe, #bfdbfe) no-repeat bottom / 100% 2px;
   transition: background-size 200ms;
 }
-.link-highlight:hover {
+.link-highlight:hover,
+.link-highlight:focus-visible {
   color: #020617;
   background-size: 100% 100%;
 }

@@ -5,9 +5,13 @@ import Link from "next/link";
 import Popover from "@/components/explore/Popover";
 
 const GITHUB_URL = "https://github.com/hakonno/nbim-map";
-const NBIM_DATASOURCE = "https://www.nbim.no/en/investments/all-investments#/2025-12-31/2-real_estate";
 const NBIM_WIKIPEDIA_URL = "https://en.wikipedia.org/wiki/Government_Pension_Fund_of_Norway";
 const ATTOM_URL = "https://www.attomdata.com/";
+
+// NBIM's disclosure release date is always 31 December of the dataset year.
+function nbimDatasourceUrl(datasetYear: string): string {
+  return `https://www.nbim.no/en/investments/all-investments#/${datasetYear}-12-31/2-real_estate`;
+}
 
 type AboutPopoverProps = {
   datasetYear: string;
@@ -63,7 +67,7 @@ export default function AboutPopover({
         reports its real-estate holdings annually on December 31st.
         The latest release used in this project is from{" "}
         <a
-          href={NBIM_DATASOURCE}
+          href={nbimDatasourceUrl(datasetYear)}
           target="_blank"
           rel="noopener noreferrer"
           className="link-highlight"
@@ -87,7 +91,7 @@ export default function AboutPopover({
         with or endorsed by NBIM. Information may be inaccurate, incomplete, or
         outdated — verify important details on{" "}
         <a
-          href={NBIM_DATASOURCE}
+          href={nbimDatasourceUrl(datasetYear)}
           target="_blank"
           rel="noopener noreferrer"
           className="link-highlight"
@@ -121,7 +125,7 @@ export default function AboutPopover({
           Open source (GitHub) ↗
         </a>
         <a
-          href={NBIM_DATASOURCE}
+          href={nbimDatasourceUrl(datasetYear)}
           target="_blank"
           rel="noopener noreferrer"
           className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
@@ -140,7 +144,7 @@ export default function AboutPopover({
           href="/properties"
           className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
         >
-          Full property index ↗
+          Full property index
         </Link>
       </div>
     </Popover>
