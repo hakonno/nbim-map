@@ -110,9 +110,9 @@ export function buildExploreData(): ExploreData {
       slug: countryToSlug(value),
       flag: formatCountryWithFlag(value).split(" ")[0] ?? "",
       count,
-    })).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value)),
+    })).sort((a, b) => b.count - a.count || a.value.localeCompare(b.value, "en")),
     partners: Array.from(partnerCounts, ([value, count]) => ({ value, count })).sort(
-      (a, b) => b.count - a.count || a.value.localeCompare(b.value)
+      (a, b) => b.count - a.count || a.value.localeCompare(b.value, "en")
     ),
   };
 

@@ -85,7 +85,7 @@ export default async function CityPage({ params }: { params: Params }) {
       sector: prop.sector ?? null,
       stake: ownershipText(prop.ownership_percent),
     }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => a.name.localeCompare(b.name, "en"));
 
   // Deep link into the explore app pre-filtered to this city's country and
   // searched for the city name (the search haystack includes the city).

@@ -38,13 +38,17 @@ export default function PropertyList({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // Collapse back to the first page whenever the result set changes (React's
-  // recommended "adjust state during render" pattern — no extra render pass).
+  // recommended "adjust state during render" pattern). Track the adjusted
+  // value locally so the paging check below sees it in the same pass and both
+  // updates settle in a single re-render.
   const resultKey = `${properties.length}:${properties[0]?.id ?? ""}:${
     properties[properties.length - 1]?.id ?? ""
   }`;
   const [prevKey, setPrevKey] = useState(resultKey);
+  let currentVisibleCount = visibleCount;
   if (resultKey !== prevKey) {
     setPrevKey(resultKey);
+    currentVisibleCount = PAGE_SIZE;
     setVisibleCount(PAGE_SIZE);
   }
 
@@ -53,8 +57,9 @@ export default function PropertyList({
   const selectedIndex = selectedId
     ? properties.findIndex((p) => p.id === selectedId)
     : -1;
-  if (selectedIndex >= visibleCount) {
-    setVisibleCount(Math.ceil((selectedIndex + 1) / PAGE_SIZE) * PAGE_SIZE);
+  if (selectedIndex >= currentVisibleCount) {
+    currentVisibleCount = Math.ceil((selectedIndex + 1) / PAGE_SIZE) * PAGE_SIZE;
+    setVisibleCount(currentVisibleCount);
   }
 
   // Reveal the selected card (DOM-only side effect — no setState here).
@@ -81,7 +86,7 @@ export default function PropertyList({
     );
   }
 
-  const shown = properties.slice(0, visibleCount);
+  const shown = properties.slice(0, currentVisibleCount);
   const remaining = properties.length - shown.length;
 
   const isGrid = layout === "grid";

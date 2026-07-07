@@ -54,10 +54,14 @@ function buildIndex(): CountryGroup[] {
   const groups = Array.from(byCountry.values());
   for (const group of groups) {
     group.entries.sort(
-      (a, b) => a.city.localeCompare(b.city) || a.name.localeCompare(b.name)
+      (a, b) =>
+        a.city.localeCompare(b.city, "en") || a.name.localeCompare(b.name, "en")
     );
   }
-  groups.sort((a, b) => b.entries.length - a.entries.length || a.country.localeCompare(b.country));
+  groups.sort(
+    (a, b) =>
+      b.entries.length - a.entries.length || a.country.localeCompare(b.country, "en")
+  );
   return groups;
 }
 
