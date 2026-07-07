@@ -374,9 +374,9 @@ export default function ExploreMap({
 
   // A new selection moves the camera to a different target, so the old bookmark
   // would jump to the wrong place; reset it and show the "frame all" icon.
-  const previousSelectedIdRef = useRef<string | undefined>(selected?.id);
-  if (previousSelectedIdRef.current !== selected?.id) {
-    previousSelectedIdRef.current = selected?.id;
+  const [prevSelectedId, setPrevSelectedId] = useState<string | undefined>(selected?.id);
+  if (prevSelectedId !== selected?.id) {
+    setPrevSelectedId(selected?.id);
     if (savedView !== null) {
       setSavedView(null);
     }
@@ -439,8 +439,10 @@ export default function ExploreMap({
               return;
             }
 
-            setSavedView({ ...view });
-            frameResults();
+            if (properties.length > 0) {
+              setSavedView({ ...view });
+              frameResults();
+            }
           }}
           className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/95 text-slate-700 shadow-lg ring-1 ring-black/[0.03] backdrop-blur transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
           aria-label={savedView ? "Return to previous view" : "Frame all results"}
