@@ -83,7 +83,7 @@ export default async function CountryPage({ params }: { params: Params }) {
   // every property in the country (the old table only server-rendered the
   // first page and scrolled horizontally on phones).
   const cityIndex = [...country.cities]
-    .sort((a, b) => a.city.localeCompare(b.city))
+    .sort((a, b) => a.city.localeCompare(b.city, "en"))
     .map((city) => ({
       city: city.city,
       slug: cityToSlug(city.city, city.country),
@@ -92,7 +92,7 @@ export default async function CountryPage({ params }: { params: Params }) {
           id: prop.id,
           name: prop.name?.trim() || prop.address?.trim() || "Property",
         }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
+        .sort((a, b) => a.name.localeCompare(b.name, "en")),
     }));
 
   const mapHref = `/?country=${encodeURIComponent(country.country)}`;

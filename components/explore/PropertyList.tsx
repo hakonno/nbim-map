@@ -38,13 +38,17 @@ export default function PropertyList({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   // Collapse back to the first page whenever the result set changes (React's
-  // recommended "adjust state during render" pattern — no extra render pass).
+  // recommended "adjust state during render" pattern). Track the adjusted
+  // value locally so the paging check below sees it in the same pass and both
+  // updates settle in a single re-render.
   const resultKey = `${properties.length}:${properties[0]?.id ?? ""}:${
     properties[properties.length - 1]?.id ?? ""
   }`;
   const [prevKey, setPrevKey] = useState(resultKey);
+  let currentVisibleCount = visibleCount;
   if (resultKey !== prevKey) {
     setPrevKey(resultKey);
+    currentVisibleCount = PAGE_SIZE;
     setVisibleCount(PAGE_SIZE);
   }
 
@@ -53,7 +57,7 @@ export default function PropertyList({
   const selectedIndex = selectedId
     ? properties.findIndex((p) => p.id === selectedId)
     : -1;
-  if (selectedIndex >= visibleCount) {
+  if (selectedIndex >= currentVisibleCount) {
     setVisibleCount(Math.ceil((selectedIndex + 1) / PAGE_SIZE) * PAGE_SIZE);
   }
 

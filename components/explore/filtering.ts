@@ -89,12 +89,18 @@ export function applyFilters(
   return sortProperties(filtered, filters.sort);
 }
 
-function compareNumberDesc(a: number | null, b: number | null): number {
-  // Nulls always sort last regardless of direction.
+function compareNumber(
+  a: number | null,
+  b: number | null,
+  direction: "asc" | "desc"
+): number {
+  // Nulls always sort last regardless of direction, which is why callers
+  // pass the direction instead of negating the result (negation would flip
+  // the null placement too).
   if (a == null && b == null) return 0;
   if (a == null) return 1;
   if (b == null) return -1;
-  return b - a;
+  return direction === "desc" ? b - a : a - b;
 }
 
 export function sortProperties(
@@ -114,26 +120,27 @@ export function sortProperties(
       sorted.sort(
         (a, b) =>
           (cityCounts.get(b.citySlug) ?? 0) - (cityCounts.get(a.citySlug) ?? 0) ||
-          a.city.localeCompare(b.city) ||
-          a.name.localeCompare(b.name)
+          a.city.localeCompare(b.city, "en") ||
+          a.name.localeCompare(b.name, "en")
       );
       break;
     }
     case "ownership-desc":
-      sorted.sort((a, b) => compareNumberDesc(a.ownership, b.ownership));
+      sorted.sort((a, b) => compareNumber(a.ownership, b.ownership, "desc"));
       break;
     case "ownership-asc":
-      sorted.sort((a, b) => -compareNumberDesc(a.ownership, b.ownership));
+      sorted.sort((a, b) => compareNumber(a.ownership, b.ownership, "asc"));
       break;
     case "market-desc":
-      sorted.sort((a, b) => compareNumberDesc(a.marketUsd, b.marketUsd));
+      sorted.sort((a, b) => compareNumber(a.marketUsd, b.marketUsd, "desc"));
       break;
     case "name-asc":
-      sorted.sort((a, b) => a.name.localeCompare(b.name));
+      sorted.sort((a, b) => a.name.localeCompare(b.name, "en"));
       break;
     case "city-asc":
       sorted.sort(
-        (a, b) => a.city.localeCompare(b.city) || a.name.localeCompare(b.name)
+        (a, b) =>
+          a.city.localeCompare(b.city, "en") || a.name.localeCompare(b.name, "en")
       );
       break;
   }
