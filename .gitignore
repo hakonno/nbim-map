@@ -61,3 +61,7 @@ data/releases/*/nbim-coordinates.json
 data/releases/*/nbim-coordinate-apply-report.json
 Microsoft.PowerShell_profile.ps1
 .claude
+
+# logo sources
+/public/logo-inverted.png
+/public/nbim-map-logo.png
