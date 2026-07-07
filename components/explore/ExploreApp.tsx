@@ -40,7 +40,7 @@ type ExploreAppProps = {
   data: ExploreData;
   maptilerApiKey: string;
   datasetYear: string;
-  currentYear: number;
+  expectedLatestYear: number;
   isDatasetStale: boolean;
 };
 
@@ -57,7 +57,7 @@ export default function ExploreApp({
   data,
   maptilerApiKey,
   datasetYear,
-  currentYear,
+  expectedLatestYear,
   isDatasetStale,
 }: ExploreAppProps) {
   const { properties, facets, totals } = data;
@@ -384,7 +384,7 @@ export default function ExploreApp({
           {isDatasetStale ? (
             <DataFreshnessIndicator
               datasetYear={datasetYear}
-              currentYear={currentYear}
+              expectedLatestYear={expectedLatestYear}
               isStale={isDatasetStale}
             />
           ) : null}
@@ -393,7 +393,7 @@ export default function ExploreApp({
           {/* Last in the row so the popover's right edge anchors near the
               viewport edge on phones. The /properties index is a crawl/SEO
               surface, not primary nav — About links it for the curious. */}
-          <AboutPopover datasetYear={datasetYear} />
+          <AboutPopover datasetYear={datasetYear} expectedLatestYear={expectedLatestYear} />
         </div>
       </header>
 

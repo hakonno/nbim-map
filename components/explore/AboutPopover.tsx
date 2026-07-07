@@ -11,6 +11,7 @@ const ATTOM_URL = "https://www.attomdata.com/";
 
 type AboutPopoverProps = {
   datasetYear: string;
+  expectedLatestYear: number;
 };
 
 /**
@@ -18,7 +19,10 @@ type AboutPopoverProps = {
  * "what am I looking at?" content lives: purpose, unofficial status, data
  * caveats, the marker-colour legend, and source links.
  */
-export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
+export default function AboutPopover({
+  datasetYear,
+  expectedLatestYear,
+}: AboutPopoverProps) {
   return (
     <Popover
       label="About this site"
@@ -54,16 +58,18 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
 
       <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
         <span className="font-medium text-slate-900">Data source.</span> NBIM
-        reports its unlisted real-estate holdings as of 31 December each year. {" "}
+        reports its unlisted real-estate holdings as of 31 December each year.
+        The latest release used in this project is from{" "}
         <a
           href={NBIM_DATASOURCE}
           target="_blank"
           rel="noopener noreferrer"
           className="link-highlight"
         >
-          The latest release is from {datasetYear}
-        </a> 
-        , and it is currently used in this project.
+          {datasetYear}
+        </a>
+        . As of today, the latest release NBIM may have published is from{" "}
+        {expectedLatestYear}.
       </p>
 
       <p className="mt-2 text-[13px] leading-relaxed text-slate-600">

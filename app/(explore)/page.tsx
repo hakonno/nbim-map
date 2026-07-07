@@ -2,12 +2,18 @@ import ExploreApp from "@/components/explore/ExploreApp";
 import { buildExploreData } from "@/lib/exploreData";
 import { DATASET_YEAR } from "@/app/siteMetadata";
 
-function isDatasetStale(datasetYear: string, currentYear: number): boolean {
-  // NBIM publishes real-estate holdings once a year. A one-year lag is normal
-  // (e.g. 2025 data shown in 2026); flag it only when the calendar has moved
-  // two years past the latest disclosure without a newer release.
+// NBIM reports its unlisted real-estate holdings as of 31 December each year.
+// Before that date the latest expected release is the previous calendar year;
+// on/after 31 December a release for the current year may be available.
+function expectedLatestReleaseYear(now: Date): number {
+  const currentYear = now.getFullYear();
+  const hasPassedReleaseDate = now.getMonth() === 11 && now.getDate() >= 31;
+  return hasPassedReleaseDate ? currentYear : currentYear - 1;
+}
+
+function isDatasetStale(datasetYear: string, now: Date): boolean {
   const year = parseInt(datasetYear, 10);
-  return Number.isFinite(year) && currentYear > year + 1;
+  return Number.isFinite(year) && year < expectedLatestReleaseYear(now);
 }
 
 export default function Home() {
@@ -29,7 +35,7 @@ export default function Home() {
   // route (see app/(explore)/@modal).
   const data = buildExploreData();
 
-  const currentYear = new Date().getFullYear();
+  const now = new Date();
 
   return (
     <main className="flex flex-1">
@@ -37,8 +43,8 @@ export default function Home() {
         data={data}
         maptilerApiKey={maptilerApiKey}
         datasetYear={DATASET_YEAR}
-        currentYear={currentYear}
-        isDatasetStale={isDatasetStale(DATASET_YEAR, currentYear)}
+        expectedLatestYear={expectedLatestReleaseYear(now)}
+        isDatasetStale={isDatasetStale(DATASET_YEAR, now)}
       />
     </main>
   );

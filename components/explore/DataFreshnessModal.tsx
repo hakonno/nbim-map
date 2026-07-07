@@ -2,7 +2,7 @@
 
 type DataFreshnessModalProps = {
   datasetYear: string;
-  currentYear: number;
+  expectedLatestYear: number;
   onClose: () => void;
 };
 
@@ -27,7 +27,7 @@ function WarningGlyph({ className }: { className?: string }) {
 
 export default function DataFreshnessModal({
   datasetYear,
-  currentYear,
+  expectedLatestYear,
   onClose,
 }: DataFreshnessModalProps) {
   return (
@@ -64,10 +64,10 @@ export default function DataFreshnessModal({
         </div>
 
         <p className="mt-3 text-sm leading-relaxed text-slate-600">
-          NBIM publishes its unlisted real-estate holdings once a year, typically
-          after year-end. This map is still showing the {datasetYear} disclosure,
-          so a newer ({currentYear}) release may already be available. We are working on getting
-          the data updated.
+          NBIM reports its unlisted real-estate holdings as of 31 December each
+          year. This map is still showing the {datasetYear} disclosure, so a newer
+          ({expectedLatestYear}) release may already be available. We are working
+          on getting the data updated.
         </p>
 
         <button

@@ -6,7 +6,7 @@ import DataFreshnessModal from "@/components/explore/DataFreshnessModal";
 
 type DataFreshnessIndicatorProps = {
   datasetYear: string;
-  currentYear: number;
+  expectedLatestYear: number;
   isStale: boolean;
 };
 
@@ -19,14 +19,14 @@ function hashContent(value: string): string {
   return (hash >>> 0).toString(36);
 }
 
-function storageKey(datasetYear: string, currentYear: number): string {
-  return `data_freshness_seen_${datasetYear}_${currentYear}`;
+function storageKey(datasetYear: string, expectedLatestYear: number): string {
+  return `data_freshness_seen_${datasetYear}_${expectedLatestYear}`;
 }
 
-function contentVersion(datasetYear: string, currentYear: number): string {
+function contentVersion(datasetYear: string, expectedLatestYear: number): string {
   // Bumping the trailing version invalidates prior dismissals when the copy
   // changes, causing the modal to reappear automatically.
-  return hashContent(`${datasetYear}|${currentYear}|v1`);
+  return hashContent(`${datasetYear}|${expectedLatestYear}|v1`);
 }
 
 const subscribers = new Set<() => void>();
@@ -42,9 +42,9 @@ function notify() {
   subscribers.forEach((cb) => cb());
 }
 
-function useFreshnessDismissed(datasetYear: string, currentYear: number): boolean {
-  const key = storageKey(datasetYear, currentYear);
-  const version = contentVersion(datasetYear, currentYear);
+function useFreshnessDismissed(datasetYear: string, expectedLatestYear: number): boolean {
+  const key = storageKey(datasetYear, expectedLatestYear);
+  const version = contentVersion(datasetYear, expectedLatestYear);
 
   return useSyncExternalStore(
     subscribe,
@@ -77,19 +77,19 @@ function WarningGlyph({ className }: { className?: string }) {
 
 export default function DataFreshnessIndicator({
   datasetYear,
-  currentYear,
+  expectedLatestYear,
   isStale,
 }: DataFreshnessIndicatorProps) {
   const [forceOpen, setForceOpen] = useState(false);
-  const dismissed = useFreshnessDismissed(datasetYear, currentYear);
+  const dismissed = useFreshnessDismissed(datasetYear, expectedLatestYear);
 
   if (!isStale) return null;
 
   const isOpen = forceOpen || !dismissed;
 
   const handleClose = () => {
-    const key = storageKey(datasetYear, currentYear);
-    const version = contentVersion(datasetYear, currentYear);
+    const key = storageKey(datasetYear, expectedLatestYear);
+    const version = contentVersion(datasetYear, expectedLatestYear);
     localStorage.setItem(key, version);
     notify();
     setForceOpen(false);
@@ -110,7 +110,7 @@ export default function DataFreshnessIndicator({
       {isOpen ? (
         <DataFreshnessModal
           datasetYear={datasetYear}
-          currentYear={currentYear}
+          expectedLatestYear={expectedLatestYear}
           onClose={handleClose}
         />
       ) : null}
