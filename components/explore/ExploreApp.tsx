@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import CurrencyToggle from "@/components/CurrencyToggle";
 import MapSkeleton from "@/components/MapSkeleton";
@@ -73,6 +73,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
   const [view, setView] = useState<View>("split");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
+  const [frameNonce, setFrameNonce] = useState(0);
 
   const isDesktop = useIsDesktop();
   const webglOk = useWebglSupported();
@@ -155,6 +156,22 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
   const handleClearPeek = useCallback(() => {
     setSoftSelectedId(null);
   }, []);
+
+  // The mobile filter sheet applies filters live, but the map behind it can't
+  // be seen — so when it closes with CHANGED filters, frame the results
+  // ("Show 1 property" must actually show that property).
+  const filtersAtSheetOpen = useRef<Filters>(filters);
+  const handleOpenFilterSheet = useCallback(() => {
+    filtersAtSheetOpen.current = filters;
+    setFiltersOpen(true);
+  }, [filters]);
+  const handleCloseFilterSheet = useCallback(() => {
+    setFiltersOpen(false);
+    // Any change creates a new filters object, so identity is enough.
+    if (filters !== filtersAtSheetOpen.current) {
+      setFrameNonce((n) => n + 1);
+    }
+  }, [filters]);
 
   // Desktop map view has no visible search — the shortcut pill drops the user
   // into split with the query input focused.
@@ -402,6 +419,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
                 onUnavailable={handleUnavailable}
                 padding={mapPadding}
                 panelInset={mapPanelInset}
+                frameNonce={frameNonce}
               />
             ) : null}
 
@@ -427,7 +445,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
             <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center gap-2 p-3 md:hidden">
               <button
                 type="button"
-                onClick={() => setFiltersOpen(true)}
+                onClick={handleOpenFilterSheet}
                 className="pointer-events-auto flex flex-1 items-center gap-2 rounded-full border border-slate-200 bg-white/95 px-4 py-2.5 text-sm text-slate-500 shadow-md backdrop-blur"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4 text-slate-400">
@@ -438,8 +456,9 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
                   {filters.query || "Search & filter properties"}
                 </span>
                 {activeFilterCount > 0 ? (
-                  <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-600 px-1 text-[11px] font-semibold text-white">
-                    {activeFilterCount}
+                  // Spelled out — a bare number reads as a result count.
+                  <span className="ml-auto inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white">
+                    {activeFilterCount} {activeFilterCount === 1 ? "filter" : "filters"}
                   </span>
                 ) : null}
               </button>
@@ -500,7 +519,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
           resultCount={filtered.length}
           onChange={handleChange}
           onClear={handleClear}
-          onClose={() => setFiltersOpen(false)}
+          onClose={handleCloseFilterSheet}
         />
       ) : null}
     </div>

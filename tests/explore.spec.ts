@@ -259,13 +259,22 @@ test.describe('explore homepage', () => {
     const sheet = page.getByRole('dialog', { name: 'Filters' });
     const sheetSearch = sheet.getByLabel('Search properties');
     await expect(sheetSearch).toBeVisible();
-    await sheetSearch.fill('Paris');
+    await sheetSearch.fill('79 Avenue des Champs');
 
     // The apply button's live count narrows as the query applies.
     const apply = page.getByRole('button', { name: /^Show [\d,]+ propert(y|ies)$/ });
-    await expect(apply).not.toContainText('1,388');
+    await expect(apply).toContainText('Show 1 property');
     await apply.click();
     await expect(page.getByRole('heading', { name: 'Filters' })).toBeHidden();
+
+    // Applying must FRAME the result — tapping map center hits that property.
+    await page.waitForTimeout(2_500);
+    const canvas = await page.locator('.maplibregl-canvas').boundingBox();
+    await page.touchscreen.tap(canvas!.x + canvas!.width / 2, canvas!.y + canvas!.height / 2);
+    // Scope to the map popup — the hidden list pane also contains the name.
+    const popup = page.locator('.maplibregl-popup');
+    await expect(popup.getByText('View details ›')).toBeVisible();
+    await expect(popup.getByText(/79 Avenue des Champs/)).toBeVisible();
   });
 
   test('desktop map view: search pill drops into split with search focused', async ({ page }) => {

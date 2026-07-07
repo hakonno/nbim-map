@@ -195,10 +195,14 @@ export function filtersFromSearchParams(
   };
 }
 
-/** Number of non-default filter facets active (drives the "clear all" badge). */
+/**
+ * Number of non-default filter facets active (drives the "N filters" badges
+ * and "clear all" affordances). The free-text query deliberately does NOT
+ * count: a non-empty search box is its own indicator, and the mobile pill
+ * displays the query text directly.
+ */
 export function countActiveFilters(filters: Filters): number {
   let count = 0;
-  if (filters.query.trim()) count += 1;
   if (filters.sectors.length) count += 1;
   if (filters.countries.length) count += 1;
   if (filters.partner) count += 1;

@@ -55,6 +55,9 @@ type ExploreMapProps = {
   /** True when the detail panel overlays the map's left edge (map view):
    * the control stack slides right so it isn't buried under the panel. */
   panelInset?: boolean;
+  /** Bump to frame the currently filtered results (e.g. after applying the
+   * mobile filter sheet — its results may be entirely off-screen). */
+  frameNonce?: number;
 };
 
 // 1.0 (not 1.4) so a phone can frame the US-to-Europe core in one view; with
@@ -181,6 +184,7 @@ export default function ExploreMap({
   onUnavailable,
   padding,
   panelInset = false,
+  frameNonce = 0,
 }: ExploreMapProps) {
   // Frozen at mount: the map should open framing the (initially unfiltered)
   // portfolio, not the hardcoded world default — and framing via the
@@ -352,6 +356,17 @@ export default function ExploreMap({
       duration: reduce ? 0 : 800,
     });
   }, [map, properties]);
+
+  // Host-triggered framing (nonce bumps when the filter sheet applies new
+  // filters). Read through a ref so the effect keys on the nonce alone.
+  const frameResultsRef = useRef(frameResults);
+  useEffect(() => {
+    frameResultsRef.current = frameResults;
+  }, [frameResults]);
+  useEffect(() => {
+    if (!ready || frameNonce === 0) return;
+    frameResultsRef.current();
+  }, [ready, frameNonce]);
 
   const tilted = view.pitch > 10;
 
