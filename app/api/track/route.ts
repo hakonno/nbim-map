@@ -12,10 +12,16 @@ export async function POST(request: Request) {
     const ts = new Date().toISOString();
 
     // Everything here is attacker-controlled (body fields and headers), so
-    // strip newlines from all of it — not just some fields — to prevent log
-    // forging, and cap lengths so one request can't flood a log line.
+    // neutralize newlines plus the log format's own syntax (| delimiter,
+    // quoted values) in all of it — not just some fields — to prevent
+    // forging entries or fields, and cap lengths so one request can't
+    // flood a log line.
     const sanitize = (value: unknown, max = 160) =>
-      String(value).replace(/[\r\n]/g, " ").trim().slice(0, max);
+      String(value)
+        .replace(/[\r\n|]/g, " ")
+        .replace(/"/g, "'")
+        .trim()
+        .slice(0, max);
 
     const parts = [
       `[${ts}]`,
