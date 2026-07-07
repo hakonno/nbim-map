@@ -136,19 +136,20 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
     [router, routeSelectedId]
   );
 
-  // Airbnb-style two-step on desktop: a marker click peeks (callout card +
-  // highlight, no navigation); clicking the callout commits to the panel.
-  // With a panel already open, marker clicks switch it directly. On mobile a
-  // marker tap opens the sheet straight away.
+  // Airbnb-style two-step everywhere: a marker click/tap peeks (callout card
+  // + highlight, no navigation); clicking the callout commits to the panel.
+  // Tap IS mobile's hover, so peek-first matters even more there — a blind
+  // tap shouldn't cover the whole map with the sheet. With a panel already
+  // open, marker clicks switch it directly.
   const handlePeek = useCallback(
     (id: string) => {
-      if (routeSelectedId || !isDesktop) {
+      if (routeSelectedId) {
         handleSelect(id);
         return;
       }
       setSoftSelectedId(id);
     },
-    [routeSelectedId, isDesktop, handleSelect]
+    [routeSelectedId, handleSelect]
   );
 
   const handleClearPeek = useCallback(() => {
