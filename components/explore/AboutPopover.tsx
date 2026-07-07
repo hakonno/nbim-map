@@ -5,7 +5,6 @@ import Link from "next/link";
 import Popover from "@/components/explore/Popover";
 
 const GITHUB_URL = "https://github.com/hakonno/nbim-map";
-const NBIM_URL = "https://www.nbim.no/";
 const NBIM_DATASOURCE = "https://www.nbim.no/en/investments/all-investments#/2025-12-31/2-real_estate";
 const ATTOM_URL = "https://www.attomdata.com/";
 
@@ -49,7 +48,7 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
           Open source and independently maintained.
         </span>{" "}
         Information is compiled from public and 3rd-party sources and may be
-        inaccurate, incomplete, or outdated. verify details on{" "}
+        inaccurate, incomplete, or outdated. verify details on official channel:{" "}
         <a
           href={NBIM_DATASOURCE}
           target="_blank"

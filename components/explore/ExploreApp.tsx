@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CurrencyToggle from "@/components/CurrencyToggle";
 import MapSkeleton from "@/components/MapSkeleton";
 import AboutPopover from "@/components/explore/AboutPopover";
+import DataFreshnessIndicator from "@/components/explore/DataFreshnessIndicator";
 import RateInfoModal from "@/components/map/RateInfoModal";
 import { useCurrency } from "@/components/map/hooks/useCurrencyPreference";
 import { useUsdToNokRate } from "@/components/map/hooks/useExchangeRate";
@@ -39,6 +40,8 @@ type ExploreAppProps = {
   data: ExploreData;
   maptilerApiKey: string;
   datasetYear: string;
+  currentYear: number;
+  isDatasetStale: boolean;
 };
 
 // A crafted URL with malformed percent-encoding must not crash the app.
@@ -50,7 +53,13 @@ function safeDecode(value: string): string {
   }
 }
 
-export default function ExploreApp({ data, maptilerApiKey, datasetYear }: ExploreAppProps) {
+export default function ExploreApp({
+  data,
+  maptilerApiKey,
+  datasetYear,
+  currentYear,
+  isDatasetStale,
+}: ExploreAppProps) {
   const { properties, facets, totals } = data;
 
   const router = useRouter();
@@ -370,6 +379,10 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
                 </button>
               ))}
             </div>
+          ) : null}
+
+          {isDatasetStale ? (
+            <DataFreshnessIndicator datasetYear={datasetYear} currentYear={currentYear} />
           ) : null}
 
           <CurrencyToggle />
