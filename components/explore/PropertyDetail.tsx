@@ -30,9 +30,17 @@ type PropertyDetailProps = {
   onDismissInApp?: () => void;
 };
 
-function Stat({ label, children }: { label: string; children: React.ReactNode }) {
+function Stat({
+  label,
+  className = "",
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5">
+    <div className={`rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5 ${className}`}>
       <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</p>
       <div className="mt-1 text-sm font-medium text-slate-900">{children}</div>
     </div>
@@ -167,17 +175,20 @@ export default function PropertyDetail({
                   "—"
                 ))}
             </Stat>
-            <Stat label="Market estimate">
-              {property.marketUsd != null ? (
+            {/* Only when data exists — an empty "Not available" tile (and the
+                ATTOM explainer below) is noise for the non-US majority. */}
+            {property.marketUsd != null ? (
+              <Stat label="Market estimate">
                 <span className="tabular-nums">
                   {formatUsdValue(property.marketUsd, currency, usdToNok)}
                   <span className="ml-1 text-[11px] font-normal text-slate-400">whole property</span>
                 </span>
-              ) : (
-                <span className="text-slate-400">Not available</span>
-              )}
-            </Stat>
-            <Stat label={`NBIM in ${property.country}`}>
+              </Stat>
+            ) : null}
+            <Stat
+              label={`NBIM in ${property.country}`}
+              className={property.marketUsd == null ? "col-span-2" : ""}
+            >
               {property.countryValueUsd != null ? (
                 <span className="tabular-nums">
                   {formatUsdValue(property.countryValueUsd, currency, usdToNok)}
@@ -188,9 +199,15 @@ export default function PropertyDetail({
             </Stat>
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
-            NBIM does not disclose per-property values. &ldquo;Market estimate&rdquo; is an ATTOM
-            tax-assessor figure for the whole property (US only). &ldquo;NBIM in {property.country}&rdquo;
-            is the fund&apos;s disclosed country-level real-estate total.
+            NBIM does not disclose per-property values.{" "}
+            {property.marketUsd != null ? (
+              <>
+                &ldquo;Market estimate&rdquo; is an ATTOM tax-assessor figure for the whole
+                property (US only).{" "}
+              </>
+            ) : null}
+            &ldquo;NBIM in {property.country}&rdquo; is the fund&apos;s disclosed country-level
+            real-estate total.
           </p>
 
           {streetViewUrl ? (
