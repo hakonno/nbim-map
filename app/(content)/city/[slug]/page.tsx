@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import CityMap from "@/components/CityMap";
-import PropertiesTable, { type PropertyRow } from "@/components/PropertiesTable";
 import JsonLd from "@/components/seo/JsonLd";
 import { cityToSlug, countryToSlug } from "@/lib/citySlug";
 import {
@@ -11,8 +9,6 @@ import {
   findInvestmentCountryBySlug,
   getInvestmentCitySlugs,
 } from "@/lib/portfolio";
-import { getAttomMarketUsd } from "@/lib/attomValue";
-import { getGoogleMapsEmbedApiKey } from "@/lib/googleMapsKey";
 import { SITE_NAME, SITE_URL } from "@/app/siteMetadata";
 
 export const dynamicParams = false;
@@ -59,6 +55,12 @@ export async function generateMetadata({
   };
 }
 
+function ownershipText(value: number | null | undefined): string | null {
+  if (value == null) return null;
+  const pct = Number.isInteger(value) ? `${value}` : value.toFixed(1);
+  return `${pct}% stake`;
+}
+
 export default async function CityPage({ params }: { params: Params }) {
   const { slug } = await params;
   const city = findInvestmentCityBySlug(slug);
@@ -75,18 +77,21 @@ export default async function CityPage({ params }: { params: Params }) {
     (other) => other.id !== city.id
   );
 
-  const rows: PropertyRow[] = city.properties.map((prop) => ({
-    propId: prop.id,
-    name: prop.name ?? "",
-    address: prop.address ?? "",
-    sector: prop.sector ?? "",
-    partnership: prop.partnership ?? "",
-    ownershipPercent: prop.ownership_percent,
-    attomMarketUsd: getAttomMarketUsd(prop.id),
-    city: city.city,
-    country: city.country,
-    citySlug: slug,
-  }));
+  const entries = [...city.properties]
+    .map((prop) => ({
+      id: prop.id,
+      name: prop.name?.trim() || prop.address?.trim() || "Property",
+      address: prop.address?.trim() || null,
+      sector: prop.sector ?? null,
+      stake: ownershipText(prop.ownership_percent),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  // Deep link into the explore app pre-filtered to this city's country and
+  // searched for the city name (the search haystack includes the city).
+  const mapHref = `/?country=${encodeURIComponent(city.country)}&q=${encodeURIComponent(
+    city.city
+  )}`;
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 sm:py-10">
@@ -187,31 +192,43 @@ export default async function CityPage({ params }: { params: Params }) {
           </Link>
           .
         </p>
+        <p>
+          <Link
+            href={mapHref}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700"
+          >
+            View {city.city} on the interactive map
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
+            </svg>
+          </Link>
+        </p>
       </header>
 
       <section aria-labelledby="properties-heading" className="flex flex-col gap-4">
         <h2 id="properties-heading" className="text-xl font-semibold text-slate-900">
           Properties
         </h2>
-        <PropertiesTable
-          rows={rows}
-          siteUrl={SITE_URL}
-          showCityColumn={false}
-          showCountryColumn={false}
-          showCountryFilter={false}
-        />
-      </section>
-
-      <section aria-labelledby="map-heading" className="flex flex-col gap-3">
-        <h2 id="map-heading" className="text-xl font-semibold text-slate-900">
-          On the map
-        </h2>
-        <div className="relative h-[65svh] w-full overflow-hidden rounded-xl border border-slate-200">
-          <CityMap
-            googleMapsEmbedApiKey={getGoogleMapsEmbedApiKey()}
-            initialFocus={{ kind: "city", cityId: city.id }}
-          />
-        </div>
+        <ul className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+          {entries.map((entry) => (
+            <li key={entry.id} className="text-sm leading-snug">
+              <Link
+                href={`/property/${entry.id}`}
+                className="font-medium text-slate-900 hover:underline"
+              >
+                {entry.name}
+              </Link>
+              {entry.address && entry.address !== entry.name ? (
+                <p className="mt-0.5 text-slate-500">{entry.address}</p>
+              ) : null}
+              {entry.sector || entry.stake ? (
+                <p className="mt-0.5 text-xs text-slate-400">
+                  {[entry.sector, entry.stake].filter(Boolean).join(" · ")}
+                </p>
+              ) : null}
+            </li>
+          ))}
+        </ul>
       </section>
 
       {otherCitiesInCountry.length > 0 ? (

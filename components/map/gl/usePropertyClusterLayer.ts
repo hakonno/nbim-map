@@ -15,11 +15,16 @@ import {
 import type { PropertyFeatureCollection } from "@/components/map/gl/glPropertyFeatures";
 import { ZOOM_PROPERTY_FOCUS } from "@/components/map/mapConstants";
 
+// Exported so the host map can hit-test marker clicks (e.g. to distinguish
+// "clicked a marker" from "clicked empty basemap").
+export const PROPERTY_POINT_LAYER = "nbim-unclustered";
+export const PROPERTY_CLUSTER_LAYER = "nbim-clusters";
+
 const SOURCE_ID = "nbim-properties";
 const SELECTED_SOURCE_ID = "nbim-selected-property";
-const CLUSTER_LAYER = "nbim-clusters";
+const CLUSTER_LAYER = PROPERTY_CLUSTER_LAYER;
 const CLUSTER_COUNT_LAYER = "nbim-cluster-count";
-const POINT_LAYER = "nbim-unclustered";
+const POINT_LAYER = PROPERTY_POINT_LAYER;
 const LABEL_LAYER = "nbim-property-labels";
 const SELECTED_HALO_LAYER = "nbim-selected-halo";
 
@@ -108,6 +113,11 @@ export function usePropertyClusterLayer({
   useEffect(() => {
     onSelectRef.current = onSelectProperty;
   }, [onSelectProperty]);
+
+  // Ids in the selected source — the hover label is suppressed for these (the
+  // host renders a richer callout there; both at once is double chrome).
+  const selectedIdsRef = useRef<Set<string>>(new Set());
+  const hoverPopupRef = useRef<maplibregl.Popup | null>(null);
 
   // --- Create sources, layers, and interaction handlers once the style loads.
   useEffect(() => {
@@ -219,7 +229,9 @@ export function usePropertyClusterLayer({
       source: SELECTED_SOURCE_ID,
       paint: {
         "circle-color": ["get", "color"],
-        "circle-stroke-color": ["get", "stroke"],
+        // Dark ink ring — nothing else on the map (dots, clusters) uses it,
+        // so the selected marker reads as "chosen", not just "bigger".
+        "circle-stroke-color": "#0f172a",
         "circle-stroke-width": 3,
         "circle-opacity": 1,
         "circle-radius": [
@@ -244,6 +256,7 @@ export function usePropertyClusterLayer({
       offset: 14,
       className: "nbim-gl-popup",
     });
+    hoverPopupRef.current = popup;
 
     const setPointer = () => {
       map.getCanvas().style.cursor = "pointer";
@@ -300,6 +313,14 @@ export function usePropertyClusterLayer({
       setPointer();
       const feature = event.features?.[0];
       if (!feature || feature.geometry.type !== "Point") {
+        return;
+      }
+      // The selected marker already carries the callout card — the small
+      // hover label on top of it is double chrome (and on touch, the tap's
+      // synthetic mousemove would leave it stuck under the callout).
+      const id = feature.properties?.id;
+      if (typeof id === "string" && selectedIdsRef.current.has(id)) {
+        popup.remove();
         return;
       }
       const label = feature.properties?.label;
@@ -371,5 +392,17 @@ export function usePropertyClusterLayer({
     }
     const source = map.getSource(SELECTED_SOURCE_ID) as GeoJSONSource | undefined;
     source?.setData(selectedFeatures ?? EMPTY_COLLECTION);
+
+    // Track selected ids for hover-label suppression, and clear any label
+    // that a tap's synthetic mousemove left behind on the newly selected
+    // marker (touch never fires mouseleave).
+    selectedIdsRef.current = new Set(
+      (selectedFeatures?.features ?? [])
+        .map((feature) => feature.properties?.id)
+        .filter((id): id is string => typeof id === "string")
+    );
+    if (selectedIdsRef.current.size > 0) {
+      hoverPopupRef.current?.remove();
+    }
   }, [map, ready, selectedFeatures]);
 }

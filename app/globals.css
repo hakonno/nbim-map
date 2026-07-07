@@ -1,14 +1,10 @@
 @import "tailwindcss";
-@import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
-@import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css";
 @import "maplibre-gl/dist/maplibre-gl.css";
 
 :root {
   --background: #e7edf3;
   --foreground: #111827;
-  --map-mobile-intro-height: 6rem;
-  --map-mobile-panel-height: 6rem;
-  --map-mobile-panel-expanded: 1;
+  --explore-canvas: #eef1f4;
 }
 
 @theme inline {
@@ -18,13 +14,40 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* The explore search renders its own clear button — WebKit's native cancel
+   control would show a second ✕ while typing. */
+input[type="search"]::-webkit-search-cancel-button,
+input[type="search"]::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
+/* Hide scrollbars on horizontal chip/scroller rows (kept keyboard/scroll-able). */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* On phones the explore homepage floats a Map/List pill over the bottom of the
+   map; lift MapLibre's attribution above it so the MapTiler/OSM credit (a
+   license requirement) is never covered. Scoped to the explore map only —
+   embedded maps on content pages keep the default corner. */
+@media (max-width: 767px) {
+  .explore-map .maplibregl-ctrl-bottom-right {
+    bottom: 4rem;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.map-shell,
 .map-skeleton {
   background:
     radial-gradient(circle at 18% 20%, rgba(15, 118, 110, 0.18), transparent 35%),
@@ -33,19 +56,8 @@ body {
     linear-gradient(145deg, #edf2f7, #dbe7f2);
 }
 
-/* Map loading skeleton — mimics the live map (backdrop, side panel, centered
-   pin) while the map chunk loads. Classes are referenced by MapSkeleton.tsx;
-   the backdrop above is shared with .map-shell so the real map swaps in
-   without a flash. */
-.map-skeleton__pattern {
-  background-image:
-    linear-gradient(rgba(100, 116, 139, 0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(100, 116, 139, 0.12) 1px, transparent 1px);
-  background-size: 46px 46px;
-  -webkit-mask-image: radial-gradient(circle at 50% 42%, #000 30%, transparent 72%);
-  mask-image: radial-gradient(circle at 50% 42%, #000 30%, transparent 72%);
-}
-
+/* Map loading skeleton — soft basemap-toned backdrop and a pulsing pin while
+   the map chunk loads. Classes are referenced by MapSkeleton.tsx. */
 .map-skeleton__pulse {
   animation: map-skeleton-pulse 1.6s ease-in-out infinite;
 }
@@ -67,212 +79,9 @@ body {
   }
 }
 
-.leaflet-container {
-  background: transparent;
-}
-
-.leaflet-popup-content-wrapper {
-  border-radius: 0.9rem;
-}
-
-.leaflet-popup-content {
-  margin: 0.65rem 0.75rem;
-}
-
-@keyframes property-halo-pulse {
-  0% {
-    opacity: 0.88;
-    stroke-width: 2;
-  }
-
-  50% {
-    opacity: 0.3;
-    stroke-width: 4;
-  }
-
-  100% {
-    opacity: 0.88;
-    stroke-width: 2;
-  }
-}
-
-.leaflet-interactive.selected-property-halo {
-  animation: property-halo-pulse 1.35s ease-in-out infinite;
-}
-
-.leaflet-interactive.nbim-building-footprint-loading {
-  animation: property-halo-pulse 1.2s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .leaflet-interactive.selected-property-halo,
-  .leaflet-interactive.nbim-building-footprint-loading {
-    animation: none;
-  }
-}
-
-.leaflet-control-zoom a:focus-visible {
-  outline: 2px solid #2563eb;
-  outline-offset: 2px;
-}
-
-.cluster-name-label.leaflet-tooltip {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  color: #1e293b;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  padding: 0;
-  pointer-events: none;
-  text-shadow:
-    0 1px 3px rgba(255, 255, 255, 0.9),
-    0 -1px 3px rgba(255, 255, 255, 0.9),
-    1px 0 3px rgba(255, 255, 255, 0.9),
-    -1px 0 3px rgba(255, 255, 255, 0.9);
-  white-space: nowrap;
-}
-
-.cluster-name-label.leaflet-tooltip::before {
-  display: none;
-}
-
-.nbim-cluster-icon {
-  background: transparent;
-  border: none;
-}
-
-.cluster-tooltip.leaflet-tooltip {
-  background: rgba(15, 23, 42, 0.94);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: 0.5rem;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.28);
-  color: #f8fafc;
-  font-size: 0.72rem;
-  line-height: 1.25;
-  padding: 0.5rem 0.65rem;
-  min-width: 10.5rem;
-  max-width: 15rem;
-  white-space: normal;
-  text-shadow: none;
-}
-
-.cluster-tooltip.leaflet-tooltip::before {
-  border-top-color: rgba(15, 23, 42, 0.94);
-}
-
-.cluster-tooltip__header {
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: #f8fafc;
-}
-
-.cluster-tooltip__row {
-  margin-top: 0.15rem;
-  color: #e2e8f0;
-}
-
-.cluster-tooltip__row--muted {
-  color: #cbd5e1;
-  font-size: 0.68rem;
-}
-
-.cluster-tooltip__cities {
-  margin: 0.4rem 0 0;
-  padding: 0.35rem 0 0;
-  list-style: none;
-  border-top: 1px solid rgba(148, 163, 184, 0.25);
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.cluster-tooltip__cities li {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-  color: #e2e8f0;
-}
-
-.cluster-tooltip__city {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cluster-tooltip__city-count {
-  color: #94a3b8;
-  font-variant-numeric: tabular-nums;
-}
-
-.cluster-tooltip__more {
-  color: #94a3b8;
-  font-size: 0.66rem;
-  justify-content: flex-start !important;
-}
-
-.map-marker-label.leaflet-tooltip {
-  border: 1px solid rgba(148, 163, 184, 0.7);
-  border-radius: 999px;
-  background: rgba(248, 250, 252, 0.95);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
-  color: #0f172a;
-  font-size: 0.68rem;
-  font-weight: 700;
-  line-height: 1.1;
-  padding: 0.2rem 0.45rem;
-  white-space: nowrap;
-  text-shadow: none;
-}
-
-.map-marker-label.map-marker-label--selected.leaflet-tooltip {
-  border-color: rgba(180, 83, 9, 0.7);
-  background: rgba(255, 247, 237, 0.96);
-  box-shadow: 0 3px 10px rgba(180, 83, 9, 0.22);
-  color: #92400e;
-}
-
-.map-marker-label.map-marker-label--office.leaflet-tooltip {
-  border-color: rgba(217, 119, 6, 0.68);
-  background: rgba(255, 251, 235, 0.96);
-  color: #92400e;
-}
-
-.map-marker-label.map-marker-label--office.map-marker-label--selected.leaflet-tooltip {
-  border-color: rgba(180, 83, 9, 0.82);
-  background: rgba(255, 237, 213, 0.98);
-  box-shadow: 0 3px 10px rgba(180, 83, 9, 0.25);
-  color: #7c2d12;
-}
-
-.map-marker-label.leaflet-tooltip::before {
-  display: none;
-}
-
-.safe-area-bottom {
-  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
-}
-
-/* --- MapLibre GL (3D) engine --- */
+/* --- MapLibre GL engine --- */
 .maplibregl-canvas {
   outline: none;
-}
-
-/* Control stack sits on the left to clear the top-left intro card and the
-   right/bottom selection panel — same logic as the Leaflet zoom controls. */
-.map-gl-controls {
-  bottom: 1.25rem;
-}
-
-@media (max-width: 767px) {
-  .map-gl-controls {
-    bottom: auto;
-    top: calc(100dvh - var(--map-mobile-panel-height) - 0.5rem);
-    transform: translateY(-100%);
-  }
 }
 
 /* Shared popup shell; the inner wrappers carry the actual styling so the same
@@ -317,74 +126,6 @@ body {
   line-height: 1.1;
   padding: 0.2rem 0.5rem;
   white-space: nowrap;
-}
-
-/* Opt-in "little man" marker for the user's own location. Drawn client-side
-   only; the coordinate is never transmitted anywhere. */
-.nbim-user-location {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-}
-
-.nbim-user-location__badge {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  background: #2563eb;
-  color: #ffffff;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.35);
-}
-
-.nbim-user-location__pulse {
-  position: absolute;
-  inset: -6px;
-  border-radius: 999px;
-  background: rgba(37, 99, 235, 0.25);
-  animation: nbim-user-location-pulse 2s ease-out infinite;
-}
-
-@keyframes nbim-user-location-pulse {
-  0% {
-    transform: scale(0.6);
-    opacity: 0.7;
-  }
-  100% {
-    transform: scale(1.6);
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nbim-user-location__pulse {
-    animation: none;
-    opacity: 0.35;
-  }
-}
-
-/* Leaflet control stack — shared by desktop and mobile, mirroring the GL
-   engine's `.map-gl-controls`. */
-.map-leaflet-controls {
-  bottom: 1.25rem;
-}
-
-@media (max-width: 767px) {
-  .leaflet-container {
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  .map-leaflet-controls {
-    bottom: auto;
-    top: calc(100dvh - var(--map-mobile-panel-height) - 0.5rem);
-    transform: translateY(-100%);
-  }
 }
 
 * {

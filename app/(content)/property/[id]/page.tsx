@@ -254,6 +254,22 @@ export default async function PropertyPage({ params }: { params: Params }) {
           ) : null}
           .
         </p>
+
+        {hasCoordinates ? (
+          <p>
+            {/* ?focus= deep link: the explore app strips the param and opens
+                this property's panel over the live map. */}
+            <Link
+              href={`/?focus=${encodeURIComponent(property.id)}`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-700"
+            >
+              View on the interactive map
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" className="h-4 w-4">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 17 17 7M9 7h8v8" />
+              </svg>
+            </Link>
+          </p>
+        ) : null}
       </header>
 
       <section aria-labelledby="facts-heading" className="flex flex-col gap-3">
@@ -281,25 +297,28 @@ export default async function PropertyPage({ params }: { params: Params }) {
             </dt>
             <dd className="mt-1 text-sm text-slate-900">{partnership ?? "—"}</dd>
           </div>
-          <div className="bg-white px-4 py-3">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Market estimate{" "}
-              <abbr title={MARKET_DISCLAIMER} className="cursor-help text-slate-400">
-                (ATTOM&nbsp;?)
-              </abbr>
-            </dt>
-            <dd className="mt-1 text-sm text-slate-900 tabular-nums">
-              {attomMarketUsd != null ? <CurrencyValue usd={attomMarketUsd} /> : "—"}
-            </dd>
-          </div>
+          {/* Only when data exists — an empty "ATTOM ?" cell just raises questions. */}
+          {attomMarketUsd != null ? (
+            <div className="bg-white px-4 py-3">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Market estimate{" "}
+                <abbr title={MARKET_DISCLAIMER} className="cursor-help text-slate-400">
+                  (ATTOM&nbsp;?)
+                </abbr>
+              </dt>
+              <dd className="mt-1 text-sm text-slate-900 tabular-nums">
+                <CurrencyValue usd={attomMarketUsd} />
+              </dd>
+            </div>
+          ) : null}
         </dl>
 
         {attomMarketUsd != null ? (
           <p className="text-xs text-slate-500">{MARKET_DISCLAIMER}</p>
         ) : (
           <p className="text-xs text-slate-500">
-            NBIM does not publish a value for individual properties. &ldquo;—&rdquo; means
-            no per-property estimate is available.
+            NBIM does not publish per-property values, and no independent
+            estimate is available for this property.
           </p>
         )}
       </section>
