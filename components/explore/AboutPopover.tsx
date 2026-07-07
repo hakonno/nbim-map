@@ -6,6 +6,7 @@ import Popover from "@/components/explore/Popover";
 
 const GITHUB_URL = "https://github.com/hakonno/nbim-map";
 const NBIM_URL = "https://www.nbim.no/";
+const NBIM_DATASOURCE = "https://www.nbim.no/en/investments/all-investments#/2025-12-31/2-real_estate";
 const ATTOM_URL = "https://www.attomdata.com/";
 
 type AboutPopoverProps = {
@@ -43,6 +44,23 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
         Unofficial: not affiliated with or endorsed by NBIM.
       </p>
 
+      <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
+        <span className="font-medium text-slate-900">
+          Open source and independently maintained.
+        </span>{" "}
+        Information is compiled from public and 3rd-party sources and may be
+        inaccurate, incomplete, or outdated. verify details on{" "}
+        <a
+          href={NBIM_DATASOURCE}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
+        >
+          nbim.no
+        </a>
+        .
+      </p>
+
       <ul className="mt-3 flex flex-col gap-1.5 border-t border-slate-100 pt-3 text-[13px] leading-relaxed text-slate-600">
         <li className="flex gap-2">
           <span aria-hidden="true" className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-slate-300" />
@@ -72,7 +90,7 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
           Source code (GitHub) ↗
         </a>
         <a
-          href={NBIM_URL}
+          href={NBIM_DATASOURCE}
           target="_blank"
           rel="noopener noreferrer"
           className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
@@ -91,7 +109,7 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
           href="/properties"
           className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
         >
-          Full property index
+          Full property index ↗
         </Link>
       </div>
     </Popover>
