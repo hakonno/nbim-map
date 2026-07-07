@@ -15,11 +15,16 @@ import {
 import type { PropertyFeatureCollection } from "@/components/map/gl/glPropertyFeatures";
 import { ZOOM_PROPERTY_FOCUS } from "@/components/map/mapConstants";
 
+// Exported so the host map can hit-test marker clicks (e.g. to distinguish
+// "clicked a marker" from "clicked empty basemap").
+export const PROPERTY_POINT_LAYER = "nbim-unclustered";
+export const PROPERTY_CLUSTER_LAYER = "nbim-clusters";
+
 const SOURCE_ID = "nbim-properties";
 const SELECTED_SOURCE_ID = "nbim-selected-property";
-const CLUSTER_LAYER = "nbim-clusters";
+const CLUSTER_LAYER = PROPERTY_CLUSTER_LAYER;
 const CLUSTER_COUNT_LAYER = "nbim-cluster-count";
-const POINT_LAYER = "nbim-unclustered";
+const POINT_LAYER = PROPERTY_POINT_LAYER;
 const LABEL_LAYER = "nbim-property-labels";
 const SELECTED_HALO_LAYER = "nbim-selected-halo";
 
@@ -219,7 +224,9 @@ export function usePropertyClusterLayer({
       source: SELECTED_SOURCE_ID,
       paint: {
         "circle-color": ["get", "color"],
-        "circle-stroke-color": ["get", "stroke"],
+        // Dark ink ring — nothing else on the map (dots, clusters) uses it,
+        // so the selected marker reads as "chosen", not just "bigger".
+        "circle-stroke-color": "#0f172a",
         "circle-stroke-width": 3,
         "circle-opacity": 1,
         "circle-radius": [

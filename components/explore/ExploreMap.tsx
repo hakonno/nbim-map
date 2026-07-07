@@ -6,9 +6,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildPropertyFeatureCollection, buildSelectedFeatureCollection } from "@/components/map/gl/glPropertyFeatures";
 import { FOCUS_PITCH } from "@/components/map/gl/mapGlConstants";
 import { useMaplibreMap } from "@/components/map/gl/useMaplibreMap";
-import { usePropertyClusterLayer } from "@/components/map/gl/usePropertyClusterLayer";
+import {
+  PROPERTY_CLUSTER_LAYER,
+  PROPERTY_POINT_LAYER,
+  usePropertyClusterLayer,
+} from "@/components/map/gl/usePropertyClusterLayer";
 import { ZOOM_PROPERTY_FOCUS } from "@/components/map/mapConstants";
 import type { FlatProperty } from "@/components/map/mapTypes";
+import { sectorStyle } from "@/components/explore/sectorStyles";
 import { prefersReducedMotion } from "@/components/explore/useSheetDrag";
 import type { ExploreProperty } from "@/components/explore/types";
 
@@ -39,6 +44,11 @@ type ExploreMapProps = {
   selected: ExploreProperty | null;
   maptilerApiKey: string;
   onSelect: (id: string) => void;
+  /** Marker click — the host decides whether that peeks (callout only) or
+   * opens the panel. Clicking the callout card always calls onSelect. */
+  onPeek: (id: string) => void;
+  /** Click on empty basemap — dismisses a peek callout. */
+  onClearPeek: () => void;
   onUnavailable: (reason: string) => void;
   /** Padding (px) the camera should keep clear on each side (panels/sheets). */
   padding?: { top?: number; right?: number; bottom?: number; left?: number };
@@ -68,6 +78,54 @@ function fullPadding(padding: Padding | undefined, base = 0) {
 // Extra breathing room around the portfolio when framing it at load, so edge
 // clusters don't sit under the floating pills.
 const INITIAL_FIT_EXTRA_PX = 32;
+
+function stakeText(value: number | null): string {
+  if (value == null) return "stake n/d";
+  const pct = Number.isInteger(value) ? `${value}` : value.toFixed(1);
+  return `${pct}% stake`;
+}
+
+/**
+ * Callout card shown above the selected marker: name + quick facts. Built
+ * with DOM APIs (textContent) so dataset strings can't inject markup. The
+ * Tailwind classes are literal strings, so the JIT scanner picks them up.
+ */
+function buildCalloutElement(property: ExploreProperty): HTMLElement {
+  const sector = sectorStyle(property.sector);
+
+  const card = document.createElement("div");
+  card.className =
+    "pointer-events-auto relative flex max-w-[15rem] cursor-pointer flex-col gap-0.5 rounded-xl border border-slate-200 bg-white/95 px-3 py-2 text-left shadow-xl ring-1 ring-black/[0.05] backdrop-blur";
+
+  const nameRow = document.createElement("div");
+  nameRow.className = "flex items-start gap-1.5";
+  const dot = document.createElement("span");
+  dot.className = "mt-1 h-2 w-2 shrink-0 rounded-full";
+  dot.style.backgroundColor = sector.dot;
+  dot.setAttribute("aria-hidden", "true");
+  const name = document.createElement("span");
+  name.className = "text-[13px] font-semibold leading-snug text-slate-900";
+  name.textContent = property.name;
+  nameRow.append(dot, name);
+
+  const facts = document.createElement("div");
+  facts.className = "pl-3.5 text-[11px] leading-snug text-slate-500";
+  facts.textContent = `${sector.label} · ${stakeText(property.ownership)} · ${property.city}`;
+
+  // The card is the doorway to the full panel — say so.
+  const cta = document.createElement("div");
+  cta.className = "pl-3.5 text-[11px] font-medium leading-snug text-emerald-700";
+  cta.textContent = "View details ›";
+
+  // Little arrow pointing at the marker.
+  const tip = document.createElement("span");
+  tip.className =
+    "absolute left-1/2 top-full -mt-[5px] h-2.5 w-2.5 -translate-x-1/2 rotate-45 border-b border-r border-slate-200 bg-white";
+  tip.setAttribute("aria-hidden", "true");
+
+  card.append(nameRow, facts, cta, tip);
+  return card;
+}
 
 function boundsOf(
   properties: ExploreProperty[]
@@ -118,6 +176,8 @@ export default function ExploreMap({
   selected,
   maptilerApiKey,
   onSelect,
+  onPeek,
+  onClearPeek,
   onUnavailable,
   padding,
   panelInset = false,
@@ -170,7 +230,7 @@ export default function ExploreMap({
     [selected]
   );
 
-  usePropertyClusterLayer({ map, ready, features, selectedFeatures, onSelectProperty: onSelect });
+  usePropertyClusterLayer({ map, ready, features, selectedFeatures, onSelectProperty: onPeek });
 
   // MapLibre measures its container once at creation. When the pane changes size
   // (desktop view toggle, list show/hide, mobile rotate) the canvas must be told
@@ -191,6 +251,59 @@ export default function ExploreMap({
   useEffect(() => {
     paddingRef.current = padding;
   }, [padding]);
+
+  const onSelectRef = useRef(onSelect);
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
+
+  // Clicking empty basemap dismisses a peek callout; clicks that hit a marker
+  // or cluster are excluded by hit-testing the point.
+  useEffect(() => {
+    if (!map || !ready) return;
+    const onMapClick = (event: maplibregl.MapMouseEvent) => {
+      const features = map.queryRenderedFeatures(event.point, {
+        layers: [PROPERTY_POINT_LAYER, PROPERTY_CLUSTER_LAYER],
+      });
+      if (features.length === 0) onClearPeek();
+    };
+    map.on("click", onMapClick);
+    return () => {
+      map.off("click", onMapClick);
+    };
+  }, [map, ready, onClearPeek]);
+
+  // Selected-property callout: a card above the marker with the name and
+  // quick facts. This is the selection's identity on the map itself — a
+  // slightly bigger dot is too easy to confuse with a cluster, and on phones
+  // the list is never visible next to the map. Clicking it (re)opens the panel.
+  useEffect(() => {
+    if (!map || !ready || !selected) return;
+
+    const card = buildCalloutElement(selected);
+    const id = selected.id;
+    const onClick = () => onSelectRef.current(id);
+    card.addEventListener("click", onClick);
+
+    const popup = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      anchor: "bottom",
+      offset: 18,
+      maxWidth: "none",
+      // The shared shell class strips MapLibre's default chrome and makes the
+      // container click-through; the card re-enables pointer events itself.
+      className: "nbim-gl-popup",
+    })
+      .setLngLat([selected.lng, selected.lat])
+      .setDOMContent(card)
+      .addTo(map);
+
+    return () => {
+      card.removeEventListener("click", onClick);
+      popup.remove();
+    };
+  }, [map, ready, selected]);
 
   // Focus the selected property (selection is URL-driven — cards, markers and
   // compare chips all navigate to /property/[id]). If it's already on screen

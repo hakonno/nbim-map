@@ -117,7 +117,7 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
     setFilters((prev) => ({ ...DEFAULT_FILTERS, sort: prev.sort }));
   }, []);
 
-  // Selecting a property (card, marker, compare chip) navigates to its real
+  // Selecting a property (card, callout, compare chip) navigates to its real
   // URL; the intercepted route renders the panel while this page stays live.
   // While the panel is already open, selections REPLACE the history entry —
   // otherwise Back would walk through every previously viewed property.
@@ -129,10 +129,31 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
       } else {
         router.push(href, { scroll: false });
       }
-      setSoftSelectedId(null);
+      // Keep the soft id in sync so the callout/highlight never flickers
+      // during the route transition (and stays if the panel closes later).
+      setSoftSelectedId(id);
     },
     [router, routeSelectedId]
   );
+
+  // Airbnb-style two-step on desktop: a marker click peeks (callout card +
+  // highlight, no navigation); clicking the callout commits to the panel.
+  // With a panel already open, marker clicks switch it directly. On mobile a
+  // marker tap opens the sheet straight away.
+  const handlePeek = useCallback(
+    (id: string) => {
+      if (routeSelectedId || !isDesktop) {
+        handleSelect(id);
+        return;
+      }
+      setSoftSelectedId(id);
+    },
+    [routeSelectedId, isDesktop, handleSelect]
+  );
+
+  const handleClearPeek = useCallback(() => {
+    setSoftSelectedId(null);
+  }, []);
 
   // Adopt ?sel= (set by the panel's close/"Explore the map" actions) whenever
   // we're back on the homepage — keyed on pathname so it works both without a
@@ -366,6 +387,8 @@ export default function ExploreApp({ data, maptilerApiKey, datasetYear }: Explor
                 selected={selected}
                 maptilerApiKey={maptilerApiKey}
                 onSelect={handleSelect}
+                onPeek={handlePeek}
+                onClearPeek={handleClearPeek}
                 onUnavailable={handleUnavailable}
                 padding={mapPadding}
                 panelInset={mapPanelInset}
