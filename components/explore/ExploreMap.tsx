@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { buildPropertyFeatureCollection, buildSelectedFeatureCollection } from "@/components/map/gl/glPropertyFeatures";
 import { FOCUS_PITCH } from "@/components/map/gl/mapGlConstants";
-import { useMaplibreMap } from "@/components/map/gl/useMaplibreMap";
+import { useMaplibreMap, type MapView } from "@/components/map/gl/useMaplibreMap";
 import {
   PROPERTY_CLUSTER_LAYER,
   PROPERTY_POINT_LAYER,
@@ -368,6 +368,20 @@ export default function ExploreMap({
     frameResultsRef.current();
   }, [ready, frameNonce]);
 
+  // Bookmark the camera before zooming out to the portfolio-wide view so the
+  // same control can later fly back to the previous focus/zoom.
+  const [savedView, setSavedView] = useState<MapView | null>(null);
+
+  // A new selection moves the camera to a different target, so the old bookmark
+  // would jump to the wrong place; reset it and show the "frame all" icon.
+  const [prevSelectedId, setPrevSelectedId] = useState<string | undefined>(selected?.id);
+  if (prevSelectedId !== selected?.id) {
+    setPrevSelectedId(selected?.id);
+    if (savedView !== null) {
+      setSavedView(null);
+    }
+  }
+
   const tilted = view.pitch > 10;
 
   const toggleTilt = useCallback(() => {
@@ -409,14 +423,41 @@ export default function ExploreMap({
         </div>
         <button
           type="button"
-          onClick={frameResults}
+          onClick={() => {
+            if (!map) return;
+            const reduce = prefersReducedMotion();
+
+            if (savedView) {
+              map.flyTo({
+                center: [savedView.center[1], savedView.center[0]],
+                zoom: savedView.zoom,
+                pitch: savedView.pitch,
+                bearing: savedView.bearing,
+                duration: reduce ? 0 : 800,
+              });
+              setSavedView(null);
+              return;
+            }
+
+            if (properties.length > 0) {
+              setSavedView({ ...view });
+              frameResults();
+            }
+          }}
           className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/95 text-slate-700 shadow-lg ring-1 ring-black/[0.03] backdrop-blur transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
-          aria-label="Frame all results"
-          title="Frame all results"
+          aria-label={savedView ? "Return to previous view" : "Frame all results"}
+          title={savedView ? "Return to previous view" : "Frame all results"}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="h-4 w-4">
-            <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" />
-          </svg>
+          {savedView ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="h-4 w-4">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 5V3M12 21v-2M5 12H3m16 0h2" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="h-4 w-4">
+              <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" />
+            </svg>
+          )}
         </button>
         <button
           type="button"
