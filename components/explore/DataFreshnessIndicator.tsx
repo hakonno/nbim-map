@@ -100,6 +100,7 @@ export default function DataFreshnessIndicator({
       <button
         type="button"
         onClick={() => setForceOpen(true)}
+        aria-haspopup="dialog"
         className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
       >
         <WarningGlyph className="h-3.5 w-3.5" />

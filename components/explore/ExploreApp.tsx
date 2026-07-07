@@ -9,6 +9,7 @@ import CurrencyToggle from "@/components/CurrencyToggle";
 import MapSkeleton from "@/components/MapSkeleton";
 import AboutPopover from "@/components/explore/AboutPopover";
 import DataFreshnessIndicator from "@/components/explore/DataFreshnessIndicator";
+import { expectedLatestReleaseYear, isDatasetStale } from "@/components/explore/dataFreshness";
 import RateInfoModal from "@/components/map/RateInfoModal";
 import { useCurrency } from "@/components/map/hooks/useCurrencyPreference";
 import { useUsdToNokRate } from "@/components/map/hooks/useExchangeRate";
@@ -40,8 +41,6 @@ type ExploreAppProps = {
   data: ExploreData;
   maptilerApiKey: string;
   datasetYear: string;
-  expectedLatestYear: number;
-  isDatasetStale: boolean;
 };
 
 // A crafted URL with malformed percent-encoding must not crash the app.
@@ -57,10 +56,20 @@ export default function ExploreApp({
   data,
   maptilerApiKey,
   datasetYear,
-  expectedLatestYear,
-  isDatasetStale,
 }: ExploreAppProps) {
   const { properties, facets, totals } = data;
+
+  // This page is fully static (prerendered at build), so `now` can't be read
+  // server-side without freezing the staleness check to build time. Deferring
+  // to a mount-time effect keeps the check honest against the reader's clock
+  // while keeping the pre-hydration render (null → "not stale") matching the
+  // static HTML, so React never sees a hydration mismatch.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+  }, []);
+  const expectedLatestYear = now ? expectedLatestReleaseYear(now) : parseInt(datasetYear, 10);
+  const datasetIsStale = now ? isDatasetStale(datasetYear, now) : false;
 
   const router = useRouter();
   const pathname = usePathname();
@@ -381,11 +390,11 @@ export default function ExploreApp({
             </div>
           ) : null}
 
-          {isDatasetStale ? (
+          {datasetIsStale ? (
             <DataFreshnessIndicator
               datasetYear={datasetYear}
               expectedLatestYear={expectedLatestYear}
-              isStale={isDatasetStale}
+              isStale={datasetIsStale}
             />
           ) : null}
 
@@ -393,7 +402,11 @@ export default function ExploreApp({
           {/* Last in the row so the popover's right edge anchors near the
               viewport edge on phones. The /properties index is a crawl/SEO
               surface, not primary nav — About links it for the curious. */}
-          <AboutPopover datasetYear={datasetYear} expectedLatestYear={expectedLatestYear} />
+          <AboutPopover
+            datasetYear={datasetYear}
+            expectedLatestYear={expectedLatestYear}
+            isDatasetStale={datasetIsStale}
+          />
         </div>
       </header>
 

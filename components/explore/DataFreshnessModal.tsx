@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 type DataFreshnessModalProps = {
   datasetYear: string;
   expectedLatestYear: number;
@@ -30,6 +32,14 @@ export default function DataFreshnessModal({
   expectedLatestYear,
   onClose,
 }: DataFreshnessModalProps) {
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 z-[1050] flex items-center justify-center bg-slate-900/50 px-4 backdrop-blur-sm"

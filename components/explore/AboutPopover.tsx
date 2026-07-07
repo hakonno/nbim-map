@@ -12,6 +12,7 @@ const ATTOM_URL = "https://www.attomdata.com/";
 type AboutPopoverProps = {
   datasetYear: string;
   expectedLatestYear: number;
+  isDatasetStale: boolean;
 };
 
 /**
@@ -22,6 +23,7 @@ type AboutPopoverProps = {
 export default function AboutPopover({
   datasetYear,
   expectedLatestYear,
+  isDatasetStale,
 }: AboutPopoverProps) {
   return (
     <Popover
@@ -68,8 +70,13 @@ export default function AboutPopover({
         >
           {datasetYear}
         </a>
-        . As of today, the latest release NBIM have published should be from{" "}
-        {expectedLatestYear}.
+        {isDatasetStale ? (
+          <>
+            . As of today, the latest release NBIM has published should be
+            from {expectedLatestYear}
+          </>
+        ) : null}
+        .
       </p>
 
       <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
