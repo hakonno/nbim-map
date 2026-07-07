@@ -32,6 +32,21 @@ input[type="search"]::-webkit-search-decoration {
   display: none;
 }
 
+/* Inline link highlight: a blue underline that expands to a full background
+   fill on hover. Useful for links inside paragraphs where a plain underline
+   would disappear among body text. */
+.link-highlight {
+  font-weight: 500;
+  color: #334155;
+  background: linear-gradient(to right, #bfdbfe, #bfdbfe) no-repeat bottom / 100% 2px;
+  transition: background-size 200ms;
+}
+.link-highlight:hover,
+.link-highlight:focus-visible {
+  color: #020617;
+  background-size: 100% 100%;
+}
+
 /* On phones the explore homepage floats a Map/List pill over the bottom of the
    map; lift MapLibre's attribution above it so the MapTiler/OSM credit (a
    license requirement) is never covered. Scoped to the explore map only —

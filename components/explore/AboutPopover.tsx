@@ -5,11 +5,18 @@ import Link from "next/link";
 import Popover from "@/components/explore/Popover";
 
 const GITHUB_URL = "https://github.com/hakonno/nbim-map";
-const NBIM_URL = "https://www.nbim.no/";
+const NBIM_WIKIPEDIA_URL = "https://en.wikipedia.org/wiki/Government_Pension_Fund_of_Norway";
 const ATTOM_URL = "https://www.attomdata.com/";
+
+// NBIM's disclosure release date is always 31 December of the dataset year.
+function nbimDatasourceUrl(datasetYear: string): string {
+  return `https://www.nbim.no/en/investments/all-investments#/${datasetYear}-12-31/2-real_estate`;
+}
 
 type AboutPopoverProps = {
   datasetYear: string;
+  expectedLatestYear: number;
+  isDatasetStale: boolean;
 };
 
 /**
@@ -17,7 +24,11 @@ type AboutPopoverProps = {
  * "what am I looking at?" content lives: purpose, unofficial status, data
  * caveats, the marker-colour legend, and source links.
  */
-export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
+export default function AboutPopover({
+  datasetYear,
+  expectedLatestYear,
+  isDatasetStale,
+}: AboutPopoverProps) {
   return (
     <Popover
       label="About this site"
@@ -37,18 +48,60 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
     >
       <p className="text-sm font-semibold text-slate-900">About this site</p>
       <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
-        An independent map of the unlisted real estate owned by Norges Bank
+        An independent project mapping the real estate investments by Norges Bank
         Investment Management (NBIM) — Norway&apos;s sovereign wealth fund, often
-        called the oil fund. Built from NBIM&apos;s {datasetYear} disclosure.
-        Unofficial: not affiliated with or endorsed by NBIM.
+        called the oil fund.{" "}
+        <a
+          href={NBIM_WIKIPEDIA_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="link-highlight"
+        >
+          Wikipedia: Government Pension Fund of Norway ↗
+        </a>
+        .
+      </p>
+
+      <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
+        <span className="font-medium text-slate-900">Data source.</span> NBIM
+        reports its real-estate holdings annually on December 31st.
+        The latest release used in this project is from{" "}
+        <a
+          href={nbimDatasourceUrl(datasetYear)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="link-highlight"
+        >
+          {datasetYear}
+        </a>
+        {isDatasetStale ? (
+          <>
+            . As of today, the latest release NBIM has published should be
+            from {expectedLatestYear}
+          </>
+        ) : null}
+        .
+      </p>
+
+      <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
+        <span className="font-medium text-slate-900">
+          Unofficial.
+        </span>{" "}
+        Built independently from public and third-party sources. Not affiliated
+        with or endorsed by NBIM. Information may be inaccurate, incomplete, or
+        outdated — verify important details on{" "}
+        <a
+          href={nbimDatasourceUrl(datasetYear)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="link-highlight"
+        >
+          nbim.no
+        </a>
+        .
       </p>
 
       <ul className="mt-3 flex flex-col gap-1.5 border-t border-slate-100 pt-3 text-[13px] leading-relaxed text-slate-600">
-        <li className="flex gap-2">
-          <span aria-hidden="true" className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-slate-300" />
-          NBIM discloses values per country only — per-property values are never
-          shown here because they are not published.
-        </li>
         <li className="flex gap-2">
           <span
             aria-hidden="true"
@@ -69,15 +122,15 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
           rel="noopener noreferrer"
           className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
         >
-          Source code (GitHub) ↗
+          Open source (GitHub) ↗
         </a>
         <a
-          href={NBIM_URL}
+          href={nbimDatasourceUrl(datasetYear)}
           target="_blank"
           rel="noopener noreferrer"
           className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
         >
-          Data: nbim.no ↗
+          Data from nbim.no ↗
         </a>
         <a
           href={ATTOM_URL}
@@ -85,7 +138,7 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
           rel="noopener noreferrer"
           className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
         >
-          ATTOM US market data ↗
+          US market data (ATTOM) ↗
         </a>
         <Link
           href="/properties"

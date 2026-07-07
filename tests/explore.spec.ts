@@ -19,25 +19,12 @@ function isMobileViewport(page: Page): boolean {
   return viewport ? viewport.width < 768 : false;
 }
 
-async function dismissDisclaimer(page: Page) {
-  // First-visit disclaimer modal; its backdrop intercepts all interactions.
-  const gotIt = page.getByRole('button', { name: 'Got it' });
-  try {
-    await gotIt.waitFor({ state: 'visible', timeout: 8_000 });
-    await gotIt.click();
-    await gotIt.waitFor({ state: 'hidden', timeout: 5_000 });
-  } catch {
-    /* modal not shown (already acknowledged) — nothing to dismiss */
-  }
-}
-
 async function gotoExplore(page: Page) {
   await page.goto('/');
   // The brand link renders server-side — proof the app shell is up.
   await expect(page.getByRole('link', { name: /NBIM Real Estate Map/ })).toBeVisible({
     timeout: 30_000,
   });
-  await dismissDisclaimer(page);
 }
 
 /**
@@ -193,7 +180,6 @@ test.describe('explore homepage', () => {
     // floated over an empty page (no header, no map).
     test.slow();
     await page.goto('/properties');
-    await dismissDisclaimer(page);
     const link = page.locator('a[href^="/property/"]').first();
     await expect(link).toBeVisible({ timeout: 60_000 });
     await link.click();
@@ -213,7 +199,6 @@ test.describe('explore homepage', () => {
     await expect(propertyLink).toBeVisible({ timeout: 60_000 });
     const href = await propertyLink.getAttribute('href');
     await page.goto(href!);
-    await dismissDisclaimer(page);
     await expect(page.getByRole('button', { name: 'Back to results' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'All properties' }).first()).toBeVisible();
   });
@@ -299,7 +284,6 @@ test.describe('explore homepage', () => {
   test('marker click peeks (callout), callout click opens the panel', async ({ page }) => {
     // Narrow to a single property so the framed marker sits at map center.
     await page.goto('/?q=79%20Avenue%20des%20Champs');
-    await dismissDisclaimer(page);
     const mapAvailable = await waitForMapAvailability(page);
     test.skip(!mapAvailable, 'peek is a map interaction');
 
@@ -349,7 +333,6 @@ test.describe('explore homepage', () => {
     await expect(page.getByRole('link', { name: /NBIM Real Estate Map/ })).toBeVisible({
       timeout: 30_000,
     });
-    await dismissDisclaimer(page);
     const mapAvailable = await waitForMapAvailability(page);
     test.skip(!mapAvailable, 'the floating clear button only exists on the map surface');
 
