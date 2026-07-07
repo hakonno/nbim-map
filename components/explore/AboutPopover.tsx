@@ -6,7 +6,13 @@ import Popover from "@/components/explore/Popover";
 
 const GITHUB_URL = "https://github.com/hakonno/nbim-map";
 const NBIM_DATASOURCE = "https://www.nbim.no/en/investments/all-investments#/2025-12-31/2-real_estate";
+const NBIM_WIKIPEDIA_URL = "https://en.wikipedia.org/wiki/Government_Pension_Fund_of_Norway";
 const ATTOM_URL = "https://www.attomdata.com/";
+
+// Highlight underline that expands to a full background fill on hover — used
+// for inline links inside paragraphs so they stand out without adding clutter.
+const INLINE_LINK_CLASS =
+  "font-medium text-slate-700 bg-gradient-to-r from-blue-200 to-blue-200 bg-no-repeat bg-bottom bg-[length:100%_2px] hover:bg-[length:100%_100%] transition-[background-size] duration-200";
 
 type AboutPopoverProps = {
   datasetYear: string;
@@ -37,16 +43,32 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
     >
       <p className="text-sm font-semibold text-slate-900">About this site</p>
       <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
-        An independent map of the unlisted real estate owned by Norges Bank
+        An independent project mapping the real estate investments by Norges Bank
         Investment Management (NBIM) — Norway&apos;s sovereign wealth fund, often
-        called the oil fund.
+        called the oil fund.{" "}
+        <a
+          href={NBIM_WIKIPEDIA_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={INLINE_LINK_CLASS}
+        >
+          Wikipedia: Government Pension Fund of Norway ↗
+        </a>
+        .
       </p>
 
       <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
         <span className="font-medium text-slate-900">Data source.</span> NBIM
-        reports its unlisted real-estate holdings as of 31 December each year.
-        The latest release used here is from {datasetYear}. Values shown are
-        aggregate totals — NBIM does not publish per-property values.
+        reports its unlisted real-estate holdings as of 31 December each year. {" "}
+        <a
+          href={NBIM_DATASOURCE}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={INLINE_LINK_CLASS}
+        >
+          The latest release is from {datasetYear}
+        </a> 
+        , and it is currently used in this project.
       </p>
 
       <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
@@ -60,7 +82,7 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
           href={NBIM_DATASOURCE}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium text-slate-700 hover:text-slate-950 hover:underline"
+          className={INLINE_LINK_CLASS}
         >
           nbim.no
         </a>
