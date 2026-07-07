@@ -11,21 +11,31 @@ export async function POST(request: Request) {
     const ua = request.headers.get("user-agent") ?? "unknown";
     const ts = new Date().toISOString();
 
-    const sanitize = (str: string) => str.replace(/[\r\n]/g, " ").trim();
+    // Everything here is attacker-controlled (body fields and headers), so
+    // neutralize newlines plus the log format's own syntax (| delimiter,
+    // quoted values) in all of it — not just some fields — to prevent
+    // forging entries or fields, and cap lengths so one request can't
+    // flood a log line.
+    const sanitize = (value: unknown, max = 160) =>
+      String(value)
+        .replace(/[\r\n|]/g, " ")
+        .replace(/"/g, "'")
+        .trim()
+        .slice(0, max);
 
     const parts = [
       `[${ts}]`,
-      `ip=${ip}`,
-      `session=${sessionId ?? "?"}`,
-      `event=${event}`,
+      `ip=${sanitize(ip, 64)}`,
+      `session=${sessionId ? sanitize(sessionId, 64) : "?"}`,
+      `event=${sanitize(event, 64)}`,
     ];
 
     if (propertyName) parts.push(`property="${sanitize(propertyName)}"`);
-    if (propertyId) parts.push(`id=${propertyId}`);
+    if (propertyId) parts.push(`id=${sanitize(propertyId, 64)}`);
     if (cityName) parts.push(`city="${sanitize(cityName)}"`);
     if (country) parts.push(`country="${sanitize(country)}"`);
     if (propertyAddress) parts.push(`addr="${sanitize(propertyAddress)}"`);
-    if (ua && ua !== "unknown") parts.push(`ua="${ua.slice(0, 80).replace(/[\r\n]/g, " ").trim()}"`);
+    if (ua && ua !== "unknown") parts.push(`ua="${sanitize(ua, 80)}"`);
 
     console.log("[track]", parts.join(" | "));
   } catch {

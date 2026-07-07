@@ -102,8 +102,12 @@ test.describe('explore homepage', () => {
       // The GL style pulls everything (style JSON, vector tiles, glyphs,
       // sprites) from MapTiler — any request proves the wiring, so don't
       // pattern-match raster z/x/y paths that vector tiles won't have.
-      if (new URL(request.url()).host.endsWith(EXPECTED_TILE_HOST)) {
-        maptilerRequests.push(request.url());
+      try {
+        if (new URL(request.url()).hostname === EXPECTED_TILE_HOST) {
+          maptilerRequests.push(request.url());
+        }
+      } catch {
+        // Ignore malformed/non-standard request URLs.
       }
     });
 
