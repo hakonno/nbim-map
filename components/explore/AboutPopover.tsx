@@ -9,11 +9,6 @@ const NBIM_DATASOURCE = "https://www.nbim.no/en/investments/all-investments#/202
 const NBIM_WIKIPEDIA_URL = "https://en.wikipedia.org/wiki/Government_Pension_Fund_of_Norway";
 const ATTOM_URL = "https://www.attomdata.com/";
 
-// Highlight underline that expands to a full background fill on hover — used
-// for inline links inside paragraphs so they stand out without adding clutter.
-const INLINE_LINK_CLASS =
-  "font-medium text-slate-700 bg-gradient-to-r from-blue-200 to-blue-200 bg-no-repeat bg-bottom bg-[length:100%_2px] hover:bg-[length:100%_100%] transition-[background-size] duration-200";
-
 type AboutPopoverProps = {
   datasetYear: string;
 };
@@ -50,7 +45,7 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
           href={NBIM_WIKIPEDIA_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className={INLINE_LINK_CLASS}
+          className="link-highlight"
         >
           Wikipedia: Government Pension Fund of Norway ↗
         </a>
@@ -64,7 +59,7 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
           href={NBIM_DATASOURCE}
           target="_blank"
           rel="noopener noreferrer"
-          className={INLINE_LINK_CLASS}
+          className="link-highlight"
         >
           The latest release is from {datasetYear}
         </a> 
@@ -82,7 +77,7 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
           href={NBIM_DATASOURCE}
           target="_blank"
           rel="noopener noreferrer"
-          className={INLINE_LINK_CLASS}
+          className="link-highlight"
         >
           nbim.no
         </a>
