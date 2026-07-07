@@ -39,16 +39,23 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
       <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
         An independent map of the unlisted real estate owned by Norges Bank
         Investment Management (NBIM) — Norway&apos;s sovereign wealth fund, often
-        called the oil fund. Built from NBIM&apos;s {datasetYear} disclosure.
-        Unofficial: not affiliated with or endorsed by NBIM.
+        called the oil fund.
+      </p>
+
+      <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
+        <span className="font-medium text-slate-900">Data source.</span> NBIM
+        reports its unlisted real-estate holdings as of 31 December each year.
+        The latest release used here is from {datasetYear}. Values shown are
+        aggregate totals — NBIM does not publish per-property values.
       </p>
 
       <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
         <span className="font-medium text-slate-900">
-          Open source and independently maintained.
+          Open source and unofficial.
         </span>{" "}
-        Information is compiled from public and 3rd-party sources and may be
-        inaccurate, incomplete, or outdated. verify details on official channel:{" "}
+        Built independently from public and third-party sources. Not affiliated
+        with or endorsed by NBIM. Information may be inaccurate, incomplete, or
+        outdated — verify important details on{" "}
         <a
           href={NBIM_DATASOURCE}
           target="_blank"
@@ -61,11 +68,6 @@ export default function AboutPopover({ datasetYear }: AboutPopoverProps) {
       </p>
 
       <ul className="mt-3 flex flex-col gap-1.5 border-t border-slate-100 pt-3 text-[13px] leading-relaxed text-slate-600">
-        <li className="flex gap-2">
-          <span aria-hidden="true" className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-slate-300" />
-          NBIM discloses values per country only — per-property values are never
-          shown here because they are not published.
-        </li>
         <li className="flex gap-2">
           <span
             aria-hidden="true"
