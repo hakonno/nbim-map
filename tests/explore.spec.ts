@@ -3,16 +3,26 @@ import { test, expect, type Page } from '@playwright/test';
 /**
  * Regression suite for the explore homepage (unified map + filterable list).
  *
- * The map is MapLibre GL fed by MapTiler; when WebGL or the API key is
- * unavailable the app intentionally falls back to a list-only view, so every
- * map assertion first checks availability instead of failing. List, search,
- * and detail flows are asserted unconditionally — they must work everywhere.
+ * The map is MapLibre GL over a chain of interchangeable basemap providers
+ * (MapTiler -> OpenFreeMap -> OpenStreetMap raster); only a browser without
+ * WebGL, or every provider failing, drops it to a list-only view. Map
+ * assertions therefore still check availability first. List, search, and
+ * detail flows are asserted unconditionally — they must work everywhere.
  *
  * Mobile projects (Pixel 5 / iPhone 12, < 768px) default to a full-screen map
  * with a floating Map/List pill; the list pane is display-hidden until the
  * pill's List button is tapped. Helpers below normalize that difference.
  */
-const EXPECTED_TILE_HOST = 'api.maptiler.com';
+const PROVIDER_HOSTS: Record<string, string> = {
+  maptiler: 'api.maptiler.com',
+  openfreemap: 'tiles.openfreemap.org',
+  osm: 'tile.openstreetmap.org',
+};
+
+/** The basemap tier the map is actually painting with. */
+async function activeBasemap(page: Page): Promise<string | null> {
+  return page.locator('[data-basemap]').first().getAttribute('data-basemap');
+}
 
 function isMobileViewport(page: Page): boolean {
   const viewport = page.viewportSize();
@@ -30,7 +40,7 @@ async function gotoExplore(page: Page) {
 /**
  * The map chunk is dynamically imported behind a skeleton, so availability
  * can only be decided by waiting: canvas attached => available; the wait
- * timing out => fallback (no WebGL / no key) or genuinely broken map, which
+ * timing out => fallback (no WebGL) or genuinely broken map, which
  * dedicated tests cover. Never call this before deciding to skip.
  */
 async function waitForMapAvailability(page: Page, timeoutMs = 20_000): Promise<boolean> {
@@ -83,16 +93,14 @@ test.describe('explore homepage', () => {
     expect(errors, `uncaught errors:\n${errors.join('\n')}`).toHaveLength(0);
   });
 
-  test('map initializes with MapTiler as the data source', async ({ page }) => {
-    const maptilerRequests: string[] = [];
+  test('map initializes against the active basemap provider', async ({ page }) => {
+    const hosts = new Set<string>();
     page.on('request', (request) => {
-      // The GL style pulls everything (style JSON, vector tiles, glyphs,
-      // sprites) from MapTiler — any request proves the wiring, so don't
-      // pattern-match raster z/x/y paths that vector tiles won't have.
+      // A GL style pulls everything (style JSON, tiles, glyphs, sprites) from
+      // its provider — any request proves the wiring, so don't pattern-match
+      // raster z/x/y paths that vector tiles won't have.
       try {
-        if (new URL(request.url()).hostname === EXPECTED_TILE_HOST) {
-          maptilerRequests.push(request.url());
-        }
+        hosts.add(new URL(request.url()).hostname);
       } catch {
         // Ignore malformed/non-standard request URLs.
       }
@@ -100,12 +108,56 @@ test.describe('explore homepage', () => {
 
     await gotoExplore(page);
     const mapAvailable = await waitForMapAvailability(page);
-    test.skip(!mapAvailable, 'map unavailable here (no WebGL or no key) — list fallback covers it');
+    test.skip(!mapAvailable, 'map unavailable here (no WebGL) — list fallback covers it');
 
-    expect(
-      maptilerRequests.length,
-      `expected requests to ${EXPECTED_TILE_HOST}, saw none`,
-    ).toBeGreaterThan(0);
+    const basemap = await activeBasemap(page);
+    expect(Object.keys(PROVIDER_HOSTS)).toContain(basemap);
+
+    const expectedHost = PROVIDER_HOSTS[basemap!];
+    await expect
+      .poll(() => [...hosts].some((host) => host.endsWith(expectedHost)), {
+        message: `expected requests to ${expectedHost}, saw ${[...hosts].join(', ')}`,
+        timeout: 15_000,
+      })
+      .toBe(true);
+  });
+
+  test('the map survives its primary basemap provider failing', async ({ page }) => {
+    // The "MapTiler credits ran out" case: every request to the leading
+    // provider is answered 402, exactly as an exhausted quota would be. The
+    // map must switch itself to the next tier rather than disappear — with
+    // the property markers and their interactions intact on the new style.
+    await page.route('**://api.maptiler.com/**', (route) =>
+      route.fulfill({ status: 402, contentType: 'text/plain', body: 'Payment Required' }),
+    );
+
+    await page.goto('/?q=79%20Avenue%20des%20Champs');
+    await expect(page.getByRole('link', { name: /NBIM Real Estate Map/ })).toBeVisible({
+      timeout: 30_000,
+    });
+    const mapAvailable = await waitForMapAvailability(page);
+    test.skip(!mapAvailable, 'no WebGL here — provider fallback is a map behaviour');
+
+    // Whatever tier ends up painting, it must not be the blocked one, and the
+    // map view toggle must still be offered (i.e. the app did not give up).
+    await expect
+      .poll(() => activeBasemap(page), { timeout: 20_000 })
+      .not.toBe('maptiler');
+    await expect(page.locator('.maplibregl-canvas')).toBeVisible();
+
+    // Markers are re-added onto the swapped-in style: framing the single
+    // result and clicking it must still peek the callout.
+    await page.getByRole('button', { name: 'Frame all results' }).click();
+    await page.waitForTimeout(2_000);
+    const canvas = await page.locator('.maplibregl-canvas').boundingBox();
+    const cx = canvas!.x + canvas!.width / 2;
+    const cy = canvas!.y + canvas!.height / 2;
+    if (isMobileViewport(page)) {
+      await page.touchscreen.tap(cx, cy);
+    } else {
+      await page.mouse.click(cx, cy);
+    }
+    await expect(page.locator('.maplibregl-popup').getByText('View details ›')).toBeVisible();
   });
 
   test('search narrows the result count and clears back', async ({ page }) => {

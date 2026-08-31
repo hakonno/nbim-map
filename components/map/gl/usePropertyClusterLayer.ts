@@ -8,6 +8,7 @@ import maplibregl, {
 } from "maplibre-gl";
 import { useEffect, useRef } from "react";
 
+import type { BasemapFontStacks } from "@/components/map/gl/basemapProviders";
 import {
   CLUSTER_FILL_COLOR,
   CLUSTER_RADIUS,
@@ -39,9 +40,21 @@ const EMPTY_COLLECTION: PropertyFeatureCollection = {
 
 type UsePropertyClusterLayerParams = {
   map: MaplibreMap | null;
-  ready: boolean;
+  /**
+   * Bumps on every stylesheet load, including a basemap-provider swap. Keying
+   * the layer setup on this (rather than a boolean "ready") is what makes the
+   * markers survive a swap: `setStyle` throws away every layer and source, so
+   * they have to be added again onto the new style. 0 means "no style yet".
+   */
+  styleEpoch: number;
   features: PropertyFeatureCollection;
   selectedFeatures: PropertyFeatureCollection;
+  /**
+   * Font stacks the active basemap provider can actually serve. A stack the
+   * provider has no glyphs for renders as no text at all, which would silently
+   * cost us the cluster counts and property labels.
+   */
+  fonts: BasemapFontStacks;
   onSelectProperty: (propertyId: string) => void;
 };
 
@@ -104,9 +117,10 @@ function clusterTooltipHtml(props: Record<string, unknown>): string {
 
 export function usePropertyClusterLayer({
   map,
-  ready,
+  styleEpoch,
   features,
   selectedFeatures,
+  fonts,
   onSelectProperty,
 }: UsePropertyClusterLayerParams): void {
   const onSelectRef = useRef(onSelectProperty);
@@ -119,9 +133,10 @@ export function usePropertyClusterLayer({
   const selectedIdsRef = useRef<Set<string>>(new Set());
   const hoverPopupRef = useRef<maplibregl.Popup | null>(null);
 
-  // --- Create sources, layers, and interaction handlers once the style loads.
+  // --- Create sources, layers, and interaction handlers once the style loads,
+  // and again after every provider swap (the new style starts empty).
   useEffect(() => {
-    if (!map || !ready) {
+    if (!map || styleEpoch === 0) {
       return;
     }
 
@@ -192,7 +207,7 @@ export function usePropertyClusterLayer({
       filter: ["has", "point_count"],
       layout: {
         "text-field": ["get", "point_count_abbreviated"],
-        "text-font": ["Roboto Bold", "Noto Sans Bold"],
+        "text-font": fonts.bold,
         "text-size": 13,
         "text-allow-overlap": true,
       },
@@ -209,7 +224,7 @@ export function usePropertyClusterLayer({
       minzoom: LABEL_MIN_ZOOM,
       layout: {
         "text-field": ["get", "label"],
-        "text-font": ["Roboto Regular", "Noto Sans Regular"],
+        "text-font": fonts.regular,
         "text-size": 12,
         "text-offset": [0, -1.3],
         "text-anchor": "bottom",
@@ -353,6 +368,8 @@ export function usePropertyClusterLayer({
       // which clears its `style`. removeLayer/removeSource would then throw, and
       // remove() already disposed these layers — so bail. Read `style` directly
       // (O(1)); getStyle() would serialise the whole stylesheet just to check.
+      // After a provider swap `style` is the NEW stylesheet, which never had
+      // these layers — the getLayer/getSource guards below make that a no-op.
       if (!(map as { style?: unknown }).style) {
         return;
       }
@@ -374,20 +391,20 @@ export function usePropertyClusterLayer({
         }
       }
     };
-  }, [map, ready]);
+  }, [map, styleEpoch, fonts]);
 
   // --- Push new property data without rebuilding the layers.
   useEffect(() => {
-    if (!map || !ready) {
+    if (!map || styleEpoch === 0) {
       return;
     }
     const source = map.getSource(SOURCE_ID) as GeoJSONSource | undefined;
     source?.setData(features);
-  }, [map, ready, features]);
+  }, [map, styleEpoch, features]);
 
   // --- Update the highlighted selection.
   useEffect(() => {
-    if (!map || !ready) {
+    if (!map || styleEpoch === 0) {
       return;
     }
     const source = map.getSource(SELECTED_SOURCE_ID) as GeoJSONSource | undefined;
@@ -404,5 +421,5 @@ export function usePropertyClusterLayer({
     if (selectedIdsRef.current.size > 0) {
       hoverPopupRef.current?.remove();
     }
-  }, [map, ready, selectedFeatures]);
+  }, [map, styleEpoch, selectedFeatures]);
 }

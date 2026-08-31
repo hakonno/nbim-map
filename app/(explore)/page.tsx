@@ -1,5 +1,6 @@
 import ExploreApp from "@/components/explore/ExploreApp";
 import { buildExploreData } from "@/lib/exploreData";
+import { parseBasemapPreference } from "@/components/map/gl/basemapProviders";
 import { DATASET_YEAR } from "@/app/siteMetadata";
 
 export default function Home() {
@@ -7,11 +8,18 @@ export default function Home() {
   // so the env var stays MAPTILER_API_KEY (no NEXT_PUBLIC_ prefix). The key is
   // still visible in browser tile requests — it is protected by MapTiler origin
   // restrictions, not secrecy.
+  //
+  // The key is optional: MapTiler is only the first tier of the basemap chain
+  // in `components/map/gl/basemapProviders`. Without it — or once its credits
+  // are spent — the map opens on the keyless OpenFreeMap tier instead, with
+  // raw OpenStreetMap raster tiles below that. `MAP_PROVIDER` pins a tier
+  // explicitly (`auto` | `maptiler` | `openfreemap` | `osm`).
   const maptilerApiKey = process.env.MAPTILER_API_KEY?.trim() ?? "";
+  const mapProvider = parseBasemapPreference(process.env.MAP_PROVIDER);
 
-  if (!maptilerApiKey) {
-    console.error(
-      "[explore] MAPTILER_API_KEY is not configured — the homepage falls back to the list-only view."
+  if (!maptilerApiKey && mapProvider === "auto") {
+    console.info(
+      "[explore] MAPTILER_API_KEY is not configured — using the keyless backup basemap."
     );
   }
 
@@ -23,7 +31,12 @@ export default function Home() {
 
   return (
     <main className="flex flex-1">
-      <ExploreApp data={data} maptilerApiKey={maptilerApiKey} datasetYear={DATASET_YEAR} />
+      <ExploreApp
+        data={data}
+        maptilerApiKey={maptilerApiKey}
+        mapProvider={mapProvider}
+        datasetYear={DATASET_YEAR}
+      />
     </main>
   );
 }

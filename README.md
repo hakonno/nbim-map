@@ -7,7 +7,7 @@ Interactive map of NBIM real estate investments, with city-level and property-le
 - Next.js 16
 - React 19
 - TypeScript
-- Leaflet + react-leaflet
+- MapLibre GL
 - Playwright
 
 ## Run Locally
@@ -32,6 +32,31 @@ npm run pipeline
 npm run pipeline:properties
 npm run pipeline:cities
 ```
+
+## Base Map
+
+The map is MapLibre GL over an ordered chain of interchangeable basemap
+providers (`components/map/gl/basemapProviders.ts`). Every tier renders through
+the same engine, so clustering, callouts, hover labels, tilt and camera framing
+behave identically on all of them:
+
+| Tier | Provider | Key | 3D buildings |
+| --- | --- | --- | --- |
+| 1 | MapTiler `streets-v2` | `MAPTILER_API_KEY` | yes |
+| 2 | [OpenFreeMap](https://openfreemap.org) Liberty (vector) | none | yes |
+| 3 | OpenStreetMap raster tiles | none | no (raster has no building geometry) |
+
+The map opens on the first tier it can use and drops to the next one by itself
+when a style or tile request comes back 401/402/403/429 (rejected key, spent
+credits), fails outright, or never arrives. The swap happens in place — same map
+instance, same camera, markers re-added onto the new style — so a reader mid-session
+only sees the basemap art change. Only a browser without WebGL, or every tier
+failing, falls back to the list-only view.
+
+Set `MAP_PROVIDER=openfreemap` (or `osm`) to pin a keyless tier without touching
+the key, and `MAPTILER_API_KEY` is optional: leave it blank and tier 2 leads.
+The container element carries `data-basemap="<tier id>"` so the tier in use is
+visible in devtools.
 
 ## Data Pipeline
 

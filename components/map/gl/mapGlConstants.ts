@@ -4,7 +4,7 @@ import type {
   Map as MaplibreMap,
 } from "maplibre-gl";
 
-import { MAP_CENTER, MAPTILER_STYLE } from "@/components/map/mapConstants";
+import { MAP_CENTER } from "@/components/map/mapConstants";
 
 // Leaflet stores coordinates as [lat, lng]; MapLibre uses [lng, lat]. Convert once here.
 export const MAP_CENTER_LNGLAT: [number, number] = [MAP_CENTER[1], MAP_CENTER[0]];
@@ -18,17 +18,8 @@ export const MAX_PITCH = 75;
 export const BUILDINGS_MIN_ZOOM = 14;
 
 /**
- * MapTiler vector style URL. The key is intentionally embedded — any
- * browser-rendered map exposes it in network requests, so MapTiler protects it
- * with origin restrictions, not secrecy (same rationale as the raster fallback).
- */
-export function getMaptilerStyleUrl(maptilerApiKey: string): string {
-  return `https://api.maptiler.com/maps/${MAPTILER_STYLE}/style.json?key=${maptilerApiKey.trim()}`;
-}
-
-/**
  * WebGL is required for MapLibre. Detect it defensively so we can fall back to
- * the Leaflet raster map on machines/browsers without a usable WebGL context.
+ * the list-only view on machines/browsers without a usable WebGL context.
  */
 export function isWebglSupported(): boolean {
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -49,8 +40,9 @@ export function isWebglSupported(): boolean {
 
 /**
  * Finds the vector source + source-layer that holds building polygons in the
- * loaded style. MapTiler/OpenMapTiles call it `building`, but we look it up
- * dynamically so a future style change does not silently drop the 3D layer.
+ * loaded style. Every OpenMapTiles-schema style (MapTiler, OpenFreeMap) calls
+ * it `building`, but we look it up dynamically so swapping the basemap
+ * provider — or a future style change — does not silently drop the 3D layer.
  */
 function findBuildingSource(
   map: MaplibreMap
@@ -101,9 +93,11 @@ export function add3dBuildings(map: MaplibreMap): void {
     return;
   }
 
-  // If the style already renders extruded buildings (most MapTiler 3D styles
-  // do), adding our own creates a second overlapping volume that z-fights and
-  // looks glitchy. In that case, leave the style's 3D buildings alone.
+  // If the style already renders extruded buildings (most 3D styles do),
+  // adding our own creates a second overlapping volume that z-fights and looks
+  // glitchy. In that case, leave the style's 3D buildings alone. A raster
+  // basemap has no building geometry at all, so `findBuildingSource` returns
+  // null below and the map simply tilts flat.
   const existingLayers = map.getStyle()?.layers ?? [];
   if (existingLayers.some((layer) => layer.type === "fill-extrusion")) {
     return;

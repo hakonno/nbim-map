@@ -15,6 +15,10 @@ import { useCurrency } from "@/components/map/hooks/useCurrencyPreference";
 import { useUsdToNokRate } from "@/components/map/hooks/useExchangeRate";
 import { formatNokValue } from "@/utils/formatCurrency";
 import { useIsDesktop, useWebglSupported } from "@/components/explore/useClientEnv";
+import {
+  resolveBasemapChain,
+  type BasemapPreference,
+} from "@/components/map/gl/basemapProviders";
 import { onExploreViewRequest, setExploreView } from "@/components/explore/useExploreView";
 import CompareTray, { MAX_COMPARE } from "@/components/explore/CompareTray";
 import FilterBar from "@/components/explore/FilterBar";
@@ -39,7 +43,10 @@ type View = "split" | "map" | "list";
 
 type ExploreAppProps = {
   data: ExploreData;
+  /** May be empty — the map then opens straight on the keyless backup provider. */
   maptilerApiKey: string;
+  /** `MAP_PROVIDER`: pins the top of the basemap chain (default `auto`). */
+  mapProvider: BasemapPreference;
   datasetYear: string;
 };
 
@@ -55,6 +62,7 @@ function safeDecode(value: string): string {
 export default function ExploreApp({
   data,
   maptilerApiKey,
+  mapProvider,
   datasetYear,
 }: ExploreAppProps) {
   const { properties, facets, totals } = data;
@@ -121,7 +129,15 @@ export default function ExploreApp({
     [comparedIds, propertyMap]
   );
 
-  const mapEnabled = Boolean(maptilerApiKey) && webglOk && !mapFailed;
+  // The basemap is a chain of interchangeable providers, and every tier below
+  // MapTiler is keyless — so a missing/exhausted key costs a provider, not the
+  // map. Only a browser without WebGL, or every provider failing, drops the map.
+  const basemapProviders = useMemo(
+    () => resolveBasemapChain(maptilerApiKey, mapProvider),
+    [maptilerApiKey, mapProvider]
+  );
+
+  const mapEnabled = webglOk && !mapFailed;
   // Without a usable map, the list is the only sensible surface.
   const effectiveView: View = mapEnabled ? view : "list";
 
@@ -270,8 +286,9 @@ export default function ExploreApp({
     );
   }, []);
 
+  // Reached only after every basemap provider in the chain has failed.
   const handleUnavailable = useCallback((reason: string) => {
-    console.warn(`[explore] map unavailable (${reason}); showing list only.`);
+    console.warn(`[explore] no basemap provider available (${reason}); showing list only.`);
     setMapFailed(true);
   }, []);
 
@@ -444,7 +461,7 @@ export default function ExploreApp({
               <ExploreMap
                 properties={filtered}
                 selected={selected}
-                maptilerApiKey={maptilerApiKey}
+                providers={basemapProviders}
                 onSelect={handleSelect}
                 onPeek={handlePeek}
                 onClearPeek={handleClearPeek}
