@@ -4,6 +4,7 @@ import maplibregl from "maplibre-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { buildPropertyFeatureCollection, buildSelectedFeatureCollection } from "@/components/map/gl/glPropertyFeatures";
+import type { BasemapProvider } from "@/components/map/gl/basemapProviders";
 import { FOCUS_PITCH } from "@/components/map/gl/mapGlConstants";
 import { useMaplibreMap, type MapView } from "@/components/map/gl/useMaplibreMap";
 import {
@@ -42,7 +43,8 @@ type ExploreMapProps = {
   /** The filtered set currently shown in the list. */
   properties: ExploreProperty[];
   selected: ExploreProperty | null;
-  maptilerApiKey: string;
+  /** Ordered basemap providers, tried top-down (see `basemapProviders`). */
+  providers: BasemapProvider[];
   onSelect: (id: string) => void;
   /** Marker click — the host decides whether that peeks (callout only) or
    * opens the panel. Clicking the callout card always calls onSelect. */
@@ -177,7 +179,7 @@ function coreBounds(
 export default function ExploreMap({
   properties,
   selected,
-  maptilerApiKey,
+  providers,
   onSelect,
   onPeek,
   onClearPeek,
@@ -217,8 +219,8 @@ export default function ExploreMap({
     };
   });
 
-  const { containerRef, map, ready, view } = useMaplibreMap({
-    maptilerApiKey,
+  const { containerRef, map, ready, styleEpoch, view, provider } = useMaplibreMap({
+    providers,
     minZoom: MIN_ZOOM,
     onUnavailable,
     initialBounds: initial.bounds,
@@ -234,7 +236,14 @@ export default function ExploreMap({
     [selected]
   );
 
-  usePropertyClusterLayer({ map, ready, features, selectedFeatures, onSelectProperty: onPeek });
+  usePropertyClusterLayer({
+    map,
+    styleEpoch,
+    features,
+    selectedFeatures,
+    fonts: provider.fonts,
+    onSelectProperty: onPeek,
+  });
 
   // MapLibre measures its container once at creation. When the pane changes size
   // (desktop view toggle, list show/hide, mobile rotate) the canvas must be told
@@ -266,9 +275,14 @@ export default function ExploreMap({
   useEffect(() => {
     if (!map || !ready) return;
     const onMapClick = (event: maplibregl.MapMouseEvent) => {
-      const features = map.queryRenderedFeatures(event.point, {
-        layers: [PROPERTY_POINT_LAYER, PROPERTY_CLUSTER_LAYER],
-      });
+      // Between a provider swap and the layers being re-added the ids are
+      // absent, and querying a missing layer raises a map error event — which
+      // the engine would read as "this provider is broken too".
+      const layers = [PROPERTY_POINT_LAYER, PROPERTY_CLUSTER_LAYER].filter((id) =>
+        map.getLayer(id)
+      );
+      if (layers.length === 0) return;
+      const features = map.queryRenderedFeatures(event.point, { layers });
       if (features.length === 0) onClearPeek();
     };
     map.on("click", onMapClick);
@@ -391,7 +405,9 @@ export default function ExploreMap({
 
   return (
     <div className="explore-map absolute inset-0">
-      <div ref={containerRef} className="h-full w-full" />
+      {/* Names the basemap tier actually in use — the one externally visible
+          signal that a provider swap happened, for support and for tests. */}
+      <div ref={containerRef} data-basemap={provider.id} className="h-full w-full" />
 
       {/* Map controls — bottom-left so they clear the list pane / bottom sheet;
           shifted right of the detail panel when it overlays the map edge. */}
@@ -468,7 +484,13 @@ export default function ExploreMap({
               ? "border-emerald-500 bg-emerald-600 text-white"
               : "border-slate-200 bg-white/95 text-slate-700 hover:bg-slate-100"
           }`}
-          aria-label={tilted ? "Reset to flat view" : "Tilt for 3D buildings"}
+          aria-label={
+            tilted
+              ? "Reset to flat view"
+              : provider.has3dBuildings
+                ? "Tilt for 3D buildings"
+                : "Tilt the map"
+          }
           title="3D tilt"
         >
           3D
