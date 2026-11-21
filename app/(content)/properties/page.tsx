@@ -207,11 +207,20 @@ export default function PropertiesPage() {
                 <li key={entry.id} className="py-1 text-sm leading-snug">
                   <Link
                     href={`/property/${entry.id}`}
-                    className="text-slate-800 hover:text-slate-950 hover:underline"
+                    prefetch={false}
+                    className="text-slate-800 underline decoration-slate-300 underline-offset-2 hover:decoration-slate-800"
                   >
                     {entry.name}
                   </Link>{" "}
-                  <span className="whitespace-nowrap text-slate-400">· {entry.city}</span>
+                  <span className="text-slate-500" aria-hidden="true">· </span>
+                  <Link
+                    href={`/city/${entry.citySlug}`}
+                    prefetch={false}
+                    className="whitespace-nowrap text-blue-700 hover:underline"
+                    aria-label={`Browse properties in ${entry.city}`}
+                  >
+                    {entry.city}
+                  </Link>
                 </li>
               ))}
             </ul>

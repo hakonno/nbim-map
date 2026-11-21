@@ -74,7 +74,8 @@ export default function ExploreApp({
   // static HTML, so React never sees a hydration mismatch.
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
-    setNow(new Date());
+    const timer = window.setTimeout(() => setNow(new Date()), 0);
+    return () => window.clearTimeout(timer);
   }, []);
   const expectedLatestYear = now ? expectedLatestReleaseYear(now) : parseInt(datasetYear, 10);
   const datasetIsStale = now ? isDatasetStale(datasetYear, now) : false;
@@ -415,10 +416,15 @@ export default function ExploreApp({
             />
           ) : null}
 
+          <Link
+            href="/properties"
+            prefetch={false}
+            className="shrink-0 rounded-md px-2 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            Directory
+          </Link>
           <CurrencyToggle />
-          {/* Last in the row so the popover's right edge anchors near the
-              viewport edge on phones. The /properties index is a crawl/SEO
-              surface, not primary nav — About links it for the curious. */}
+          {/* Keep the popover anchored near the right edge on phones. */}
           <AboutPopover
             datasetYear={datasetYear}
             expectedLatestYear={expectedLatestYear}

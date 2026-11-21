@@ -209,23 +209,24 @@ export default async function CityPage({ params }: { params: Params }) {
         <h2 id="properties-heading" className="text-xl font-semibold text-slate-900">
           Properties
         </h2>
-        <ul className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {entries.map((entry) => (
-            <li key={entry.id} className="text-sm leading-snug">
+            <li key={entry.id}>
               <Link
                 href={`/property/${entry.id}`}
-                className="font-medium text-slate-900 hover:underline"
+                prefetch={false}
+                className="block h-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm leading-snug transition-colors hover:border-emerald-400 hover:bg-emerald-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
-                {entry.name}
+                <span className="font-semibold text-slate-900">{entry.name}</span>
+                {entry.address && entry.address !== entry.name ? (
+                  <span className="mt-1 block text-slate-600">{entry.address}</span>
+                ) : null}
+                {entry.sector || entry.stake ? (
+                  <span className="mt-2 block text-xs text-slate-600">
+                    {[entry.sector, entry.stake].filter(Boolean).join(" · ")}
+                  </span>
+                ) : null}
               </Link>
-              {entry.address && entry.address !== entry.name ? (
-                <p className="mt-0.5 text-slate-500">{entry.address}</p>
-              ) : null}
-              {entry.sector || entry.stake ? (
-                <p className="mt-0.5 text-xs text-slate-400">
-                  {[entry.sector, entry.stake].filter(Boolean).join(" · ")}
-                </p>
-              ) : null}
             </li>
           ))}
         </ul>
